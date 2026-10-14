@@ -1,15 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import AuraBioHologram3D from '../components/AuraBioHologram3D';
-import AuraTelemetryCard from '../components/AuraTelemetryCard';
+import { useAuth } from '../context/AuthContext';
+import VeterinaryPet3D from '../components/VeterinaryPet3D';
 import { 
   Users, Dog, Calendar, DollarSign, Package, Stethoscope, 
-  ArrowRight, Sparkles, Shield, Dna, Radio, Activity,
-  AlertTriangle, Clock, ChevronRight
+  ArrowRight, Sparkles, Heart, Clock, AlertTriangle, 
+  ChevronRight, PlusCircle, CheckCircle2
 } from 'lucide-react';
 
 export const DashboardView = ({ onNavigate }) => {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const handleNav = (target) => {
     if (onNavigate) {
@@ -76,29 +77,28 @@ export const DashboardView = ({ onNavigate }) => {
   };
 
   const statCards = [
-    { label: 'Pacientes Registrados', val: stats.pacientes, icon: Dog, color: '#00f5a0', bg: 'rgba(0, 245, 160, 0.1)', nav: 'pacientes' },
-    { label: 'Clientes / Dueños', val: stats.clientes, icon: Users, color: '#2dd4bf', bg: 'rgba(45, 212, 191, 0.1)', nav: 'clientes' },
-    { label: 'Citas Médicas', val: stats.citas, icon: Calendar, color: '#38bdf8', bg: 'rgba(56, 189, 248, 0.1)', nav: 'citas' },
-    { label: 'Consultas Realizadas', val: stats.consultas, icon: Stethoscope, color: '#05f2af', bg: 'rgba(5, 242, 175, 0.1)', nav: 'consultas' },
-    { label: 'Facturas Emitidas', val: stats.facturas, icon: DollarSign, color: '#f59e0b', bg: 'rgba(245, 158, 11, 0.1)', nav: 'facturas' },
-    { label: 'Insumos en Inventario', val: stats.insumos, icon: Package, color: '#ec4899', bg: 'rgba(236, 72, 153, 0.1)', nav: 'insumos' }
+    { label: 'Pacientes Registrados', val: stats.pacientes, icon: Dog, color: '#0d9488', bg: '#f0fdfa', border: '#ccfbf1', nav: 'pacientes' },
+    { label: 'Clientes / Dueños', val: stats.clientes, icon: Users, color: '#0284c7', bg: '#f0f9ff', border: '#e0f2fe', nav: 'clientes' },
+    { label: 'Citas Médicas', val: stats.citas, icon: Calendar, color: '#7c3aed', bg: '#f5f3ff', border: '#ede9fe', nav: 'citas' },
+    { label: 'Consultas Realizadas', val: stats.consultas, icon: Stethoscope, color: '#059669', bg: '#ecfdf5', border: '#d1fae5', nav: 'consultas' },
+    { label: 'Facturas Emitidas', val: stats.facturas, icon: DollarSign, color: '#d97706', bg: '#fffbeb', border: '#fef3c7', nav: 'facturas' },
+    { label: 'Insumos en Inventario', val: stats.insumos, icon: Package, color: '#db2777', bg: '#fdf2f8', border: '#fce7f3', nav: 'insumos' }
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       
       {/* =========================================================================
-          HERO SECTION - ESTILO AURA VET (Bio-Resonancia e Inteligencia Clínica)
+          HERO BANNER CÁLIDO Y AMIGABLE CON EL PERRITO 3D INTERACTIVO
           ========================================================================= */}
       <section
         style={{
           position: 'relative',
           borderRadius: '24px',
-          background: 'radial-gradient(ellipse at 80% 20%, rgba(0, 245, 160, 0.12) 0%, rgba(6, 16, 13, 0.95) 70%)',
-          border: '1px solid rgba(0, 245, 160, 0.2)',
-          padding: '2.5rem 2rem',
-          overflow: 'hidden',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdfa 50%, #f8fafc 100%)',
+          border: '1px solid #e2e8f0',
+          padding: '2.25rem 2rem',
+          boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.02)',
         }}
       >
         <div
@@ -107,13 +107,10 @@ export const DashboardView = ({ onNavigate }) => {
             gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
             gap: '2.5rem',
             alignItems: 'center',
-            position: 'relative',
-            zIndex: 2,
           }}
         >
-          {/* Lado Izquierdo: Copy Futurista y Acciones */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* Pill superior */}
+          {/* Lado Izquierdo: Saludo y Acciones Rápidas */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
             <div
               style={{
                 display: 'inline-flex',
@@ -121,186 +118,125 @@ export const DashboardView = ({ onNavigate }) => {
                 gap: '8px',
                 padding: '6px 14px',
                 borderRadius: '999px',
-                background: 'rgba(0, 245, 160, 0.1)',
-                border: '1px solid rgba(0, 245, 160, 0.3)',
-                color: '#00f5a0',
-                fontSize: '0.74rem',
+                background: '#ccfbf1',
+                border: '1px solid #99f6e4',
+                color: '#0f766e',
+                fontSize: '0.78rem',
                 fontWeight: 700,
-                letterSpacing: '0.08em',
-                textTransform: 'uppercase',
+                letterSpacing: '0.04em',
                 alignSelf: 'flex-start',
-                backdropFilter: 'blur(10px)',
               }}
             >
-              <span
-                style={{
-                  width: '7px',
-                  height: '7px',
-                  borderRadius: '50%',
-                  backgroundColor: '#00f5a0',
-                  boxShadow: '0 0 10px #00f5a0',
-                }}
-              />
-              <span>MEDICINA VETERINARIA PREDICTIVA • BIO-MONITOREO CUÁNTICO</span>
+              <Heart size={14} fill="#0d9488" color="#0d9488" />
+              <span>SISTEMA CLÍNICO VETERINARIO PROFESIONAL</span>
             </div>
 
-            {/* Gran Título Cinético */}
             <h1
               style={{
-                fontSize: 'clamp(2rem, 3.8vw, 3.2rem)',
+                fontSize: 'clamp(1.9rem, 3.2vw, 2.7rem)',
                 fontWeight: 800,
-                lineHeight: 1.15,
-                color: '#ffffff',
-                letterSpacing: '-0.03em',
+                lineHeight: 1.2,
+                color: '#0f172a',
+                letterSpacing: '-0.02em',
               }}
             >
-              El futuro del cuidado animal guiado por{' '}
-              <span
-                style={{
-                  background: 'linear-gradient(135deg, #00f5a0 0%, #2dd4bf 50%, #38bdf8 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                }}
-              >
-                bio-resonancia
-              </span>{' '}
-              e inteligencia clínica.
+              ¡Bienvenido al <span style={{ color: '#0d9488' }}>Portal Clínico</span>!
             </h1>
 
-            {/* Subtítulo descriptivo */}
             <p
               style={{
                 fontSize: '1rem',
-                color: '#94a3b8',
+                color: '#475569',
                 lineHeight: 1.6,
-                maxWidth: '620px',
+                maxWidth: '560px',
               }}
             >
-              Redefinimos la salud de tus compañeros con espacios libres de estrés acústico,
-              diagnósticos moleculares instantáneos y telemetría no invasiva en tiempo real.
+              Gestiona historias clínicas, agenda consultas y cuida la salud de cada mascota
+              con una plataforma ágil, segura y diseñada para tu equipo.
             </p>
 
-            {/* Botones de Acción Estilo Aura Pill */}
+            {/* Botones de Acción Amigables */}
             <div
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
                 alignItems: 'center',
-                gap: '1rem',
+                gap: '0.85rem',
                 marginTop: '0.5rem',
               }}
             >
               <button
-                onClick={() => handleNav('citas')}
-                style={{
-                  background: 'linear-gradient(135deg, #00f5a0, #05f2af)',
-                  color: '#04100c',
-                  fontWeight: 700,
-                  fontSize: '0.95rem',
-                  padding: '13px 26px',
-                  borderRadius: '999px',
-                  border: 'none',
-                  cursor: 'pointer',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  boxShadow: '0 0 25px rgba(0, 245, 160, 0.45)',
-                  transition: 'all 0.25s ease',
-                  minHeight: '44px',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-2px)';
-                  e.currentTarget.style.boxShadow = '0 0 35px rgba(0, 245, 160, 0.65)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 0 25px rgba(0, 245, 160, 0.45)';
-                }}
-              >
-                <Calendar size={18} />
-                <span>Agendar Chequeo Integral</span>
-              </button>
-
-              <button
+                type="button"
                 onClick={() => handleNav('pacientes')}
+                className="btn btn-primary"
                 style={{
-                  background: 'rgba(10, 25, 22, 0.75)',
-                  color: '#e2e8f0',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  padding: '13px 24px',
-                  borderRadius: '999px',
-                  border: '1px solid rgba(0, 245, 160, 0.35)',
-                  cursor: 'pointer',
+                  fontSize: '0.92rem',
+                  padding: '12px 24px',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '8px',
-                  backdropFilter: 'blur(10px)',
-                  transition: 'all 0.25s ease',
-                  minHeight: '44px',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#00f5a0';
-                  e.currentTarget.style.background = 'rgba(15, 35, 30, 0.9)';
-                  e.currentTarget.style.color = '#00f5a0';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = 'rgba(0, 245, 160, 0.35)';
-                  e.currentTarget.style.background = 'rgba(10, 25, 22, 0.75)';
-                  e.currentTarget.style.color = '#e2e8f0';
+                  borderRadius: '999px',
                 }}
               >
-                <span>Explorar Suite Diagnóstica 360°</span>
-                <ArrowRight size={18} />
+                <PlusCircle size={18} />
+                <span>Gestionar Pacientes</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleNav('citas')}
+                className="btn btn-secondary"
+                style={{
+                  fontSize: '0.92rem',
+                  padding: '12px 22px',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  borderRadius: '999px',
+                }}
+              >
+                <Calendar size={18} color="#0d9488" />
+                <span>Agenda de Citas</span>
+                <ChevronRight size={16} />
               </button>
             </div>
 
-            {/* Badges de Certificación Footer */}
+            {/* Ventajas y Certificaciones */}
             <div
               style={{
                 display: 'flex',
                 flexWrap: 'wrap',
                 alignItems: 'center',
                 gap: '1.25rem',
-                marginTop: '1rem',
-                paddingTop: '1.25rem',
-                borderTop: '1px solid rgba(45, 212, 191, 0.15)',
-                fontSize: '0.75rem',
-                color: '#94a3b8',
+                marginTop: '0.75rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid #e2e8f0',
+                fontSize: '0.78rem',
+                color: '#64748b',
                 fontWeight: 600,
-                letterSpacing: '0.04em',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Shield size={16} color="#00f5a0" />
-                <span>CERTIFICACIÓN LIBRE DE ESTRÉS NIVEL V</span>
+                <CheckCircle2 size={16} color="#0d9488" />
+                <span>Base de Datos SQL Server Activa</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Dna size={16} color="#2dd4bf" />
-                <span>SECUENCIACIÓN GENÓMICA EN 12 MIN</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Radio size={16} color="#38bdf8" />
-                <span>TELEMETRÍA REMOTA 24/7</span>
+                <Sparkles size={16} color="#f59e0b" />
+                <span>Control de Acceso Seguro (JWT)</span>
               </div>
             </div>
           </div>
 
-          {/* Lado Derecho: Modelado 3D Interactivo + Tarjeta de Telemetría */}
+          {/* Lado Derecho: El Perrito 3D Interactivo */}
           <div
             style={{
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
-              gap: '1.5rem',
               justifyContent: 'center',
             }}
           >
-            {/* Modelado 3D en Three.js con Anillos Giroscópicos */}
-            <AuraBioHologram3D />
-
-            {/* Tarjeta de Telemetría Vital con ECG en vivo */}
-            <AuraTelemetryCard />
+            <VeterinaryPet3D />
           </div>
         </div>
       </section>
@@ -311,26 +247,13 @@ export const DashboardView = ({ onNavigate }) => {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.25rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: '#ffffff', letterSpacing: '-0.02em' }}>
-              Métricas Operativas de la Clínica
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' }}>
+              Resumen Clínico y Operativo
             </h2>
-            <p style={{ color: '#94a3b8', fontSize: '0.85rem' }}>
-              Datos sincronizados en tiempo real con la base de datos SQL Server.
+            <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
+              Métricas sincronizadas en tiempo real con la base de datos de la clínica.
             </p>
           </div>
-          <span
-            style={{
-              fontSize: '0.75rem',
-              color: '#00f5a0',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#00f5a0' }} />
-            API RESTful Conectada
-          </span>
         </div>
 
         {/* Grid de Métricas */}
@@ -347,10 +270,11 @@ export const DashboardView = ({ onNavigate }) => {
                 onKeyDown={(e) => { if (e.key === 'Enter') handleNav(c.nav); }}
                 style={{
                   cursor: 'pointer',
-                  background: 'rgba(9, 21, 18, 0.75)',
-                  border: '1px solid rgba(0, 245, 160, 0.18)',
-                  backdropFilter: 'blur(16px)',
-                  transition: 'all 0.25s ease',
+                  background: '#ffffff',
+                  border: `1px solid ${c.border}`,
+                  borderRadius: '16px',
+                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
+                  transition: 'all 0.2s ease',
                 }}
               >
                 <div 
@@ -358,14 +282,14 @@ export const DashboardView = ({ onNavigate }) => {
                   style={{ 
                     color: c.color, 
                     backgroundColor: c.bg,
-                    border: `1px solid ${c.color}30`
+                    border: `1px solid ${c.border}`
                   }}
                 >
                   <Icon size={24} />
                 </div>
                 <div className="stat-content">
-                  <div className="stat-value" style={{ color: '#ffffff' }}>{c.val}</div>
-                  <div className="stat-label" style={{ color: '#94a3b8' }}>{c.label}</div>
+                  <div className="stat-value" style={{ color: '#0f172a' }}>{c.val}</div>
+                  <div className="stat-label" style={{ color: '#64748b' }}>{c.label}</div>
                 </div>
               </div>
             );
@@ -374,7 +298,7 @@ export const DashboardView = ({ onNavigate }) => {
       </div>
 
       {/* =========================================================================
-          PANEL INFERIOR: CITAS RECIENTES E INVENTARIO CRÍTICO
+          PANEL INFERIOR: PRÓXIMAS CITAS E INVENTARIO CRÍTICO
           ========================================================================= */}
       <div 
         style={{ 
@@ -383,19 +307,12 @@ export const DashboardView = ({ onNavigate }) => {
           gap: '1.5rem' 
         }}
       >
-        {/* Próximas Citas Médicas */}
-        <div 
-          className="card"
-          style={{
-            background: 'rgba(9, 21, 18, 0.75)',
-            border: '1px solid rgba(0, 245, 160, 0.18)',
-            backdropFilter: 'blur(16px)',
-          }}
-        >
+        {/* Próximas Citas */}
+        <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Clock size={18} color="#00f5a0" />
-              Próximas Citas Agendadas
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Clock size={18} color="#0d9488" />
+              Próximas Citas Médicas
             </h3>
             <button 
               className="btn btn-sm btn-secondary" 
@@ -408,8 +325,8 @@ export const DashboardView = ({ onNavigate }) => {
 
           {citasRecientes.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8' }}>
-              <Calendar size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: '#00f5a0' }} />
-              <p style={{ fontSize: '0.9rem' }}>No hay citas próximas registradas en la base de datos.</p>
+              <Calendar size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: '#0d9488' }} />
+              <p style={{ fontSize: '0.9rem' }}>No hay citas agendadas actualmente en el sistema.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -421,29 +338,30 @@ export const DashboardView = ({ onNavigate }) => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0.75rem 1rem',
-                    borderRadius: '10px',
-                    background: 'rgba(14, 30, 26, 0.6)',
-                    border: '1px solid rgba(45, 212, 191, 0.12)',
+                    borderRadius: '12px',
+                    background: '#f8fafc',
+                    border: '1px solid #e2e8f0',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                     <div style={{
-                      width: '36px',
-                      height: '36px',
-                      borderRadius: '8px',
-                      backgroundColor: 'rgba(0, 245, 160, 0.12)',
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: '10px',
+                      backgroundColor: '#f0fdfa',
+                      border: '1px solid #ccfbf1',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#00f5a0'
+                      color: '#0d9488'
                     }}>
                       <Dog size={18} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#ffffff' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
                         Paciente #{cita.pacienteId || cita.id}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
+                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                         {cita.fechaHora ? new Date(cita.fechaHora).toLocaleString() : 'Fecha pendiente'}
                       </div>
                     </div>
@@ -457,18 +375,11 @@ export const DashboardView = ({ onNavigate }) => {
           )}
         </div>
 
-        {/* Insumos con Stock Crítico */}
-        <div 
-          className="card"
-          style={{
-            background: 'rgba(9, 21, 18, 0.75)',
-            border: '1px solid rgba(0, 245, 160, 0.18)',
-            backdropFilter: 'blur(16px)',
-          }}
-        >
+        {/* Insumos con Stock Bajo */}
+        <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#ffffff', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertTriangle size={18} color="#f59e0b" />
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertTriangle size={18} color="#d97706" />
               Insumos con Stock Crítico
             </h3>
             <button 
@@ -482,8 +393,8 @@ export const DashboardView = ({ onNavigate }) => {
 
           {insumosBajoStock.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8' }}>
-              <Package size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: '#00f5a0' }} />
-              <p style={{ fontSize: '0.9rem' }}>Todos los medicamentos e insumos cuentan con stock óptimo.</p>
+              <Package size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: '#0d9488' }} />
+              <p style={{ fontSize: '0.9rem' }}>Todos los medicamentos y suministros tienen stock suficiente.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -495,17 +406,17 @@ export const DashboardView = ({ onNavigate }) => {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     padding: '0.75rem 1rem',
-                    borderRadius: '10px',
-                    background: 'rgba(14, 30, 26, 0.6)',
-                    border: '1px solid rgba(245, 158, 11, 0.2)',
+                    borderRadius: '12px',
+                    background: '#fffbeb',
+                    border: '1px solid #fef3c7',
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#ffffff' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
                       {insumo.nombreProducto || `Insumo #${insumo.id}`}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#94a3b8' }}>
-                      Tipo: {insumo.tipo || 'Clínico'}
+                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      Categoría: {insumo.tipo || 'Clínico'}
                     </div>
                   </div>
                   <span className="badge badge-warning">
@@ -520,3 +431,5 @@ export const DashboardView = ({ onNavigate }) => {
     </div>
   );
 };
+
+export default DashboardView;

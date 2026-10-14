@@ -8,14 +8,49 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.IdentityModel.Tokens;
 using Xunit;
 
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using VeterinariaAPI.Models;
+
 namespace VeterinariaAPI.Tests
 {
-    public class ApiIntegrationTests : IClassFixture<WebApplicationFactory<Program>>
+    public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
-        private readonly WebApplicationFactory<Program> _factory;
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.ConfigureServices(services =>
+            {
+                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<VeterinariodbContext>));
+                if (descriptor != null)
+                {
+                    services.Remove(descriptor);
+                }
+
+                services.AddDbContext<VeterinariodbContext>(options =>
+                {
+                    options.UseInMemoryDatabase("TestVeterinariaDb_" + Guid.NewGuid());
+                });
+
+                var sp = services.BuildServiceProvider();
+                using var scope = sp.CreateScope();
+                var db = scope.ServiceProvider.GetRequiredService<VeterinariodbContext>();
+                db.Database.EnsureCreated();
+                if (!db.Roles.Any())
+                {
+                    db.Roles.Add(new Role { Id = 1, Nombre = "Administrador", PermisosEscritura = true });
+                    db.SaveChanges();
+                }
+            });
+        }
+    }
+
+    public class ApiIntegrationTests : IClassFixture<CustomWebApplicationFactory>
+    {
+        private readonly CustomWebApplicationFactory _factory;
         private readonly HttpClient _client;
 
-        public ApiIntegrationTests(WebApplicationFactory<Program> factory)
+        public ApiIntegrationTests(CustomWebApplicationFactory factory)
         {
             _factory = factory;
             _client = factory.CreateClient();

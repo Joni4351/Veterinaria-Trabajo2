@@ -222,62 +222,60 @@ function MainLayout() {
         aria-hidden="true"
       />
 
-      {/* Sidebar de Navegación AURA VET (Off-canvas en Móvil / Sticky en Desktop) */}
+      {/* Sidebar de Navegación VetClinic (Off-canvas en Móvil / Sticky en Desktop) */}
       <aside 
         className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}
         style={{
-          background: 'rgba(5, 12, 10, 0.95)',
-          borderRight: '1px solid rgba(0, 245, 160, 0.15)',
-          backdropFilter: 'blur(20px)',
+          background: '#ffffff',
+          borderRight: '1px solid #e2e8f0',
+          boxShadow: '4px 0 25px rgba(15, 23, 42, 0.06)',
         }}
       >
-        <div className="sidebar-header" style={{ borderBottom: '1px solid rgba(0, 245, 160, 0.15)', padding: '1.5rem 1.25rem' }}>
+        <div className="sidebar-header" style={{ borderBottom: '1px solid #e2e8f0', padding: '1.25rem' }}>
           <div className="sidebar-brand">
             <div 
               style={{
-                width: '40px',
-                height: '40px',
+                width: '42px',
+                height: '42px',
                 borderRadius: '12px',
-                background: 'linear-gradient(135deg, rgba(0, 245, 160, 0.2), rgba(5, 242, 175, 0.05))',
-                border: '1px solid rgba(0, 245, 160, 0.4)',
+                background: '#f0fdfa',
+                border: '1px solid #ccfbf1',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#00f5a0',
-                boxShadow: '0 0 15px rgba(0, 245, 160, 0.3)',
+                color: '#0d9488',
+                boxShadow: '0 2px 8px rgba(13, 148, 136, 0.15)',
               }}
             >
-              <HeartPulse size={22} />
+              <HeartPulse size={24} />
             </div>
             <div>
               <div 
                 style={{
-                  fontSize: '1.25rem',
+                  fontSize: '1.2rem',
                   fontWeight: 900,
-                  letterSpacing: '0.04em',
-                  background: 'linear-gradient(135deg, #ffffff 40%, #00f5a0 100%)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
+                  letterSpacing: '-0.02em',
+                  color: '#0f172a',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'
                 }}
               >
-                AURA VET
+                VetClinic Pro
               </div>
-              <div style={{ fontSize: '0.7rem', color: '#5eead4', letterSpacing: '0.08em', textTransform: 'uppercase', fontWeight: 600 }}>
-                Bio-Resonancia Clínica
+              <div style={{ fontSize: '0.72rem', color: '#0d9488', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 700 }}>
+                Clínica Veterinaria
               </div>
             </div>
           </div>
           {/* Botón para cerrar drawer en móvil */}
           <button 
             className="btn-icon mobile-menu-btn" 
-            style={{ color: '#cbd5e1', border: 'none' }}
+            style={{ color: '#64748b', border: '1px solid #e2e8f0' }}
             onClick={() => setIsMobileMenuOpen(false)}
             aria-label="Cerrar menú lateral"
           >
-            <X size={22} />
+            <X size={20} />
           </button>
         </div>
 
@@ -296,7 +294,7 @@ function MainLayout() {
                   display: 'flex',
                   justifyContent: 'space-between',
                   alignItems: 'center',
-                  opacity: tienePermiso ? 1 : 0.55,
+                  opacity: tienePermiso ? 1 : 0.5,
                   textDecoration: 'none',
                 }}
                 title={!tienePermiso ? `Requiere rol: ${item.roles.join(', ')}` : ''}
@@ -316,8 +314,8 @@ function MainLayout() {
         <div 
           className="sidebar-footer"
           style={{
-            background: 'rgba(3, 8, 7, 0.95)',
-            borderTop: '1px solid rgba(0, 245, 160, 0.15)',
+            background: '#f8fafc',
+            borderTop: '1px solid #e2e8f0',
           }}
         >
           <div className="user-profile">
@@ -326,25 +324,24 @@ function MainLayout() {
                 width: '38px',
                 height: '38px',
                 borderRadius: '50%',
-                background: 'rgba(0, 245, 160, 0.15)',
-                border: '1px solid #00f5a0',
+                background: '#f0fdfa',
+                border: '1px solid #ccfbf1',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: '#00f5a0',
-                fontWeight: 700,
-                fontSize: '0.9rem',
-                boxShadow: '0 0 10px rgba(0, 245, 160, 0.25)',
+                color: '#0d9488',
+                fontWeight: 800,
+                fontSize: '0.92rem',
               }}
               aria-hidden="true"
             >
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="user-info">
-              <span className="user-name" title={user?.name} style={{ color: '#ffffff', fontWeight: 600 }}>
+              <span className="user-name" title={user?.name} style={{ color: '#0f172a', fontWeight: 700 }}>
                 {user?.name}
               </span>
-              <span style={{ fontSize: '0.72rem', color: '#00f5a0', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.06em' }}>
+              <span style={{ fontSize: '0.72rem', color: '#0d9488', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
                 {user?.role}
               </span>
             </div>
@@ -356,9 +353,9 @@ function MainLayout() {
               marginTop: '0.4rem', 
               justifyContent: 'center',
               borderRadius: '999px',
-              border: '1px solid rgba(0, 245, 160, 0.25)',
-              background: 'rgba(10, 25, 22, 0.7)',
-              color: '#e2e8f0',
+              border: '1px solid #cbd5e1',
+              background: '#ffffff',
+              color: '#334155',
             }}
             onClick={handleLogout}
             aria-label="Cerrar sesión actual"
@@ -373,9 +370,9 @@ function MainLayout() {
         <header 
           className="topbar"
           style={{
-            background: 'rgba(5, 13, 11, 0.85)',
-            borderBottom: '1px solid rgba(0, 245, 160, 0.15)',
-            backdropFilter: 'blur(20px)',
+            background: 'rgba(255, 255, 255, 0.95)',
+            borderBottom: '1px solid #e2e8f0',
+            backdropFilter: 'blur(12px)',
           }}
         >
           <div className="topbar-left">
@@ -383,49 +380,49 @@ function MainLayout() {
               className="mobile-menu-btn"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Abrir menú de navegación"
-              style={{ color: '#ffffff' }}
+              style={{ color: '#334155', background: '#ffffff', border: '1px solid #cbd5e1' }}
             >
-              <Menu size={22} />
+              <Menu size={20} />
             </button>
             
-            {/* Banner de Estado Operativo AURA VET */}
+            {/* Banner de Estado Operativo */}
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
                 gap: '8px',
                 fontSize: '0.75rem',
-                color: '#94a3b8',
+                color: '#475569',
                 fontWeight: 600,
-                letterSpacing: '0.06em',
-                background: 'rgba(0, 245, 160, 0.08)',
-                border: '1px solid rgba(0, 245, 160, 0.2)',
-                padding: '4px 12px',
+                letterSpacing: '0.02em',
+                background: '#f0fdfa',
+                border: '1px solid #ccfbf1',
+                padding: '5px 14px',
                 borderRadius: '999px',
               }}
             >
               <span
                 style={{
-                  width: '6px',
-                  height: '6px',
+                  width: '8px',
+                  height: '8px',
                   borderRadius: '50%',
-                  backgroundColor: '#00f5a0',
-                  boxShadow: '0 0 8px #00f5a0',
+                  backgroundColor: '#0d9488',
+                  boxShadow: '0 0 6px rgba(13, 148, 136, 0.5)',
                 }}
               />
-              <span style={{ color: '#00f5a0' }}>SISTEMAS CLÍNICOS 100% OPERATIVOS</span>
-              <span style={{ color: '#64748b' }}>•</span>
+              <span style={{ color: '#0f766e', fontWeight: 700 }}>CLÍNICA 100% OPERATIVA</span>
+              <span style={{ color: '#cbd5e1' }}>•</span>
               <span>URGENCIAS 24/7</span>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            {/* Botón rápido "Agendar Cita" estilo Aura Pill */}
+            {/* Botón rápido "Agendar Cita" */}
             <button
               onClick={() => navigate('/citas')}
               style={{
-                background: 'linear-gradient(135deg, #00f5a0, #05f2af)',
-                color: '#04100c',
+                background: '#0d9488',
+                color: '#ffffff',
                 fontWeight: 700,
                 fontSize: '0.85rem',
                 padding: '8px 18px',
@@ -435,7 +432,7 @@ function MainLayout() {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '6px',
-                boxShadow: '0 0 15px rgba(0, 245, 160, 0.35)',
+                boxShadow: '0 2px 6px rgba(13, 148, 136, 0.25)',
                 transition: 'all 0.2s ease',
               }}
             >
@@ -445,14 +442,14 @@ function MainLayout() {
 
             <span 
               style={{ 
-                fontSize: '0.76rem', 
-                padding: '0.3rem 0.75rem', 
+                fontSize: '0.78rem', 
+                padding: '0.35rem 0.85rem', 
                 borderRadius: '9999px',
-                backgroundColor: 'rgba(0, 245, 160, 0.1)',
-                border: '1px solid rgba(0, 245, 160, 0.3)',
-                color: '#00f5a0',
+                backgroundColor: '#f0fdfa',
+                border: '1px solid #ccfbf1',
+                color: '#0d9488',
                 fontWeight: 700,
-                letterSpacing: '0.04em',
+                letterSpacing: '0.02em',
               }}
             >
               Rol: {user?.role}
@@ -550,7 +547,7 @@ function App() {
           flexDirection: 'column',
           alignItems: 'center', 
           justifyContent: 'center',
-          backgroundColor: '#050c0a',
+          backgroundColor: '#f8fafc',
           gap: '1rem',
         }}
       >
@@ -558,17 +555,17 @@ function App() {
         <div style={{ position: 'relative', zIndex: 10, textAlign: 'center' }}>
           <div 
             style={{
-              width: '50px',
-              height: '50px',
+              width: '46px',
+              height: '46px',
               borderRadius: '50%',
-              border: '3px solid rgba(0, 245, 160, 0.2)',
-              borderTopColor: '#00f5a0',
+              border: '3px solid #ccfbf1',
+              borderTopColor: '#0d9488',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 1rem',
             }}
           />
-          <p style={{ color: '#00f5a0', fontWeight: 700, letterSpacing: '0.08em', fontSize: '0.95rem' }}>
-            SINCRONIZANDO AURA VET...
+          <p style={{ color: '#0d9488', fontWeight: 700, letterSpacing: '0.04em', fontSize: '0.95rem' }}>
+            Iniciando VetClinic Pro...
           </p>
         </div>
       </div>
@@ -576,8 +573,8 @@ function App() {
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: '#050c0a' }}>
-      {/* Fondo de Partículas Bioluminiscentes Interactivas */}
+    <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+      {/* Fondo de Partículas Suaves Interactivas */}
       <AuraParticleBackground />
 
       <Routes>

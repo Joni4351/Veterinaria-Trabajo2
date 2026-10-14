@@ -103,50 +103,47 @@ export const LoginView = () => {
         style={{
           width: '100%',
           maxWidth: '460px',
-          background: 'rgba(9, 21, 18, 0.85)',
-          border: '1px solid rgba(0, 245, 160, 0.25)',
+          background: '#ffffff',
+          border: '1px solid #e2e8f0',
           borderRadius: '24px',
           padding: '2.5rem 2.25rem',
-          backdropFilter: 'blur(20px)',
-          boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 245, 160, 0.12)',
+          boxShadow: '0 20px 45px -10px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.04)',
         }}
       >
-        {/* Brand Header AURA VET */}
+        {/* Brand Header VetClinic */}
         <header style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '60px',
-              height: '60px',
+              width: '58px',
+              height: '58px',
               borderRadius: '16px',
-              background: 'linear-gradient(135deg, rgba(0, 245, 160, 0.25), rgba(5, 242, 175, 0.05))',
-              border: '1px solid rgba(0, 245, 160, 0.45)',
-              color: '#00f5a0',
+              background: '#f0fdfa',
+              border: '1px solid #ccfbf1',
+              color: '#0d9488',
               marginBottom: '1rem',
-              boxShadow: '0 0 20px rgba(0, 245, 160, 0.35)',
+              boxShadow: '0 4px 14px rgba(13, 148, 136, 0.15)',
             }}
             aria-hidden="true"
           >
-            <HeartPulse size={32} />
+            <HeartPulse size={30} />
           </div>
           <h1
             style={{
-              fontSize: '1.8rem',
-              fontWeight: 900,
-              letterSpacing: '0.02em',
-              background: 'linear-gradient(135deg, #ffffff 40%, #00f5a0 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
+              fontSize: '1.65rem',
+              fontWeight: 800,
+              letterSpacing: '-0.02em',
+              color: '#0f172a',
             }}
           >
-            {isRegister ? 'Crear Cuenta Cuántica' : 'AURA VET — Clínica Veterinaria'}
+            {isRegister ? 'Crear Cuenta' : 'VetClinic Pro — Clínica Veterinaria'}
           </h1>
-          <p style={{ color: '#94a3b8', fontSize: '0.88rem', marginTop: '0.35rem' }}>
+          <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.35rem' }}>
             {isRegister
-              ? 'Regístrese para gestionar pacientes y telemetría clínica'
-              : 'Bio-Resonancia e Inteligencia Clínica Veterinaria'}
+              ? 'Regístrese para gestionar pacientes y servicios clínicos'
+              : 'Sistema Integral de Cuidado y Gestión Veterinaria'}
           </p>
         </header>
 
@@ -158,10 +155,10 @@ export const LoginView = () => {
             style={{
               marginBottom: '1.5rem',
               fontSize: '0.85rem',
-              background: 'rgba(153, 27, 27, 0.85)',
-              border: '1px solid #ef4444',
+              background: '#fef2f2',
+              border: '1px solid #fecaca',
               borderRadius: '12px',
-              color: '#ffffff',
+              color: '#dc2626',
             }}
           >
             <ShieldAlert size={18} style={{ flexShrink: 0 }} aria-hidden="true" />
@@ -174,8 +171,8 @@ export const LoginView = () => {
             <>
               {/* Campo Nombre Completo */}
               <div className="form-group">
-                <label htmlFor={`${formId}-nombreCompleto`} className="form-label" style={{ color: '#e2e8f0' }}>
-                  Nombre Completo <span style={{ color: '#ef4444' }}>*</span>
+                <label htmlFor={`${formId}-nombreCompleto`} className="form-label" style={{ color: '#334155' }}>
+                  Nombre Completo <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
                   <User size={18} style={{ position: 'absolute', left: '12px', top: '13px', color: '#94a3b8' }} aria-hidden="true" />
@@ -193,7 +190,7 @@ export const LoginView = () => {
                   />
                 </div>
                 {fieldErrors.nombreCompleto && (
-                  <span id={`${formId}-nombreCompleto-error`} role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                  <span id={`${formId}-nombreCompleto-error`} role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                     {fieldErrors.nombreCompleto}
                   </span>
                 )}
@@ -201,8 +198,8 @@ export const LoginView = () => {
 
               {/* Campo Rol */}
               <div className="form-group">
-                <label htmlFor={`${formId}-rolId`} className="form-label" style={{ color: '#e2e8f0' }}>
-                  Rol del Usuario <span style={{ color: '#ef4444' }}>*</span>
+                <label htmlFor={`${formId}-rolId`} className="form-label" style={{ color: '#334155' }}>
+                  Rol del Usuario <span style={{ color: '#dc2626' }}>*</span>
                 </label>
                 <select
                   id={`${formId}-rolId`}
@@ -221,8 +218,8 @@ export const LoginView = () => {
 
           {/* Campo Email */}
           <div className="form-group">
-            <label htmlFor={`${formId}-email`} className="form-label" style={{ color: '#e2e8f0' }}>
-              Correo Electrónico <span style={{ color: '#ef4444' }}>*</span>
+            <label htmlFor={`${formId}-email`} className="form-label" style={{ color: '#334155' }}>
+              Correo Electrónico <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <Mail size={18} style={{ position: 'absolute', left: '12px', top: '13px', color: '#94a3b8' }} aria-hidden="true" />
@@ -240,7 +237,7 @@ export const LoginView = () => {
               />
             </div>
             {fieldErrors.email && (
-              <span id={`${formId}-email-error`} role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+              <span id={`${formId}-email-error`} role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                 {fieldErrors.email}
               </span>
             )}
@@ -248,8 +245,8 @@ export const LoginView = () => {
 
           {/* Campo Contraseña */}
           <div className="form-group" style={{ marginBottom: '1.75rem' }}>
-            <label htmlFor={`${formId}-password`} className="form-label" style={{ color: '#e2e8f0' }}>
-              Contraseña <span style={{ color: '#ef4444' }}>*</span>
+            <label htmlFor={`${formId}-password`} className="form-label" style={{ color: '#334155' }}>
+              Contraseña <span style={{ color: '#dc2626' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '12px', top: '13px', color: '#94a3b8' }} aria-hidden="true" />
@@ -267,7 +264,7 @@ export const LoginView = () => {
               />
             </div>
             {fieldErrors.password && (
-              <span id={`${formId}-password-error`} role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+              <span id={`${formId}-password-error`} role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                 {fieldErrors.password}
               </span>
             )}
@@ -281,10 +278,10 @@ export const LoginView = () => {
               minHeight: '44px', 
               fontSize: '0.95rem',
               borderRadius: '999px',
-              background: 'linear-gradient(135deg, #00f5a0, #05f2af)',
-              color: '#04100c',
+              background: '#0d9488',
+              color: '#ffffff',
               fontWeight: 700,
-              boxShadow: '0 0 25px rgba(0, 245, 160, 0.4)',
+              boxShadow: '0 2px 8px rgba(13, 148, 136, 0.25)',
             }}
             disabled={loading}
           >
@@ -297,7 +294,7 @@ export const LoginView = () => {
           </button>
         </form>
 
-        <footer style={{ marginTop: '1.75rem', textAlign: 'center', borderTop: '1px solid rgba(45, 212, 191, 0.15)', paddingTop: '1.25rem' }}>
+        <footer style={{ marginTop: '1.75rem', textAlign: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
           <button
             type="button"
             onClick={() => {
@@ -308,7 +305,7 @@ export const LoginView = () => {
             style={{
               background: 'none',
               border: 'none',
-              color: '#00f5a0',
+              color: '#0d9488',
               fontSize: '0.88rem',
               fontWeight: 600,
               cursor: 'pointer',
