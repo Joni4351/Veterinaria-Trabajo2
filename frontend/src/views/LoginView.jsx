@@ -2,7 +2,7 @@ import React, { useState, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginSchema, registerSchema } from '../schemas/authSchema';
-import { Stethoscope, Lock, Mail, User, ShieldAlert, ArrowRight, AlertCircle } from 'lucide-react';
+import { HeartPulse, Lock, Mail, User, ShieldAlert, ArrowRight, Sparkles } from 'lucide-react';
 
 export const LoginView = () => {
   const { login, register } = useAuth();
@@ -78,16 +78,8 @@ export const LoginView = () => {
         setGlobalError('Credenciales incorrectas. Verifique su correo y contraseña.');
       } else if (err.response?.status === 429) {
         setGlobalError('Límite de solicitudes alcanzado (Rate Limiting). Espere 1 minuto antes de reintentar.');
-      } else if (err.response?.data?.errors) {
-        const serverErrors = {};
-        Object.entries(err.response.data.errors).forEach(([field, msgs]) => {
-          const lower = field.charAt(0).toLowerCase() + field.slice(1);
-          serverErrors[lower] = Array.isArray(msgs) ? msgs[0] : String(msgs);
-        });
-        setFieldErrors(serverErrors);
-        setGlobalError('Errores de validación devueltos por el servidor.');
       } else {
-        setGlobalError(err.response?.data?.message || err.message || 'Error al conectar con el servidor.');
+        setGlobalError(err.message || 'Error de conexión con el servidor veterinario.');
       }
     } finally {
       setLoading(false);
@@ -96,52 +88,65 @@ export const LoginView = () => {
 
   return (
     <main
-      role="main"
       style={{
         minHeight: '100vh',
-        minHeight: '100dvh',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0369a1 100%)',
-        padding: 'clamp(0.75rem, 3vw, 1.5rem)'
+        padding: '1.5rem',
+        position: 'relative',
+        zIndex: 1,
       }}
     >
       <div
         className="card"
         style={{
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          padding: 'clamp(1.25rem, 5vw, 2.5rem)',
-          maxWidth: '440px',
           width: '100%',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          maxWidth: '460px',
+          background: 'rgba(9, 21, 18, 0.85)',
+          border: '1px solid rgba(0, 245, 160, 0.25)',
+          borderRadius: '24px',
+          padding: '2.5rem 2.25rem',
+          backdropFilter: 'blur(20px)',
+          boxShadow: '0 25px 60px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(0, 245, 160, 0.12)',
         }}
       >
-        {/* Brand Header */}
+        {/* Brand Header AURA VET */}
         <header style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <div
             style={{
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '56px',
-              height: '56px',
-              borderRadius: '14px',
-              background: 'linear-gradient(135deg, #0284c7, #06b6d4)',
-              color: 'white',
+              width: '60px',
+              height: '60px',
+              borderRadius: '16px',
+              background: 'linear-gradient(135deg, rgba(0, 245, 160, 0.25), rgba(5, 242, 175, 0.05))',
+              border: '1px solid rgba(0, 245, 160, 0.45)',
+              color: '#00f5a0',
               marginBottom: '1rem',
-              boxShadow: '0 10px 15px -3px rgba(2, 132, 199, 0.3)'
+              boxShadow: '0 0 20px rgba(0, 245, 160, 0.35)',
             }}
             aria-hidden="true"
           >
-            <Stethoscope size={30} />
+            <HeartPulse size={32} />
           </div>
-          <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#0f172a' }}>
-            {isRegister ? 'Crear Cuenta' : 'Clínica Veterinaria'}
+          <h1
+            style={{
+              fontSize: '1.8rem',
+              fontWeight: 900,
+              letterSpacing: '0.02em',
+              background: 'linear-gradient(135deg, #ffffff 40%, #00f5a0 100%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            {isRegister ? 'Crear Cuenta Cuántica' : 'AURA VET — Clínica Veterinaria'}
           </h1>
-          <p style={{ color: '#64748b', fontSize: '0.9rem', marginTop: '0.25rem' }}>
-            {isRegister ? 'Regístrese para gestionar pacientes y citas' : 'Ingrese sus credenciales para acceder al sistema'}
+          <p style={{ color: '#94a3b8', fontSize: '0.88rem', marginTop: '0.35rem' }}>
+            {isRegister
+              ? 'Regístrese para gestionar pacientes y telemetría clínica'
+              : 'Bio-Resonancia e Inteligencia Clínica Veterinaria'}
           </p>
         </header>
 
@@ -150,7 +155,14 @@ export const LoginView = () => {
             role="alert"
             aria-live="assertive"
             className="alert alert-danger"
-            style={{ marginBottom: '1.5rem', fontSize: '0.85rem' }}
+            style={{
+              marginBottom: '1.5rem',
+              fontSize: '0.85rem',
+              background: 'rgba(153, 27, 27, 0.85)',
+              border: '1px solid #ef4444',
+              borderRadius: '12px',
+              color: '#ffffff',
+            }}
           >
             <ShieldAlert size={18} style={{ flexShrink: 0 }} aria-hidden="true" />
             <span>{globalError}</span>
@@ -162,7 +174,7 @@ export const LoginView = () => {
             <>
               {/* Campo Nombre Completo */}
               <div className="form-group">
-                <label htmlFor={`${formId}-nombreCompleto`} className="form-label">
+                <label htmlFor={`${formId}-nombreCompleto`} className="form-label" style={{ color: '#e2e8f0' }}>
                   Nombre Completo <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <div style={{ position: 'relative' }}>
@@ -189,7 +201,7 @@ export const LoginView = () => {
 
               {/* Campo Rol */}
               <div className="form-group">
-                <label htmlFor={`${formId}-rolId`} className="form-label">
+                <label htmlFor={`${formId}-rolId`} className="form-label" style={{ color: '#e2e8f0' }}>
                   Rol del Usuario <span style={{ color: '#ef4444' }}>*</span>
                 </label>
                 <select
@@ -199,7 +211,7 @@ export const LoginView = () => {
                   value={rolId}
                   onChange={(e) => setRolId(e.target.value)}
                 >
-                  <option value={1}>1 - Administrador (Acceso total y eliminación)</option>
+                  <option value={1}>1 - Administrador (Acceso total y configuración)</option>
                   <option value={2}>2 - Veterinario (Consultas y recetas)</option>
                   <option value={3}>3 - Recepcionista (Citas y clientes)</option>
                 </select>
@@ -209,7 +221,7 @@ export const LoginView = () => {
 
           {/* Campo Email */}
           <div className="form-group">
-            <label htmlFor={`${formId}-email`} className="form-label">
+            <label htmlFor={`${formId}-email`} className="form-label" style={{ color: '#e2e8f0' }}>
               Correo Electrónico <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
@@ -236,7 +248,7 @@ export const LoginView = () => {
 
           {/* Campo Contraseña */}
           <div className="form-group" style={{ marginBottom: '1.75rem' }}>
-            <label htmlFor={`${formId}-password`} className="form-label">
+            <label htmlFor={`${formId}-password`} className="form-label" style={{ color: '#e2e8f0' }}>
               Contraseña <span style={{ color: '#ef4444' }}>*</span>
             </label>
             <div style={{ position: 'relative' }}>
@@ -264,7 +276,16 @@ export const LoginView = () => {
           <button
             type="submit"
             className="btn btn-primary"
-            style={{ width: '100%', minHeight: '44px', fontSize: '0.95rem' }}
+            style={{ 
+              width: '100%', 
+              minHeight: '44px', 
+              fontSize: '0.95rem',
+              borderRadius: '999px',
+              background: 'linear-gradient(135deg, #00f5a0, #05f2af)',
+              color: '#04100c',
+              fontWeight: 700,
+              boxShadow: '0 0 25px rgba(0, 245, 160, 0.4)',
+            }}
             disabled={loading}
           >
             {loading ? 'Procesando...' : (
@@ -276,7 +297,7 @@ export const LoginView = () => {
           </button>
         </form>
 
-        <footer style={{ marginTop: '1.5rem', textAlign: 'center', borderTop: '1px solid #e2e8f0', paddingTop: '1.25rem' }}>
+        <footer style={{ marginTop: '1.75rem', textAlign: 'center', borderTop: '1px solid rgba(45, 212, 191, 0.15)', paddingTop: '1.25rem' }}>
           <button
             type="button"
             onClick={() => {
@@ -287,13 +308,14 @@ export const LoginView = () => {
             style={{
               background: 'none',
               border: 'none',
-              color: '#0284c7',
+              color: '#00f5a0',
               fontSize: '0.88rem',
               fontWeight: 600,
               cursor: 'pointer',
               minHeight: '44px',
               minWidth: '44px',
-              padding: '0.5rem'
+              padding: '0.5rem',
+              transition: 'color 0.2s ease',
             }}
           >
             {isRegister ? '¿Ya tienes una cuenta? Inicia sesión aquí' : '¿No tienes cuenta? Regístrate aquí'}
