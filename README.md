@@ -37,7 +37,6 @@ VeterinariaAPI-master/
 ├── veterinariodb.sql            # Script DDL y datos semilla para SQL Server
 ├── INFORME_TECNICO.md           # Informe técnico formal con matriz OWASP y WCAG
 ├── AI_LOG.md                    # Bitácora detallada de prompts y decisiones con IA
-├── GUIA_EXPOSICION.md           # Guía de defensa oral y guión de demostración en vivo
 └── README.md                    # Instrucciones de instalación y ejecución
 ```
 
@@ -186,5 +185,4 @@ cd frontend && npm audit
 Para detalles exhaustivos de evaluación, consulta los siguientes documentos:
 - 📄 **[INFORME_TECNICO.md](file:///c:/Users/joni5.DESKTOP-AF57599/Downloads/VeterinariaAPI-master/INFORME_TECNICO.md)**: Informe técnico formal con la justificación de diseño, matriz completa de 7 riesgos OWASP mitigados, auditoría WCAG 2.2 AA y métricas.
 - 🤖 **[AI_LOG.md](file:///c:/Users/joni5.DESKTOP-AF57599/Downloads/VeterinariaAPI-master/AI_LOG.md)**: Bitácora de Inteligencia Artificial que declara la herramienta (Gemini 3.8 Flash), modelo, plan, prompts empleados y decisiones de aceptación/corrección/descarte.
-- 🎤 **[GUIA_EXPOSICION.md](file:///c:/Users/joni5.DESKTOP-AF57599/Downloads/VeterinariaAPI-master/GUIA_EXPOSICION.md)**: Guía completa para la defensa oral de 15 puntos, guión de demostración en vivo paso a paso y banco de preguntas y respuestas técnicas del docente.
 
