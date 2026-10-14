@@ -153,3 +153,4 @@ describe('E2E Full Flow Integration Test: Login -> Crear Recurso -> Listar Recur
     expect(screen.getByText('Thor')).toBeInTheDocument();
   });
 });
+

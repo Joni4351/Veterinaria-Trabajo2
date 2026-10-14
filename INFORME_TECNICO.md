@@ -370,3 +370,4 @@ Se satisfacen al 100% todos los criterios de evaluación del Trabajo 2:
 - **Accesibilidad**: Pautas WCAG 2.2 Nivel AA aplicadas en navegación por teclado, focos visibles, contrastes, touch targets $\ge 44$ px y lectores de pantalla.
 - **Seguridad**: Autenticación Bearer, almacenamiento de token analizado y justificado, autorización por roles en cliente y servidor, mitigación verificada de 7 riesgos OWASP, CORS cerrado, cabeceras de seguridad y rate limiting 429.
 - **Calidad y Verificación**: 23 pruebas automatizadas pasando al 100% (6 backend + 17 frontend), monorepo limpio y documentación técnica integral.
+

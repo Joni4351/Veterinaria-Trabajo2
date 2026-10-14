@@ -219,3 +219,4 @@ A continuación se recopilan las preguntas más habituales y profundas que la co
 > 2. Sugirió usar `window.confirm()` para borrado, lo cual descartamos por no cumplir con WCAG 2.2 AA, construyendo el componente accesible `ConfirmModal`.
 > 3. En las pruebas de Vitest, la IA cometió un error de hoisting con `vi.mock('react-router-dom')`, que corregimos utilizando la API `vi.hoisted()`.  
 > Esto demuestra que la IA aceleró el desarrollo, pero el control arquitectónico y la comprensión de cada línea de código corresponden plenamente a nuestro equipo."
+

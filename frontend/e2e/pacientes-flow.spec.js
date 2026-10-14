@@ -41,3 +41,4 @@ test.describe('E2E Pacientes Flow - Clínica Veterinaria', () => {
     await expect(page.locator('text=Labrador')).toBeVisible();
   });
 });
+

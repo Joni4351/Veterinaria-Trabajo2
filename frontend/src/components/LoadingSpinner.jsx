@@ -32,3 +32,4 @@ export const LoadingSpinner = ({ message = 'Cargando datos...', size = 28 }) => 
 };
 
 export default LoadingSpinner;
+
