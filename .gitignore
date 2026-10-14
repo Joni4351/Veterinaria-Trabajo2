@@ -376,3 +376,6 @@ dist-ssr/
 .env
 .env.*
 !.env.example
+
+# Documentos personales
+GUIA_EXPOSICION.md
