@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="VeterinariaAPI.Tests/VeterinariaAPI.Tests.csproj" />
+  <Project Path="VeterinariaAPI/VeterinariaAPI.csproj" />
+</Solution>
