@@ -8,11 +8,19 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('vet_token'));
   const [loading, setLoading] = useState(true);
 
-  // Decodificar payload JWT simple sin dependencias externas
+  // Decodificar payload JWT robusto para navegador y entornos Node/JSDOM
   const parseJwt = (t) => {
     try {
-      const base64Url = t.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      if (!t || typeof t !== 'string') return null;
+      const parts = t.split('.');
+      if (parts.length < 2) return null;
+      let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (base64.length % 4 !== 0) {
+        base64 += '=';
+      }
+      if (typeof Buffer !== 'undefined') {
+        return JSON.parse(Buffer.from(base64, 'base64').toString('utf8'));
+      }
       const jsonPayload = decodeURIComponent(
         atob(base64)
           .split('')
@@ -27,7 +35,17 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const savedToken = localStorage.getItem('vet_token');
+    const savedUser = localStorage.getItem('vet_user');
     if (savedToken) {
+      if (savedUser) {
+        try {
+          setUser(JSON.parse(savedUser));
+          setToken(savedToken);
+          setLoading(false);
+          return;
+        } catch {}
+      }
+
       const payload = parseJwt(savedToken);
       if (payload) {
         // Verificar expiración del token (exp en segundos)
@@ -59,10 +77,10 @@ export const AuthProvider = ({ children }) => {
     setToken(receivedToken);
 
     const payload = parseJwt(receivedToken);
-    const role = payload?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload?.role || 'Usuario';
-    const name = payload?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || payload?.name || payload?.unique_name || email;
-    const userEmail = payload?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || payload?.email || email;
-    const id = payload?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || payload?.sub || '';
+    const role = data?.usuario?.rol || payload?.['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload?.role || 'Usuario';
+    const name = data?.usuario?.nombre || payload?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || payload?.name || payload?.unique_name || email;
+    const userEmail = data?.usuario?.email || payload?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress'] || payload?.email || email;
+    const id = data?.usuario?.id || payload?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier'] || payload?.sub || '';
 
     const userData = { id, name, email: userEmail, role };
     setUser(userData);
