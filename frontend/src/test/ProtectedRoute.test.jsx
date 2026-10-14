@@ -97,3 +97,4 @@ describe('ProtectedRoute Component Tests', () => {
     expect(screen.queryByText(/acceso denegado/i)).not.toBeInTheDocument();
   });
 });
+

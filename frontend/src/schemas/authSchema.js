@@ -21,3 +21,4 @@ export const registerSchema = z.object({
   }).trim().min(1, 'La contraseña es requerida').min(6, 'La contraseña debe contener al menos 6 caracteres'),
   rolId: z.coerce.number().min(1, 'Seleccione un rol válido')
 });
+

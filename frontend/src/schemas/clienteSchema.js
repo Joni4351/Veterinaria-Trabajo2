@@ -10,3 +10,4 @@ export const clienteSchema = z.object({
   telefono: z.string().trim().max(20, 'Máximo 20 caracteres').optional().or(z.literal('')),
   email: z.string().trim().email('Formato de correo inválido').max(150, 'Máximo 150 caracteres').optional().or(z.literal(''))
 });
+
