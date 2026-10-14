@@ -111,7 +111,7 @@ namespace VeterinariaAPI.Endpoints
                 var jwtKey = config["Jwt:Key"]!;
                 var jwtIssuer = config["Jwt:Issuer"]!;
                 var jwtAudience = config["Jwt:Audience"]!;
-                var jwtExpireMinutes = config["Jwt:ExpireMinutes"]!;
+                var jwtExpireMinutes = config["Jwt:ExpireMinutes"] ?? "60";
 
                 var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
                 var credenciales = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
