@@ -140,7 +140,7 @@ export const LoginView = () => {
           >
             {isRegister ? 'Crear Cuenta' : 'VetClinic Pro — Clínica Veterinaria'}
           </h1>
-          <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.35rem' }}>
+          <p style={{ color: '#475569', fontSize: '0.88rem', marginTop: '0.35rem', fontWeight: 500 }}>
             {isRegister
               ? 'Regístrese para gestionar pacientes y servicios clínicos'
               : 'Sistema Integral de Cuidado y Gestión Veterinaria'}
@@ -305,9 +305,9 @@ export const LoginView = () => {
             style={{
               background: 'none',
               border: 'none',
-              color: '#0d9488',
+              color: '#0f766e',
               fontSize: '0.88rem',
-              fontWeight: 600,
+              fontWeight: 700,
               cursor: 'pointer',
               minHeight: '44px',
               minWidth: '44px',
