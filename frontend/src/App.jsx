@@ -263,7 +263,7 @@ function MainLayout() {
               >
                 VetClinic Pro
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#0d9488', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 700 }}>
+              <div style={{ fontSize: '0.72rem', color: '#0f766e', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 800 }}>
                 Clínica Veterinaria
               </div>
             </div>
@@ -341,7 +341,7 @@ function MainLayout() {
               <span className="user-name" title={user?.name} style={{ color: '#0f172a', fontWeight: 700 }}>
                 {user?.name}
               </span>
-              <span style={{ fontSize: '0.72rem', color: '#0d9488', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.04em' }}>
+              <span style={{ fontSize: '0.72rem', color: '#0f766e', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' }}>
                 {user?.role}
               </span>
             </div>
@@ -387,6 +387,7 @@ function MainLayout() {
             
             {/* Banner de Estado Operativo */}
             <div
+              className="topbar-clinic-badge"
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -416,9 +417,10 @@ function MainLayout() {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             {/* Botón rápido "Agendar Cita" */}
             <button
+              className="topbar-appointment-btn"
               onClick={() => navigate('/citas')}
               style={{
                 background: '#0d9488',
@@ -434,6 +436,7 @@ function MainLayout() {
                 gap: '6px',
                 boxShadow: '0 2px 6px rgba(13, 148, 136, 0.25)',
                 transition: 'all 0.2s ease',
+                whiteSpace: 'nowrap',
               }}
             >
               <Calendar size={15} />
@@ -441,15 +444,17 @@ function MainLayout() {
             </button>
 
             <span 
+              className="topbar-role-badge"
               style={{ 
                 fontSize: '0.78rem', 
                 padding: '0.35rem 0.85rem', 
                 borderRadius: '9999px',
                 backgroundColor: '#f0fdfa',
                 border: '1px solid #ccfbf1',
-                color: '#0d9488',
-                fontWeight: 700,
+                color: '#0f766e',
+                fontWeight: 800,
                 letterSpacing: '0.02em',
+                whiteSpace: 'nowrap',
               }}
             >
               Rol: {user?.role}

@@ -38,6 +38,8 @@ export default function VeterinaryPet3D() {
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
     renderer.shadowMap.enabled = true;
+    renderer.domElement.setAttribute('role', 'img');
+    renderer.domElement.setAttribute('aria-label', 'Modelo 3D interactivo de mascota canina de la clínica veterinaria');
     mount.appendChild(renderer.domElement);
 
     // Iluminación suave y cálida
@@ -439,12 +441,10 @@ export default function VeterinaryPet3D() {
       {/* Contenedor del Modelo 3D */}
       <div
         ref={mountRef}
-        onClick={handlePet}
-        title="¡Haz clic para acariciarlo!"
+        aria-hidden="true"
         style={{
           width: '100%',
           height: '270px',
-          cursor: 'pointer',
           position: 'relative',
         }}
       />
@@ -561,3 +561,4 @@ export default function VeterinaryPet3D() {
     </div>
   );
 }
+
