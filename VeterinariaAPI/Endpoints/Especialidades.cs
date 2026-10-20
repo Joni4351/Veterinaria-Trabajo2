@@ -81,10 +81,17 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
 
             // API para eliminar especialidades
-            especialidad.MapDelete("/{id:int}", async (int id, IRepository<Especialidade> repo) =>
+            especialidad.MapDelete("/{id:int}", async (int id, IRepository<Especialidade> repo, VeterinariodbContext db) =>
             {
                 var especialidadExistente = await repo.ObtenerPorIdAsync(id);
                 if (especialidadExistente is null) return Results.NotFound();
+
+                // Validación preventiva de dependencias (no permitir borrado si está vinculada a citas)
+                var tieneCitas = await db.Citas.AnyAsync(c => c.EspecialidadId == id);
+                if (tieneCitas)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar la especialidad porque está vinculada a una o más citas médicas." });
+                }
 
                 await repo.EliminarAsync(especialidadExistente);
                 await repo.GuardarCambiosAsync();

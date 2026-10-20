@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -19,8 +19,9 @@ public partial class Consulta
     public virtual Cita? Cita { get; set; }
     [JsonIgnore]
     public virtual ICollection<DetallesFactura> DetallesFacturas { get; set; } = new List<DetallesFactura>();
-    [JsonIgnore]
+
     public virtual Paciente Paciente { get; set; } = null!;
+
     [JsonIgnore]
     public virtual Receta? Receta { get; set; }
 }

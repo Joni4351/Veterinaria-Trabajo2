@@ -55,6 +55,36 @@ namespace VeterinariaAPI.Endpoints
                     return Results.ValidationProblem(errores);
                 }
 
+                // Normalización de RUT para validación de unicidad
+                var rutClean = dto.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper();
+                var clientesActuales = await repo.ObtenerTodosAsync();
+
+                var rutDuplicado = clientesActuales.Any(c => 
+                    c.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper() == rutClean);
+
+                if (rutDuplicado)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        { "DocumentoIdentidad", new[] { "El RUT ingresado ya se encuentra registrado para otro cliente." } }
+                    });
+                }
+
+                if (!string.IsNullOrWhiteSpace(dto.Email))
+                {
+                    var emailNormalizado = dto.Email.Trim().ToLower();
+                    var emailDuplicado = clientesActuales.Any(c => 
+                        !string.IsNullOrWhiteSpace(c.Email) && c.Email.Trim().ToLower() == emailNormalizado);
+
+                    if (emailDuplicado)
+                    {
+                        return Results.ValidationProblem(new Dictionary<string, string[]>
+                        {
+                            { "Email", new[] { "El correo electrónico ya se encuentra registrado para otro cliente." } }
+                        });
+                    }
+                }
+
                 var nuevoCliente = new Cliente
                 {
                     DocumentoIdentidad = dto.DocumentoIdentidad,
@@ -81,6 +111,35 @@ namespace VeterinariaAPI.Endpoints
                 var clienteExistente = await repo.ObtenerPorIdAsync(id);
                 if (clienteExistente is null) return Results.NotFound();
 
+                var rutClean = dto.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper();
+                var clientesActuales = await repo.ObtenerTodosAsync();
+
+                var rutDuplicado = clientesActuales.Any(c => 
+                    c.Id != id && c.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper() == rutClean);
+
+                if (rutDuplicado)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        { "DocumentoIdentidad", new[] { "El RUT ingresado ya se encuentra registrado para otro cliente." } }
+                    });
+                }
+
+                if (!string.IsNullOrWhiteSpace(dto.Email))
+                {
+                    var emailNormalizado = dto.Email.Trim().ToLower();
+                    var emailDuplicado = clientesActuales.Any(c => 
+                        c.Id != id && !string.IsNullOrWhiteSpace(c.Email) && c.Email.Trim().ToLower() == emailNormalizado);
+
+                    if (emailDuplicado)
+                    {
+                        return Results.ValidationProblem(new Dictionary<string, string[]>
+                        {
+                            { "Email", new[] { "El correo electrónico ya se encuentra registrado para otro cliente." } }
+                        });
+                    }
+                }
+
                 clienteExistente.DocumentoIdentidad = dto.DocumentoIdentidad;
                 clienteExistente.NombreCompleto = dto.NombreCompleto;
                 clienteExistente.Telefono = dto.Telefono;
@@ -91,10 +150,23 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
 
             // API para eliminar cliente
-            clientes.MapDelete("/{id:int}", async (int id, IRepository<Cliente> repo) =>
+            clientes.MapDelete("/{id:int}", async (int id, IRepository<Cliente> repo, VeterinariodbContext db) =>
             {
                 var clienteExistente = await repo.ObtenerPorIdAsync(id);
                 if (clienteExistente is null) return Results.NotFound();
+
+                // Validación preventiva de dependencias (impedir borrado en cascada y error 500)
+                var tienePacientes = await db.Pacientes.AnyAsync(p => p.ClienteId == id);
+                if (tienePacientes)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar el cliente porque tiene pacientes (mascotas) asociados. Elimine o transfiera las mascotas primero." });
+                }
+
+                var tieneFacturas = await db.Facturas.AnyAsync(f => f.ClienteId == id);
+                if (tieneFacturas)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar el cliente porque tiene facturas registradas a su nombre." });
+                }
 
                 await repo.EliminarAsync(clienteExistente);
                 await repo.GuardarCambiosAsync();
@@ -104,16 +176,16 @@ namespace VeterinariaAPI.Endpoints
 
         // DTO estructurado con el prefijo 'property:' para la correcta validación por reflexión
         public record ClienteCreateDto(
-            [property: Required(ErrorMessage = "El documento de identidad es obligatorio.")]
-            [property: StringLength(20, ErrorMessage = "El documento de identidad no puede superar los 20 caracteres.")]
+            [property: Required(ErrorMessage = "El documento de identidad (RUT) es obligatorio.")]
+            [property: RutChileno]
             string DocumentoIdentidad,
 
             [property: Required(ErrorMessage = "El nombre completo es obligatorio.")]
-            [property: StringLength(100, MinimumLength = 3, ErrorMessage = "El nombre completo debe tener entre 3 y 100 caracteres.")]
+            [property: StringLength(150, MinimumLength = 2, ErrorMessage = "El nombre debe tener entre 2 y 150 caracteres.")]
             string NombreCompleto,
 
             [property: Required(ErrorMessage = "El teléfono es obligatorio.")]
-            [property: Phone(ErrorMessage = "El formato del teléfono no es válido.")]
+            [property: StringLength(20, MinimumLength = 8, ErrorMessage = "El teléfono debe tener entre 8 y 20 caracteres.")]
             string Telefono,
 
             [property: Required(ErrorMessage = "El correo electrónico es obligatorio.")]

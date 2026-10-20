@@ -4,23 +4,49 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Claims;
 using System.Text;
-using Microsoft.AspNetCore.Mvc.Testing;
-using Microsoft.IdentityModel.Tokens;
-using Xunit;
-
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using VeterinariaAPI.Models;
+using Xunit;
 
 namespace VeterinariaAPI.Tests
 {
+    public class TestBodyStreamStartupFilter : IStartupFilter
+    {
+        public Action<IApplicationBuilder> Configure(Action<IApplicationBuilder> next)
+        {
+            return app =>
+            {
+                app.Use(async (context, nextMiddleware) =>
+                {
+                    var originalBody = context.Response.Body;
+                    using var memStream = new MemoryStream();
+                    context.Response.Body = memStream;
+
+                    await nextMiddleware();
+
+                    memStream.Position = 0;
+                    await memStream.CopyToAsync(originalBody);
+                    context.Response.Body = originalBody;
+                });
+
+                next(app);
+            };
+        }
+    }
+
     public class CustomWebApplicationFactory : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
             builder.ConfigureServices(services =>
             {
+                services.AddTransient<IStartupFilter, TestBodyStreamStartupFilter>();
+
                 var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(DbContextOptions<VeterinariodbContext>));
                 if (descriptor != null)
                 {

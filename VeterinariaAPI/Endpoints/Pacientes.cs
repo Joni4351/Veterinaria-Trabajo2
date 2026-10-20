@@ -102,10 +102,23 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
 
             // API para eliminar pacientes
-            pacientes.MapDelete("/{id:int}", async (int id, IRepository<Paciente> repo) =>
+            pacientes.MapDelete("/{id:int}", async (int id, IRepository<Paciente> repo, VeterinariodbContext db) =>
             {
                 var pacienteExistente = await repo.ObtenerPorIdAsync(id);
                 if (pacienteExistente is null) return Results.NotFound();
+
+                // Validación preventiva de dependencias (no permitir borrado en cascada ni error 500)
+                var tieneCitas = await db.Citas.AnyAsync(c => c.PacienteId == id);
+                if (tieneCitas)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar el paciente porque registra citas médicas asociadas en el historial." });
+                }
+
+                var tieneConsultas = await db.Consultas.AnyAsync(c => c.PacienteId == id);
+                if (tieneConsultas)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar el paciente porque tiene consultas médicas y diagnósticos registrados." });
+                }
 
                 await repo.EliminarAsync(pacienteExistente);
                 await repo.GuardarCambiosAsync();

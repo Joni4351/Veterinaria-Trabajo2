@@ -43,7 +43,7 @@ public partial class VeterinariodbContext : DbContext
     {
         if (!optionsBuilder.IsConfigured)
         {
-            optionsBuilder.UseSqlServer("server=.\\sqlexpress; Initial Catalog=veterinariodb;Trusted_Connection=True;TrustServerCertificate=True;");
+            optionsBuilder.UseSqlServer("server=.\\SQLEXPRESS2; Initial Catalog=veterinariodb;Trusted_Connection=True;TrustServerCertificate=True;");
         }
     }
 

@@ -75,10 +75,17 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
 
             // API para eliminar roles
-            roles.MapDelete("/{id:int}", async (int id, IRepository<Role> repo) =>
+            roles.MapDelete("/{id:int}", async (int id, IRepository<Role> repo, VeterinariodbContext db) =>
             {
                 var rolExistente = await repo.ObtenerPorIdAsync(id);
                 if (rolExistente is null) return Results.NotFound();
+
+                // Validación preventiva de dependencias (no permitir borrado si está asignado a usuarios)
+                var tieneUsuarios = await db.Usuarios.AnyAsync(u => u.RolId == id);
+                if (tieneUsuarios)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar el rol porque está asignado a uno o más usuarios del sistema." });
+                }
 
                 await repo.EliminarAsync(rolExistente);
                 await repo.GuardarCambiosAsync();

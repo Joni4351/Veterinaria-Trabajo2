@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
@@ -19,10 +19,10 @@ public partial class Cita
     public string Estado { get; set; } = null!;
     [JsonIgnore]
     public virtual ICollection<Consulta> Consulta { get; set; } = new List<Consulta>();
-    [JsonIgnore]
+
     public virtual Especialidade Especialidad { get; set; } = null!;
-    [JsonIgnore]
+
     public virtual Paciente Paciente { get; set; } = null!;
-    [JsonIgnore]
+
     public virtual Usuario Usuario { get; set; } = null!;
 }

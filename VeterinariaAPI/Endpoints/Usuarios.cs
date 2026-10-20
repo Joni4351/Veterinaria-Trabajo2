@@ -64,11 +64,21 @@ namespace VeterinariaAPI.Endpoints
                     return Results.ValidationProblem(errores);
                 }
 
+                // Validar unicidad del correo electrónico
+                var usuarioExistente = await repo.ObtenerPorEmailAsync(dto.Email.Trim().ToLower());
+                if (usuarioExistente is not null)
+                {
+                    return Results.ValidationProblem(new Dictionary<string, string[]>
+                    {
+                        { "Email", new[] { "El correo electrónico ya se encuentra registrado en el sistema." } }
+                    });
+                }
+
                 var nuevoUsuario = new Usuario
                 {
                     RolId = dto.RolId,
                     NombreCompleto = dto.NombreCompleto,
-                    Email = dto.Email
+                    Email = dto.Email.Trim().ToLower()
                 };
 
                 nuevoUsuario.PasswordHash = auth.HashPassword(nuevoUsuario, dto.Password);
@@ -128,10 +138,17 @@ namespace VeterinariaAPI.Endpoints
             }).RequireRateLimiting("AuthPolicy");
 
             // API para eliminar usuario por ID
-            usuarios.MapDelete("/{id:int}", async (int id, IUsuarioRepository repo) =>
+            usuarios.MapDelete("/{id:int}", async (int id, IUsuarioRepository repo, VeterinariodbContext db) =>
             {
                 var usuario = await repo.ObtenerPorIdAsync(id);
                 if (usuario is null) return Results.NotFound();
+
+                // Validación preventiva de dependencias (no permitir borrado si tiene citas a cargo)
+                var tieneCitas = await db.Citas.AnyAsync(c => c.UsuarioId == id);
+                if (tieneCitas)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar el usuario porque registra citas o atenciones médicas a su cargo." });
+                }
 
                 await repo.EliminarAsync(usuario);
                 await repo.GuardarCambiosAsync();

@@ -97,10 +97,17 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
 
             // API para eliminar Facturas
-            facturas.MapDelete("/{id:int}", async (int id, IRepository<Factura> repo) =>
+            facturas.MapDelete("/{id:int}", async (int id, IRepository<Factura> repo, VeterinariodbContext db) =>
             {
                 var facturaExistente = await repo.ObtenerPorIdAsync(id);
                 if (facturaExistente is null) return Results.NotFound();
+
+                // Validación preventiva de dependencias (no permitir borrado si tiene líneas de detalle)
+                var tieneDetalles = await db.DetallesFacturas.AnyAsync(d => d.FacturaId == id);
+                if (tieneDetalles)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar la factura porque tiene líneas de detalle asociadas. Elimine los detalles de la factura primero." });
+                }
 
                 await repo.EliminarAsync(facturaExistente);
                 await repo.GuardarCambiosAsync();

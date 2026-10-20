@@ -103,10 +103,23 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
 
             // API para eliminar insumos
-            insumos.MapDelete("/{id:int}", async (int id, IRepository<Insumo> repo) =>
+            insumos.MapDelete("/{id:int}", async (int id, IRepository<Insumo> repo, VeterinariodbContext db) =>
             {
                 var insumoExistente = await repo.ObtenerPorIdAsync(id);
                 if (insumoExistente is null) return Results.NotFound();
+
+                // Validación preventiva de dependencias (no permitir borrado si está en facturas o recetas)
+                var enFacturas = await db.DetallesFacturas.AnyAsync(d => d.InsumoId == id);
+                if (enFacturas)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar el insumo porque está incluido en líneas de facturas emitidas." });
+                }
+
+                var enRecetas = await db.DetallesReceta.AnyAsync(d => d.InsumoId == id);
+                if (enRecetas)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar el insumo porque está prescrito en recetas médicas del sistema." });
+                }
 
                 await repo.EliminarAsync(insumoExistente);
                 await repo.GuardarCambiosAsync();

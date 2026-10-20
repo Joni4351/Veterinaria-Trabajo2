@@ -19,7 +19,10 @@ namespace VeterinariaAPI.Endpoints
                 string? diagnostico,
                 IRepository<Consulta> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query()
+                    .Include(c => c.Paciente)
+                        .ThenInclude(p => p.Cliente)
+                    .AsQueryable();
 
                 if (pacienteId.HasValue)
                 {
@@ -85,10 +88,23 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
 
             // API para eliminar consultas
-            consultas.MapDelete("/{id:int}", async (int id, IRepository<Consulta> repo) =>
+            consultas.MapDelete("/{id:int}", async (int id, IRepository<Consulta> repo, VeterinariodbContext db) =>
             {
                 var consultaExistente = await repo.ObtenerPorIdAsync(id);
                 if (consultaExistente is null) return Results.NotFound();
+
+                // Validación preventiva de dependencias (no permitir borrado si tiene receta o está facturada)
+                var tieneReceta = await db.Recetas.AnyAsync(r => r.ConsultaId == id);
+                if (tieneReceta)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar la consulta médica porque tiene una receta médica emitida vinculada." });
+                }
+
+                var enFactura = await db.DetallesFacturas.AnyAsync(d => d.ConsultaId == id);
+                if (enFactura)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar la consulta médica porque está incluida en el detalle de una factura contable." });
+                }
 
                 await repo.EliminarAsync(consultaExistente);
                 await repo.GuardarCambiosAsync();

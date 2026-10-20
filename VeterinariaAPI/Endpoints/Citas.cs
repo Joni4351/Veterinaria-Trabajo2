@@ -21,7 +21,12 @@ namespace VeterinariaAPI.Endpoints
                 DateTime? fechaHasta,
                 IRepository<Cita> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query()
+                    .Include(c => c.Paciente)
+                        .ThenInclude(p => p.Cliente)
+                    .Include(c => c.Usuario)
+                    .Include(c => c.Especialidad)
+                    .AsQueryable();
 
                 if (usuarioId.HasValue)
                 {
@@ -101,10 +106,17 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
             // API para eliminar citas
-            citas.MapDelete("/{id:int}", async (int id, IRepository<Cita> repo) =>
+            citas.MapDelete("/{id:int}", async (int id, IRepository<Cita> repo, VeterinariodbContext db) =>
             {
                 var citaExistente = await repo.ObtenerPorIdAsync(id);
                 if (citaExistente is null) return Results.NotFound();
+
+                // Validación preventiva de dependencias (no permitir borrado si tiene consulta médica realizada)
+                var tieneConsulta = await db.Consultas.AnyAsync(c => c.CitaId == id);
+                if (tieneConsulta)
+                {
+                    return Results.BadRequest(new { message = "No es posible eliminar la cita médica porque ya registra una consulta clínica asociada." });
+                }
 
                 await repo.EliminarAsync(citaExistente);
                 await repo.GuardarCambiosAsync();
