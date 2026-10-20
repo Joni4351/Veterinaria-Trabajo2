@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { Users, Plus, Search, Edit2, Trash2, X, AlertCircle, Phone, Mail, Filter, RotateCcw } from 'lucide-react';
+import { clienteSchema, formatearRut } from '../schemas/clienteSchema';
+import { ConfirmModal } from '../components/ConfirmModal';
+import { Users, Plus, Search, Edit2, Trash2, X, AlertCircle, Phone, Mail, Filter, RotateCcw, ShieldCheck } from 'lucide-react';
 
 export const ClientesView = () => {
   const { hasRole, isAdmin } = useAuth();
@@ -12,7 +14,17 @@ export const ClientesView = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+
+  // Modal de confirmación accesible para eliminación
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    id: null,
+    nombre: '',
+    loading: false
+  });
 
   // Filtros de API
   const [filters, setFilters] = useState({
@@ -49,7 +61,7 @@ export const ClientesView = () => {
       setClientes(res.data || []);
     } catch (err) {
       console.error(err);
-      setError('Error al cargar clientes');
+      setError('Error al conectar con el servidor para obtener clientes');
     } finally {
       setLoading(false);
     }
@@ -66,6 +78,7 @@ export const ClientesView = () => {
 
   const handleOpenModal = (cliente = null) => {
     setError('');
+    setFieldErrors({});
     if (cliente) {
       setEditingId(cliente.id);
       setFormData({
@@ -86,10 +99,36 @@ export const ClientesView = () => {
     setIsModalOpen(true);
   };
 
+  const handleRutChange = (e) => {
+    const rawVal = e.target.value;
+    setFormData((prev) => ({ ...prev, documentoIdentidad: rawVal }));
+    if (fieldErrors.documentoIdentidad) {
+      setFieldErrors((prev) => ({ ...prev, documentoIdentidad: null }));
+    }
+  };
+
+  const handleRutBlur = () => {
+    if (formData.documentoIdentidad) {
+      const formateado = formatearRut(formData.documentoIdentidad);
+      setFormData((prev) => ({ ...prev, documentoIdentidad: formateado }));
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
 
+    // 1. Validación en cliente con Zod (incluyendo Módulo 11 en RUT)
+    const result = clienteSchema.safeParse(formData);
+    if (!result.success) {
+      const formattedErrors = result.error.flatten().fieldErrors;
+      setFieldErrors(formattedErrors);
+      setError('Por favor corrija los errores marcados en el formulario antes de continuar.');
+      return;
+    }
+
+    setSubmitting(true);
     try {
       if (editingId) {
         await api.put(`/api/v1/clientes/${editingId}`, formData);
@@ -100,20 +139,35 @@ export const ClientesView = () => {
       fetchClientes();
     } catch (err) {
       if (err.response?.data?.errors) {
+        setFieldErrors(err.response.data.errors);
         setError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setError(err.response?.data?.message || 'Error al guardar los datos del cliente.');
+        setError(err.response?.data?.message || 'Error al guardar los datos del cliente en el servidor.');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Seguro que deseas eliminar este cliente? Si tiene mascotas asociadas la BD podría impedirlo.')) return;
+  const handleRequestDelete = (cliente) => {
+    setDeleteConfirm({
+      isOpen: true,
+      id: cliente.id,
+      nombre: `${cliente.nombreCompleto} (RUT: ${cliente.documentoIdentidad})`,
+      loading: false
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm.id) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
     try {
-      await api.delete(`/api/v1/clientes/${id}`);
+      await api.delete(`/api/v1/clientes/${deleteConfirm.id}`);
+      setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false });
       fetchClientes();
     } catch (err) {
       alert(err.response?.data?.message || 'Error al eliminar cliente. Verifique que no tenga mascotas o facturas registradas.');
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -124,10 +178,10 @@ export const ClientesView = () => {
           <div>
             <h2 className="card-title">
               <Users size={24} color="#0f766e" />
-              Gestión de Clientes (Dueños)
+              Gestión de Clientes (Dueños de Pacientes)
             </h2>
             <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-              Búsqueda y filtros directos a `/api/v1/clientes`
+              Búsqueda, validación estricta de RUT chileno (Módulo 11) y administración
             </p>
           </div>
           {canCreate && (
@@ -145,11 +199,11 @@ export const ClientesView = () => {
           </div>
           <div className="filter-grid">
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>DNI / Documento</label>
+              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>RUT / Documento</label>
               <input
                 type="text"
                 className="form-input"
-                placeholder="Filtrar por documento..."
+                placeholder="Filtrar por RUT..."
                 value={filters.documento}
                 onChange={(e) => setFilters({ ...filters, documento: e.target.value })}
               />
@@ -203,8 +257,7 @@ export const ClientesView = () => {
             <table className="custom-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Documento</th>
+                  <th>RUT / Documento</th>
                   <th>Nombre Completo</th>
                   <th>Teléfono</th>
                   <th>Correo Electrónico</th>
@@ -214,9 +267,10 @@ export const ClientesView = () => {
               <tbody>
                 {clientes.map((c) => (
                   <tr key={c.id}>
-                    <td data-label="ID" style={{ fontWeight: 600 }}>#{c.id}</td>
-                    <td data-label="Documento">
-                      <span className="badge badge-secondary">{c.documentoIdentidad}</span>
+                    <td data-label="RUT">
+                      <span className="badge badge-secondary" style={{ fontFamily: 'monospace', letterSpacing: '0.04em', fontWeight: 700, color: '#0f766e', background: '#ccfbf1' }}>
+                        {c.documentoIdentidad}
+                      </span>
                     </td>
                     <td data-label="Nombre Completo">
                       <strong style={{ color: '#0f172a' }}>{c.nombreCompleto}</strong>
@@ -236,10 +290,10 @@ export const ClientesView = () => {
                     <td data-label="Acciones" style={{ textAlign: 'right' }}>
                       {canEditOrDelete ? (
                         <>
-                          <button className="btn-icon" onClick={() => handleOpenModal(c)} title="Editar" aria-label="Editar cliente">
+                          <button className="btn-icon" onClick={() => handleOpenModal(c)} title="Editar" aria-label={`Editar cliente ${c.nombreCompleto}`}>
                             <Edit2 size={16} />
                           </button>
-                          <button className="btn-icon danger" onClick={() => handleDelete(c.id)} title="Eliminar" aria-label="Eliminar cliente">
+                          <button className="btn-icon danger" onClick={() => handleRequestDelete(c)} title="Eliminar" aria-label={`Eliminar cliente ${c.nombreCompleto}`}>
                             <Trash2 size={16} />
                           </button>
                         </>
@@ -255,78 +309,127 @@ export const ClientesView = () => {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Modal de Creación / Edición con Validación */}
       {isModalOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-cliente-title">
           <div className="modal-content">
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
+              <h3 id="modal-cliente-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
                 {editingId ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
               </h3>
-              <button className="btn-icon" onClick={() => setIsModalOpen(false)}>
+              <button className="btn-icon" onClick={() => setIsModalOpen(false)} aria-label="Cerrar modal">
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <div className="modal-body">
                 {error && (
-                  <div className="alert alert-danger">
+                  <div className="alert alert-danger" role="alert">
                     <AlertCircle size={18} />
                     <span>{error}</span>
                   </div>
                 )}
 
                 <div className="form-group">
-                  <label className="form-label">Documento de Identidad (DNI / RUT)</label>
+                  <label htmlFor="cliente-documento" className="form-label">
+                    RUT Chileno (con dígito verificador) <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
                   <input
+                    id="cliente-documento"
                     type="text"
-                    className="form-input"
-                    placeholder="Ej. 12345678-9"
-                    required
+                    className={`form-input ${fieldErrors.documentoIdentidad ? 'border-danger' : ''}`}
+                    placeholder="Ej. 12.345.678-5 o 12345678-K"
                     maxLength={20}
                     value={formData.documentoIdentidad}
-                    onChange={(e) => setFormData({ ...formData, documentoIdentidad: e.target.value })}
+                    onChange={handleRutChange}
+                    onBlur={handleRutBlur}
+                    aria-invalid={!!fieldErrors.documentoIdentidad}
+                    aria-describedby={fieldErrors.documentoIdentidad ? 'error-documentoIdentidad' : 'hint-rut'}
                   />
+                  {fieldErrors.documentoIdentidad ? (
+                    <span id="error-documentoIdentidad" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      {Array.isArray(fieldErrors.documentoIdentidad) ? fieldErrors.documentoIdentidad[0] : fieldErrors.documentoIdentidad}
+                    </span>
+                  ) : (
+                    <small id="hint-rut" style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.2rem', display: 'block' }}>
+                      Validado matemáticamente con algoritmo Módulo 11 (acepta puntos y guion).
+                    </small>
+                  )}
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Nombre Completo</label>
+                  <label htmlFor="cliente-nombre" className="form-label">
+                    Nombre Completo <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
                   <input
+                    id="cliente-nombre"
                     type="text"
-                    className="form-input"
+                    className={`form-input ${fieldErrors.nombreCompleto ? 'border-danger' : ''}`}
                     placeholder="Ej. María González Silva"
-                    required
-                    minLength={3}
                     maxLength={100}
                     value={formData.nombreCompleto}
-                    onChange={(e) => setFormData({ ...formData, nombreCompleto: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, nombreCompleto: e.target.value });
+                      if (fieldErrors.nombreCompleto) setFieldErrors({ ...fieldErrors, nombreCompleto: null });
+                    }}
+                    aria-invalid={!!fieldErrors.nombreCompleto}
+                    aria-describedby={fieldErrors.nombreCompleto ? 'error-nombreCompleto' : undefined}
                   />
+                  {fieldErrors.nombreCompleto && (
+                    <span id="error-nombreCompleto" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      {Array.isArray(fieldErrors.nombreCompleto) ? fieldErrors.nombreCompleto[0] : fieldErrors.nombreCompleto}
+                    </span>
+                  )}
                 </div>
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label className="form-label">Teléfono de Contacto</label>
+                    <label htmlFor="cliente-telefono" className="form-label">
+                      Teléfono de Contacto <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
                     <input
+                      id="cliente-telefono"
                       type="tel"
-                      className="form-input"
+                      className={`form-input ${fieldErrors.telefono ? 'border-danger' : ''}`}
                       placeholder="Ej. +56912345678"
-                      required
                       value={formData.telefono}
-                      onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, telefono: e.target.value });
+                        if (fieldErrors.telefono) setFieldErrors({ ...fieldErrors, telefono: null });
+                      }}
+                      aria-invalid={!!fieldErrors.telefono}
+                      aria-describedby={fieldErrors.telefono ? 'error-telefono' : undefined}
                     />
+                    {fieldErrors.telefono && (
+                      <span id="error-telefono" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                        {Array.isArray(fieldErrors.telefono) ? fieldErrors.telefono[0] : fieldErrors.telefono}
+                      </span>
+                    )}
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Correo Electrónico</label>
+                    <label htmlFor="cliente-email" className="form-label">
+                      Correo Electrónico <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
                     <input
+                      id="cliente-email"
                       type="email"
-                      className="form-input"
+                      className={`form-input ${fieldErrors.email ? 'border-danger' : ''}`}
                       placeholder="cliente@correo.com"
-                      required
                       value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, email: e.target.value });
+                        if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: null });
+                      }}
+                      aria-invalid={!!fieldErrors.email}
+                      aria-describedby={fieldErrors.email ? 'error-email' : undefined}
                     />
+                    {fieldErrors.email && (
+                      <span id="error-email" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                        {Array.isArray(fieldErrors.email) ? fieldErrors.email[0] : fieldErrors.email}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -335,14 +438,27 @@ export const ClientesView = () => {
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingId ? 'Guardar Cambios' : 'Registrar Cliente'}
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? 'Guardando...' : (editingId ? 'Guardar Cambios' : 'Registrar Cliente')}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Modal de confirmación accesible para eliminar cliente */}
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Confirmar Eliminación de Cliente"
+        message={`¿Estás seguro de que deseas eliminar permanentemente al cliente "${deleteConfirm.nombre}"? Si posee mascotas o citas registradas, la base de datos protegerá la integridad relacional.`}
+        confirmText="Eliminar Cliente"
+        cancelText="Volver"
+        isDangerous={true}
+        loading={deleteConfirm.loading}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false })}
+      />
     </div>
   );
 };

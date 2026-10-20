@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { citaSchema } from '../schemas/citasSchema';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { Calendar, Plus, Search, Edit2, Trash2, X, AlertCircle, Clock, Filter, RotateCcw } from 'lucide-react';
 
 export const CitasView = () => {
@@ -10,12 +12,28 @@ export const CitasView = () => {
 
   const [citas, setCitas] = useState([]);
   const [pacientes, setPacientes] = useState([]);
+  const [clientes, setClientes] = useState([]);
   const [especialidades, setEspecialidades] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+
+  // Filtrar estrictamente solo usuarios con rol de Veterinario para atención clínica
+  const veterinarios = useMemo(() => {
+    return usuarios.filter(u => (u.rol || '').toLowerCase().includes('veterinario'));
+  }, [usuarios]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [searchDueno, setSearchDueno] = useState('');
+
+  const [deleteConfirm, setDeleteConfirm] = useState({
+    isOpen: false,
+    id: null,
+    nombre: '',
+    loading: false
+  });
 
   // Filtros de API
   const [filters, setFilters] = useState({
@@ -47,17 +65,19 @@ export const CitasView = () => {
 
   const fetchCatalogos = async () => {
     try {
-      const [pacRes, espRes, usuRes] = await Promise.allSettled([
+      const [pacRes, espRes, usuRes, cliRes] = await Promise.allSettled([
         api.get('/api/v1/pacientes'),
         api.get('/api/v1/especialidades'),
-        api.get('/api/v1/usuarios')
+        api.get('/api/v1/usuarios'),
+        api.get('/api/v1/clientes')
       ]);
 
       if (pacRes.status === 'fulfilled') setPacientes(pacRes.value.data || []);
       if (espRes.status === 'fulfilled') setEspecialidades(espRes.value.data || []);
       if (usuRes.status === 'fulfilled') setUsuarios(usuRes.value.data || []);
+      if (cliRes.status === 'fulfilled') setClientes(cliRes.value.data || []);
     } catch (err) {
-      console.error(err);
+      console.error('Error al cargar catálogos asociados a citas:', err);
     }
   };
 
@@ -68,14 +88,14 @@ export const CitasView = () => {
       if (filters.usuarioId) params.usuarioId = filters.usuarioId;
       if (filters.especialidadId) params.especialidadId = filters.especialidadId;
       if (filters.estado) params.estado = filters.estado;
-      if (filters.fechaDesde) params.fechaDesde = new Date(filters.fechaDesde).toISOString();
-      if (filters.fechaHasta) params.fechaHasta = new Date(filters.fechaHasta).toISOString();
+      if (filters.fechaDesde) params.fechaDesde = filters.fechaDesde;
+      if (filters.fechaHasta) params.fechaHasta = filters.fechaHasta;
 
       const res = await api.get('/api/v1/citas', { params });
       setCitas(res.data || []);
     } catch (err) {
       console.error(err);
-      setError('Error al cargar datos de citas.');
+      setError('Error al conectar con el servidor para obtener las citas.');
     } finally {
       setLoading(false);
     }
@@ -89,10 +109,12 @@ export const CitasView = () => {
       fechaDesde: '',
       fechaHasta: ''
     });
+    setSearchDueno('');
   };
 
   const handleOpenModal = (cita = null) => {
     setError('');
+    setFieldErrors({});
     if (cita) {
       setEditingId(cita.id);
       const formattedDate = cita.fechaHora ? new Date(cita.fechaHora).toISOString().slice(0, 16) : '';
@@ -107,7 +129,7 @@ export const CitasView = () => {
       setEditingId(null);
       setFormData({
         pacienteId: pacientes[0]?.id || '',
-        usuarioId: usuarios[0]?.id || '',
+        usuarioId: veterinarios[0]?.id || '',
         especialidadId: especialidades[0]?.id || '',
         fechaHora: new Date().toISOString().slice(0, 16),
         estado: 'Pendiente'
@@ -119,15 +141,25 @@ export const CitasView = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setFieldErrors({});
+
+    // Validación Zod
+    const result = citaSchema.safeParse(formData);
+    if (!result.success) {
+      setFieldErrors(result.error.flatten().fieldErrors);
+      setError('Por favor corrija los campos marcados en el formulario.');
+      return;
+    }
 
     const payload = {
-      pacienteId: Number(formData.pacienteId),
-      usuarioId: Number(formData.usuarioId),
-      especialidadId: Number(formData.especialidadId),
-      fechaHora: new Date(formData.fechaHora).toISOString(),
-      estado: formData.estado
+      pacienteId: Number(result.data.pacienteId),
+      usuarioId: Number(result.data.usuarioId),
+      especialidadId: Number(result.data.especialidadId),
+      fechaHora: new Date(result.data.fechaHora).toISOString(),
+      estado: result.data.estado
     };
 
+    setSubmitting(true);
     try {
       if (editingId) {
         await api.put(`/api/v1/citas/${editingId}`, payload);
@@ -138,20 +170,35 @@ export const CitasView = () => {
       fetchCitas();
     } catch (err) {
       if (err.response?.data?.errors) {
+        setFieldErrors(err.response.data.errors);
         setError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setError(err.response?.data?.message || 'Error al guardar la cita.');
+        setError(err.response?.data?.message || 'Error al guardar la cita en el servidor.');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm('¿Seguro de cancelar y eliminar esta cita?')) return;
+  const handleRequestDelete = (cita) => {
+    setDeleteConfirm({
+      isOpen: true,
+      id: cita.id,
+      nombre: `Cita de ${cita.paciente?.nombre || 'Paciente'} (${cita.estado})`,
+      loading: false
+    });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteConfirm.id) return;
+    setDeleteConfirm((prev) => ({ ...prev, loading: true }));
     try {
-      await api.delete(`/api/v1/citas/${id}`);
+      await api.delete(`/api/v1/citas/${deleteConfirm.id}`);
+      setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false });
       fetchCitas();
     } catch (err) {
       alert(err.response?.data?.message || 'Error al eliminar la cita.');
+      setDeleteConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -176,12 +223,38 @@ export const CitasView = () => {
           )}
         </div>
 
-        {/* Panel de Filtros para Endpoint */}
+        {/* Panel de Filtros */}
         <div className="filter-panel">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: '#334155' }}>
             <Filter size={16} /> Filtros de Agenda (API)
           </div>
           <div className="filter-grid">
+            <div>
+              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Profesional / Vet</label>
+              <select
+                className="form-select"
+                value={filters.usuarioId}
+                onChange={(e) => setFilters({ ...filters, usuarioId: e.target.value })}
+              >
+                <option value="">Todos los profesionales</option>
+                {veterinarios.map(u => (
+                  <option key={u.id} value={u.id}>{u.nombreCompleto}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Especialidad</label>
+              <select
+                className="form-select"
+                value={filters.especialidadId}
+                onChange={(e) => setFilters({ ...filters, especialidadId: e.target.value })}
+              >
+                <option value="">Todas las especialidades</option>
+                {especialidades.map(esp => (
+                  <option key={esp.id} value={esp.id}>{esp.nombre}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Estado</label>
               <select
@@ -197,35 +270,18 @@ export const CitasView = () => {
                 <option value="Cancelada">Cancelada</option>
               </select>
             </div>
-
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Especialidad</label>
-              <select
-                className="form-select"
-                value={filters.especialidadId}
-                onChange={(e) => setFilters({ ...filters, especialidadId: e.target.value })}
-              >
-                <option value="">Todas las especialidades</option>
-                {especialidades.map(esp => (
-                  <option key={esp.id} value={esp.id}>{esp.nombre}</option>
-                ))}
-              </select>
+              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Dueño (Buscar por RUT o Nombre)</label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="RUT o Nombre del dueño..."
+                value={searchDueno}
+                onChange={(e) => setSearchDueno(e.target.value)}
+              />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Profesional / Médico</label>
-              <select
-                className="form-select"
-                value={filters.usuarioId}
-                onChange={(e) => setFilters({ ...filters, usuarioId: e.target.value })}
-              >
-                <option value="">Todos los profesionales</option>
-                {usuarios.map(u => (
-                  <option key={u.id} value={u.id}>{u.nombreCompleto}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Fecha Desde</label>
+              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Desde Fecha</label>
               <input
                 type="date"
                 className="form-input"
@@ -233,192 +289,258 @@ export const CitasView = () => {
                 onChange={(e) => setFilters({ ...filters, fechaDesde: e.target.value })}
               />
             </div>
-            <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Fecha Hasta</label>
-              <input
-                type="date"
-                className="form-input"
-                value={filters.fechaHasta}
-                onChange={(e) => setFilters({ ...filters, fechaHasta: e.target.value })}
-              />
+            <div style={{ display: 'flex', alignItems: 'flex-end' }}>
+              <button className="btn btn-secondary" style={{ width: '100%' }} onClick={handleResetFilters}>
+                <RotateCcw size={15} /> Limpiar
+              </button>
             </div>
-          </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
-            <button className="btn btn-secondary btn-sm" onClick={handleResetFilters}>
-              <RotateCcw size={14} /> Restablecer Filtros
-            </button>
           </div>
         </div>
 
-        {loading ? (
-          <p style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>Cargando citas...</p>
-        ) : citas.length === 0 ? (
-          <p style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
-            No hay citas agendadas con los criterios seleccionados.
-          </p>
-        ) : (
-          <div className="table-responsive">
-            <table className="custom-table">
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Paciente</th>
-                  <th>Especialidad</th>
-                  <th>Veterinario / Médico</th>
-                  <th>Fecha y Hora</th>
-                  <th>Estado</th>
-                  <th style={{ textAlign: 'right' }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {citas.map((cita) => {
-                  const paciente = pacientes.find(p => p.id === cita.pacienteId);
-                  const especialidad = especialidades.find(e => e.id === cita.especialidadId);
-                  const usuario = usuarios.find(u => u.id === cita.usuarioId);
+        {(() => {
+          const displayedCitas = citas.filter((c) => {
+            if (!searchDueno) return true;
+            const term = searchDueno.toLowerCase();
+            const cliente = c.paciente?.cliente || clientes.find(cl => cl.id === c.paciente?.clienteId);
+            const clienteNombre = cliente?.nombreCompleto?.toLowerCase() || '';
+            const clienteRut = cliente?.documentoIdentidad?.toLowerCase() || '';
+            const pacienteNombre = c.paciente?.nombre?.toLowerCase() || '';
+            return clienteNombre.includes(term) || clienteRut.includes(term) || pacienteNombre.includes(term);
+          });
 
-                  return (
-                    <tr key={cita.id}>
-                      <td data-label="ID" style={{ fontWeight: 600 }}>#{cita.id}</td>
+          if (loading) {
+            return <p style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>Cargando agenda de citas...</p>;
+          }
+          if (displayedCitas.length === 0) {
+            return (
+              <p style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+                No se encontraron citas médicas registradas con los filtros aplicados.
+              </p>
+            );
+          }
+          return (
+            <div className="table-responsive">
+              <table className="custom-table">
+                <thead>
+                  <tr>
+                    <th>Paciente</th>
+                    <th>Dueño / Cliente</th>
+                    <th>Especialidad</th>
+                    <th>Profesional</th>
+                    <th>Fecha y Hora</th>
+                    <th>Estado</th>
+                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {displayedCitas.map((c) => (
+                    <tr key={c.id}>
                       <td data-label="Paciente">
-                        <strong>{paciente ? paciente.nombre : `Paciente #${cita.pacienteId}`}</strong>
-                        {paciente && <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{paciente.especie} - {paciente.raza}</div>}
+                        <strong style={{ color: '#0f172a' }}>{c.paciente?.nombre || 'Paciente'}</strong>
+                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.paciente?.especie} ({c.paciente?.raza || 'Mestizo'})</div>
+                      </td>
+                      <td data-label="Dueño / Cliente">
+                        {(() => {
+                          const cliente = c.paciente?.cliente || clientes.find(cl => cl.id === c.paciente?.clienteId);
+                          return cliente ? (
+                            <div>
+                              <strong style={{ color: '#0f172a' }}>{cliente.nombreCompleto}</strong>
+                              <div style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 600 }}>RUT: {cliente.documentoIdentidad}</div>
+                            </div>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>—</span>
+                          );
+                        })()}
                       </td>
                       <td data-label="Especialidad">
-                        <span className="badge badge-primary">
-                          {especialidad ? especialidad.nombre : `Especialidad #${cita.especialidadId}`}
-                        </span>
+                        <span className="badge badge-secondary">{c.especialidad?.nombre || 'General'}</span>
                       </td>
-                      <td data-label="Veterinario">{usuario ? usuario.nombreCompleto : `Dr. ID #${cita.usuarioId}`}</td>
+                      <td data-label="Profesional">{c.usuario?.nombreCompleto || 'Dr. Asignado'}</td>
                       <td data-label="Fecha y Hora">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#1e293b' }}>
-                          <Clock size={15} color="#64748b" />
-                          {new Date(cita.fechaHora).toLocaleString()}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#334155', fontWeight: 500 }}>
+                          <Clock size={14} color="#64748b" />
+                          {new Date(c.fechaHora).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
                         </div>
                       </td>
                       <td data-label="Estado">
                         <span className={`badge ${
-                          cita.estado?.toLowerCase() === 'completada' ? 'badge-success' :
-                          cita.estado?.toLowerCase() === 'cancelada' ? 'badge-danger' : 'badge-warning'
+                          c.estado === 'Confirmada' ? 'badge-success' : 
+                          c.estado === 'Completada' ? 'badge-info' : 
+                          c.estado === 'Cancelada' ? 'badge-danger' : 'badge-warning'
                         }`}>
-                          {cita.estado}
+                          {c.estado}
                         </span>
                       </td>
                       <td data-label="Acciones" style={{ textAlign: 'right' }}>
-                        {canCreateOrEdit && (
-                          <button className="btn-icon" onClick={() => handleOpenModal(cita)} title="Editar" aria-label="Editar cita">
-                            <Edit2 size={16} />
-                          </button>
-                        )}
-                        {canDelete && (
-                          <button className="btn-icon danger" onClick={() => handleDelete(cita.id)} title="Eliminar" aria-label="Eliminar cita">
-                            <Trash2 size={16} />
-                          </button>
-                        )}
-                        {!canCreateOrEdit && !canDelete && (
+                        {canCreateOrEdit ? (
+                          <>
+                            <button className="btn-icon" onClick={() => handleOpenModal(c)} title="Editar" aria-label="Editar cita médica">
+                              <Edit2 size={16} />
+                            </button>
+                            {canDelete && (
+                              <button className="btn-icon danger" onClick={() => handleRequestDelete(c)} title="Eliminar" aria-label="Eliminar cita médica">
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </>
+                        ) : (
                           <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Solo Lectura</span>
                         )}
                       </td>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          );
+        })()}
       </div>
 
-      {/* Modal Cita */}
+      {/* Modal Citas */}
       {isModalOpen && (
-        <div className="modal-overlay">
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-cita-title">
           <div className="modal-content">
             <div className="modal-header">
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
-                {editingId ? 'Editar Cita' : 'Agendar Cita Médica'}
+              <h3 id="modal-cita-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
+                {editingId ? 'Editar Cita Médica' : 'Agendar Nueva Cita'}
               </h3>
-              <button className="btn-icon" onClick={() => setIsModalOpen(false)}>
+              <button className="btn-icon" onClick={() => setIsModalOpen(false)} aria-label="Cerrar modal">
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} noValidate>
               <div className="modal-body">
                 {error && (
-                  <div className="alert alert-danger">
+                  <div className="alert alert-danger" role="alert">
                     <AlertCircle size={18} />
                     <span>{error}</span>
                   </div>
                 )}
 
                 <div className="form-group">
-                  <label className="form-label">Paciente (Mascota)</label>
+                  <label htmlFor="cita-paciente" className="form-label">
+                    Paciente (Mascota) <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
                   <select
-                    className="form-select"
-                    required
+                    id="cita-paciente"
+                    className={`form-select ${fieldErrors.pacienteId ? 'border-danger' : ''}`}
                     value={formData.pacienteId}
-                    onChange={(e) => setFormData({ ...formData, pacienteId: e.target.value })}
+                    onChange={(e) => {
+                      setFormData({ ...formData, pacienteId: e.target.value });
+                      if (fieldErrors.pacienteId) setFieldErrors({ ...fieldErrors, pacienteId: null });
+                    }}
+                    aria-invalid={!!fieldErrors.pacienteId}
+                    aria-describedby={fieldErrors.pacienteId ? 'error-pacienteId' : undefined}
                   >
-                    <option value="">Seleccione el paciente...</option>
-                    {pacientes.map(p => (
-                      <option key={p.id} value={p.id}>
-                        {p.nombre} ({p.especie}) - #{p.id}
-                      </option>
-                    ))}
+                    <option value="">Seleccione mascota...</option>
+                    {pacientes.map(p => {
+                      const cliente = p.cliente || clientes.find(cl => cl.id === p.clienteId);
+                      return (
+                        <option key={p.id} value={p.id}>
+                          {p.nombre} ({p.especie}) — Dueño: {cliente?.nombreCompleto || 'Sin dueño'} (RUT: {cliente?.documentoIdentidad || '—'})
+                        </option>
+                      );
+                    })}
                   </select>
+                  {fieldErrors.pacienteId && (
+                    <span id="error-pacienteId" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      {Array.isArray(fieldErrors.pacienteId) ? fieldErrors.pacienteId[0] : fieldErrors.pacienteId}
+                    </span>
+                  )}
                 </div>
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label className="form-label">Especialidad Requerida</label>
+                    <label htmlFor="cita-especialidad" className="form-label">
+                      Especialidad Clínica <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
                     <select
-                      className="form-select"
-                      required
+                      id="cita-especialidad"
+                      className={`form-select ${fieldErrors.especialidadId ? 'border-danger' : ''}`}
                       value={formData.especialidadId}
-                      onChange={(e) => setFormData({ ...formData, especialidadId: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, especialidadId: e.target.value });
+                        if (fieldErrors.especialidadId) setFieldErrors({ ...fieldErrors, especialidadId: null });
+                      }}
+                      aria-invalid={!!fieldErrors.especialidadId}
+                      aria-describedby={fieldErrors.especialidadId ? 'error-especialidadId' : undefined}
                     >
                       <option value="">Seleccione especialidad...</option>
                       {especialidades.map(esp => (
                         <option key={esp.id} value={esp.id}>
-                          {esp.nombre} (${Number(esp.costoBase).toFixed(2)})
+                          {esp.nombre} (${Number(esp.costoBase).toLocaleString('es-CL')})
                         </option>
                       ))}
                     </select>
+                    {fieldErrors.especialidadId && (
+                      <span id="error-especialidadId" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                        {Array.isArray(fieldErrors.especialidadId) ? fieldErrors.especialidadId[0] : fieldErrors.especialidadId}
+                      </span>
+                    )}
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Veterinario / Profesional</label>
+                    <label htmlFor="cita-usuario" className="form-label">
+                      Veterinario / Profesional <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
                     <select
-                      className="form-select"
-                      required
+                      id="cita-usuario"
+                      className={`form-select ${fieldErrors.usuarioId ? 'border-danger' : ''}`}
                       value={formData.usuarioId}
-                      onChange={(e) => setFormData({ ...formData, usuarioId: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, usuarioId: e.target.value });
+                        if (fieldErrors.usuarioId) setFieldErrors({ ...fieldErrors, usuarioId: null });
+                      }}
+                      aria-invalid={!!fieldErrors.usuarioId}
+                      aria-describedby={fieldErrors.usuarioId ? 'error-usuarioId' : undefined}
                     >
-                      <option value="">Seleccione profesional...</option>
-                      {usuarios.map(u => (
+                      <option value="">Seleccione veterinario...</option>
+                      {veterinarios.map(u => (
                         <option key={u.id} value={u.id}>
-                          {u.nombreCompleto} ({u.rol || 'Staff'})
+                          {u.nombreCompleto} ({u.rol || 'Veterinario'})
                         </option>
                       ))}
                     </select>
+                    {fieldErrors.usuarioId && (
+                      <span id="error-usuarioId" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                        {Array.isArray(fieldErrors.usuarioId) ? fieldErrors.usuarioId[0] : fieldErrors.usuarioId}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label className="form-label">Fecha y Hora</label>
+                    <label htmlFor="cita-fechaHora" className="form-label">
+                      Fecha y Hora <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
                     <input
+                      id="cita-fechaHora"
                       type="datetime-local"
-                      className="form-input"
-                      required
+                      className={`form-input ${fieldErrors.fechaHora ? 'border-danger' : ''}`}
                       value={formData.fechaHora}
-                      onChange={(e) => setFormData({ ...formData, fechaHora: e.target.value })}
+                      onChange={(e) => {
+                        setFormData({ ...formData, fechaHora: e.target.value });
+                        if (fieldErrors.fechaHora) setFieldErrors({ ...fieldErrors, fechaHora: null });
+                      }}
+                      aria-invalid={!!fieldErrors.fechaHora}
+                      aria-describedby={fieldErrors.fechaHora ? 'error-fechaHora' : undefined}
                     />
+                    {fieldErrors.fechaHora && (
+                      <span id="error-fechaHora" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                        {Array.isArray(fieldErrors.fechaHora) ? fieldErrors.fechaHora[0] : fieldErrors.fechaHora}
+                      </span>
+                    )}
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label">Estado de la Cita</label>
+                    <label htmlFor="cita-estado" className="form-label">
+                      Estado de la Cita <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
                     <select
+                      id="cita-estado"
                       className="form-select"
-                      required
                       value={formData.estado}
                       onChange={(e) => setFormData({ ...formData, estado: e.target.value })}
                     >
@@ -436,14 +558,27 @@ export const CitasView = () => {
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary">
-                  {editingId ? 'Actualizar Cita' : 'Confirmar Cita'}
+                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                  {submitting ? 'Guardando...' : (editingId ? 'Actualizar Cita' : 'Confirmar Cita')}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* ConfirmModal para eliminar citas */}
+      <ConfirmModal
+        isOpen={deleteConfirm.isOpen}
+        title="Cancelar y Eliminar Cita"
+        message={`¿Estás seguro de que deseas cancelar y eliminar permanentemente la "${deleteConfirm.nombre}"?`}
+        confirmText="Eliminar Cita"
+        cancelText="Volver"
+        isDangerous={true}
+        loading={deleteConfirm.loading}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false })}
+      />
     </div>
   );
 };

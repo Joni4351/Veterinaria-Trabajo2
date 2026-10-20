@@ -359,10 +359,12 @@ export const DashboardView = ({ onNavigate }) => {
                     </div>
                     <div>
                       <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
-                        Paciente #{cita.pacienteId || cita.id}
+                        {cita.paciente?.nombre || 'Paciente en Atención'}
                       </div>
                       <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        {cita.fechaHora ? new Date(cita.fechaHora).toLocaleString() : 'Fecha pendiente'}
+                        {cita.paciente?.cliente 
+                          ? `Dueño: ${cita.paciente.cliente.nombreCompleto} (RUT: ${cita.paciente.cliente.documentoIdentidad})`
+                          : (cita.fechaHora ? new Date(cita.fechaHora).toLocaleString() : 'Fecha pendiente')}
                       </div>
                     </div>
                   </div>
@@ -413,7 +415,7 @@ export const DashboardView = ({ onNavigate }) => {
                 >
                   <div>
                     <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
-                      {insumo.nombreProducto || `Insumo #${insumo.id}`}
+                      {insumo.nombreProducto || 'Insumo'}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
                       Categoría: {insumo.tipo || 'Clínico'}

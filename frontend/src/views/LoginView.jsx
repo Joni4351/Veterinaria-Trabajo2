@@ -208,9 +208,9 @@ export const LoginView = () => {
                   value={rolId}
                   onChange={(e) => setRolId(e.target.value)}
                 >
-                  <option value={1}>1 - Administrador (Acceso total y configuración)</option>
-                  <option value={2}>2 - Veterinario (Consultas y recetas)</option>
-                  <option value={3}>3 - Recepcionista (Citas y clientes)</option>
+                  <option value={1}>Administrador (Acceso total y configuración)</option>
+                  <option value={2}>Veterinario (Consultas y recetas)</option>
+                  <option value={3}>Recepcionista (Citas y clientes)</option>
                 </select>
               </div>
             </>

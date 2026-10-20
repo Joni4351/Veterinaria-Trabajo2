@@ -301,12 +301,12 @@ export const PacientesView = () => {
               />
             </div>
             <div>
-              <label htmlFor="filter-dueno" className="form-label" style={{ fontSize: '0.75rem' }}>Dueño / Cliente</label>
+              <label htmlFor="filter-dueno" className="form-label" style={{ fontSize: '0.75rem' }}>Dueño (Buscar por RUT o Nombre)</label>
               <input
                 id="filter-dueno"
                 type="text"
                 className="form-input"
-                placeholder="Nombre o DNI del dueño..."
+                placeholder="Buscar por RUT o Nombre de dueño..."
                 value={filters.dueno}
                 onChange={(e) => setFilters({ ...filters, dueno: e.target.value })}
                 style={{ minHeight: '44px' }}
@@ -372,7 +372,6 @@ export const PacientesView = () => {
               <table className="custom-table" aria-label="Listado de mascotas y pacientes">
                 <thead>
                   <tr>
-                    <th scope="col">ID</th>
                     <th scope="col">Nombre</th>
                     <th scope="col">Especie</th>
                     <th scope="col">Raza</th>
@@ -387,7 +386,6 @@ export const PacientesView = () => {
                     const cliente = clientes.find(c => c.id === p.clienteId);
                     return (
                       <tr key={p.id}>
-                        <td data-label="ID" style={{ fontWeight: 600 }}>#{p.id}</td>
                         <td data-label="Nombre">
                           <strong style={{ color: '#0f172a' }}>{p.nombre}</strong>
                         </td>
@@ -396,7 +394,16 @@ export const PacientesView = () => {
                         </td>
                         <td data-label="Raza">{p.raza || '—'}</td>
                         <td data-label="Peso">{p.peso ? `${p.peso} kg` : '—'}</td>
-                        <td data-label="Dueño">{cliente ? cliente.nombreCompleto : `Cliente #${p.clienteId}`}</td>
+                        <td data-label="Dueño Responsable">
+                          {cliente ? (
+                            <div>
+                              <strong style={{ color: '#0f172a' }}>{cliente.nombreCompleto}</strong>
+                              <div style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 600 }}>RUT: {cliente.documentoIdentidad}</div>
+                            </div>
+                          ) : (
+                            <span style={{ color: '#94a3b8' }}>Sin dueño asignado</span>
+                          )}
+                        </td>
                         <td data-label="Alergias">
                           {p.alergias ? (
                             <span className="badge badge-danger">{p.alergias}</span>
@@ -532,12 +539,17 @@ export const PacientesView = () => {
               </button>
             </div>
             <div className="modal-body" style={{ lineHeight: 1.8 }}>
-              <p><strong>Identificador:</strong> #{detailPaciente.id}</p>
-              <p><strong>Nombre:</strong> {detailPaciente.nombre}</p>
+              <p><strong>Nombre del Paciente:</strong> {detailPaciente.nombre}</p>
               <p><strong>Especie:</strong> {detailPaciente.especie}</p>
               <p><strong>Raza:</strong> {detailPaciente.raza || 'No especificada'}</p>
               <p><strong>Peso Corporal:</strong> {detailPaciente.peso ? `${detailPaciente.peso} kg` : 'Sin registrar'}</p>
-              <p><strong>Dueño / Tutor:</strong> {clientes.find(c => c.id === detailPaciente.clienteId)?.nombreCompleto || `ID #${detailPaciente.clienteId}`}</p>
+              <p>
+                <strong>Dueño / Tutor:</strong>{' '}
+                {(() => {
+                  const cli = clientes.find(c => c.id === detailPaciente.clienteId);
+                  return cli ? `${cli.nombreCompleto} (RUT: ${cli.documentoIdentidad})` : 'Sin dueño asignado';
+                })()}
+              </p>
               <p>
                 <strong>Alergias o Observaciones:</strong>{' '}
                 <span style={{ color: detailPaciente.alergias ? '#dc2626' : '#64748b' }}>
@@ -621,10 +633,10 @@ export const PacientesView = () => {
                     style={{ minHeight: '44px' }}
                     required
                   >
-                    <option value="">Seleccione un cliente...</option>
+                    <option value="">Seleccione un cliente por RUT o Nombre...</option>
                     {clientes.map(c => (
                       <option key={c.id} value={c.id}>
-                        {c.nombreCompleto} (DNI: {c.documentoIdentidad})
+                        {c.nombreCompleto} — RUT: {c.documentoIdentidad}
                       </option>
                     ))}
                   </select>
