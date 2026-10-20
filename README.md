@@ -4,7 +4,7 @@
 ![.NET 8](https://img.shields.io/badge/.NET-8.0-blue)
 ![React](https://img.shields.io/badge/React-19.0-61dafb)
 ![Vite](https://img.shields.io/badge/Vite-6.0-646cff)
-![Vitest](https://img.shields.io/badge/Vitest-17%2F17%20Passing-green)
+![Vitest](https://img.shields.io/badge/Vitest-22%2F22%20Passing-green)
 ![xUnit](https://img.shields.io/badge/xUnit-6%2F6%20Passing-green)
 ![WCAG](https://img.shields.io/badge/WCAG-2.2%20AA-success)
 ![Audit](https://img.shields.io/badge/npm%20audit-0%20vulnerabilities-brightgreen)
@@ -37,6 +37,7 @@ VeterinariaAPI-master/
 ├── veterinariodb.sql            # Script DDL y datos semilla para SQL Server
 ├── INFORME_TECNICO.md           # Informe técnico formal con matriz OWASP y WCAG
 ├── AI_LOG.md                    # Bitácora detallada de prompts y decisiones con IA
+├── BITACORA.md                  # Registro cronológico de hitos del proyecto
 └── README.md                    # Instrucciones de instalación y ejecución
 ```
 
@@ -53,12 +54,14 @@ Asegúrate de contar con las siguientes herramientas instaladas en tu equipo:
 
 ## ⚙️ Paso 1: Configuración de la Base de Datos (SQL Server)
 
-1. Abre **SQL Server Management Studio (SSMS)** o Azure Data Studio y conéctate a tu instancia local (`localhost`, `.` o `(localdb)\mssqllocaldb`).
-2. Abre y ejecuta el archivo:
+1. Abre **SQL Server Management Studio (SSMS)** o ejecuta el script directamente mediante **sqlcmd** con soporte UTF-8:
+   ```bash
+   sqlcmd -S localhost -E -f 65001 -i veterinariodb.sql
+   # O si usas una instancia con nombre como SQLEXPRESS / SQLEXPRESS2:
+   sqlcmd -S .\SQLEXPRESS -E -f 65001 -i veterinariodb.sql
    ```
-   veterinariodb.sql
-   ```
-3. El script creará la base de datos `veterinariodb` con todas las tablas del modelo clínico, relaciones, llaves foráneas y datos semilla iniciales (usuarios, roles, especialidades y pacientes).
+2. O bien, abre el archivo `veterinariodb.sql` en SSMS / Azure Data Studio y presiona **Execute** (`F5`).
+3. El script creará la base de datos `veterinariodb` con todas las tablas del modelo clínico, relaciones, llaves foráneas y datos semilla completos (usuarios, roles, especialidades, clientes, pacientes, citas, consultas, insumos y facturas con seeders válidos).
 
 ---
 
@@ -106,7 +109,7 @@ Asegúrate de contar con las siguientes herramientas instaladas en tu equipo:
    ```bash
    npm test -- --run
    ```
-   *Debe arrojar: `17 passed (17)` en 4 archivos de prueba.*
+   *Debe arrojar: `22 passed (22)` en 5 archivos de prueba.*
 5. Inicia el servidor de desarrollo:
    ```bash
    npm run dev
@@ -161,13 +164,13 @@ Puedes iniciar sesión con cualquiera de los siguientes usuarios precargados en 
 
 ## 🧪 Pruebas Automatizadas
 
-El proyecto cuenta con un total de **23 pruebas automatizadas pasando al 100%**:
+El proyecto cuenta con un total de **28 pruebas automatizadas pasando al 100%**:
 
 ```bash
 # 1. Pruebas Backend (.NET xUnit) - 6 pruebas
 dotnet test VeterinariaAPI.Tests/VeterinariaAPI.Tests.csproj
 
-# 2. Pruebas Frontend (Vitest + Testing Library) - 17 pruebas
+# 2. Pruebas Frontend (Vitest + Testing Library) - 22 pruebas
 cd frontend && npm test -- --run
 
 # 3. Compilación de Producción del Frontend
@@ -183,6 +186,7 @@ cd frontend && npm audit
 ## 📚 Documentación de Entrega
 
 Para detalles exhaustivos de evaluación, consulta los siguientes documentos:
-- 📄 **[INFORME_TECNICO.md](file:///c:/Users/joni5.DESKTOP-AF57599/Downloads/VeterinariaAPI-master/INFORME_TECNICO.md)**: Informe técnico formal con la justificación de diseño, matriz completa de 7 riesgos OWASP mitigados, auditoría WCAG 2.2 AA y métricas.
-- 🤖 **[AI_LOG.md](file:///c:/Users/joni5.DESKTOP-AF57599/Downloads/VeterinariaAPI-master/AI_LOG.md)**: Bitácora de Inteligencia Artificial que declara la herramienta (Gemini 3.8 Flash), modelo, plan, prompts empleados y decisiones de aceptación/corrección/descarte.
+- 📄 **[INFORME_TECNICO.md](INFORME_TECNICO.md)**: Informe técnico formal con la justificación de diseño, matriz completa de 7 riesgos OWASP mitigados, auditoría WCAG 2.2 AA y métricas.
+- 🤖 **[AI_LOG.md](AI_LOG.md)**: Bitácora de Inteligencia Artificial que declara la herramienta (Gemini 3.8 Flash), modelo, plan, prompts empleados y decisiones de aceptación/corrección/descarte.
+- 📓 **[BITACORA.md](BITACORA.md)**: Registro cronológico de actividades, sesiones de trabajo e hitos del proyecto.
 

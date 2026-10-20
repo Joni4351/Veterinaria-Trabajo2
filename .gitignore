@@ -379,3 +379,13 @@ dist-ssr/
 
 # Documentos personales
 GUIA_EXPOSICION.md
+
+# Configuraciones de IDE y entorno local
+.vscode/
+.idea/
+
+# Artefactos y agentes de entorno IA local
+.agents/
+
+# Scripts de automatización local
+*.bat
