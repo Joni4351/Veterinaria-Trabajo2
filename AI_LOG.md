@@ -1,7 +1,7 @@
 # BITÁCORA DE USO DE INTELIGENCIA ARTIFICIAL GENERATIVA (AI_LOG.md)
 ## Trabajo 2: Frontend, Consumo de API y Seguridad de Extremo a Extremo
 **Sistema:** VetClinic Pro — Plataforma Veterinaria  
-**Estudiante:** Joaquín Ignacio / Proyecto Veterinario  
+**Estudiante:** Jonathan Garrido / Proyecto Veterinario  
 **Fecha:** Octubre 2026  
 
 ---

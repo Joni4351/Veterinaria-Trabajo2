@@ -2,7 +2,7 @@
 ## Trabajo 2: Frontend, Consumo de API y Seguridad de Extremo a Extremo
 **Sistema:** VetClinic Pro — Plataforma de Gestión Clínica Veterinaria  
 **Asignatura / Módulo:** Desarrollo de Aplicaciones Web y APIs Seguras  
-**Estudiante:** Joaquín Ignacio / Proyecto Veterinario  
+**Estudiante:** Jonathan Garrido / Proyecto Veterinario  
 **Fecha:** Octubre 2026  
 **Repositorio:** Monorepo (`VeterinariaAPI` + `frontend`)  
 
