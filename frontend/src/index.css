@@ -852,7 +852,8 @@ button, input, select, textarea {
   animation: fadeIn 0.2s ease-out;
 }
 
-.modal-container {
+.modal-container,
+.modal-content {
   background: #ffffff;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);

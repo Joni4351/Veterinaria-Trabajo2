@@ -547,20 +547,32 @@ export const AdminConfigView = () => {
         )}
       </div>
 
-      {/* Modal Especialidad */}
+      {/* Modal Especialidad (Estructura de Tarjetas Visuales) */}
       {modalType === 'esp' && (
         <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>
-                {espForm.id ? 'Editar Especialidad' : 'Nueva Especialidad Médica'}
-              </h3>
-              <button className="btn-icon" onClick={() => setModalType(null)}>
+          <div className="modal-content" style={{ maxWidth: '520px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+            {/* Tarjeta Visual Cabecera Especialidad */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: espForm.id ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: espForm.id ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                  <Award size={22} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    {espForm.id ? 'Editar Especialidad' : 'Nueva Especialidad Médica'}
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    {espForm.id ? 'Modifique el costo base o nombre de la especialidad' : 'Registre una nueva especialidad para atención clínica'}
+                  </span>
+                </div>
+              </div>
+              <button className="btn-icon" onClick={() => setModalType(null)} aria-label="Cerrar modal">
                 <X size={20} />
               </button>
             </div>
+
             <form onSubmit={handleSaveEsp} noValidate>
-              <div className="modal-body">
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {formError && (
                   <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
                     <AlertCircle size={18} />
@@ -568,7 +580,7 @@ export const AdminConfigView = () => {
                   </div>
                 )}
                 <div className="form-group">
-                  <label className="form-label" htmlFor="esp-nombre">Nombre de la Especialidad *</label>
+                  <label className="form-label" htmlFor="esp-nombre" style={{ fontWeight: 600, color: '#1e293b' }}>Nombre de la Especialidad *</label>
                   <input
                     id="esp-nombre"
                     type="text"
@@ -588,7 +600,7 @@ export const AdminConfigView = () => {
                   )}
                 </div>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="esp-costo">Costo Base ($) *</label>
+                  <label className="form-label" htmlFor="esp-costo" style={{ fontWeight: 600, color: '#1e293b' }}>Costo Base ($) *</label>
                   <input
                     id="esp-costo"
                     type="number"
@@ -608,7 +620,8 @@ export const AdminConfigView = () => {
                   )}
                 </div>
               </div>
-              <div className="modal-footer">
+              {/* Pie de Acciones (Tarjeta Visual) */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setModalType(null)}>Cancelar</button>
                 <button type="submit" className="btn btn-primary">Guardar</button>
               </div>
@@ -617,20 +630,32 @@ export const AdminConfigView = () => {
         </div>
       )}
 
-      {/* Modal Rol */}
+      {/* Modal Rol (Estructura de Tarjetas Visuales) */}
       {modalType === 'rol' && (
         <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>
-                {rolForm.id ? 'Editar Rol' : 'Nuevo Rol de Usuario'}
-              </h3>
-              <button className="btn-icon" onClick={() => setModalType(null)}>
+          <div className="modal-content" style={{ maxWidth: '520px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+            {/* Tarjeta Visual Cabecera Rol */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: rolForm.id ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: rolForm.id ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                  <Shield size={22} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    {rolForm.id ? 'Editar Rol' : 'Nuevo Rol de Usuario'}
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    {rolForm.id ? 'Configure los permisos asignados a este rol' : 'Defina un rol con permisos de acceso al sistema'}
+                  </span>
+                </div>
+              </div>
+              <button className="btn-icon" onClick={() => setModalType(null)} aria-label="Cerrar modal">
                 <X size={20} />
               </button>
             </div>
+
             <form onSubmit={handleSaveRol} noValidate>
-              <div className="modal-body">
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {formError && (
                   <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
                     <AlertCircle size={18} />
@@ -638,7 +663,7 @@ export const AdminConfigView = () => {
                   </div>
                 )}
                 <div className="form-group">
-                  <label className="form-label" htmlFor="rol-nombre">Nombre del Rol *</label>
+                  <label className="form-label" htmlFor="rol-nombre" style={{ fontWeight: 600, color: '#1e293b' }}>Nombre del Rol *</label>
                   <input
                     id="rol-nombre"
                     type="text"
@@ -664,12 +689,13 @@ export const AdminConfigView = () => {
                     checked={rolForm.permisosEscritura}
                     onChange={(e) => setRolForm({ ...rolForm, permisosEscritura: e.target.checked })}
                   />
-                  <label htmlFor="permisosEscritura" style={{ fontSize: '0.9rem', cursor: 'pointer', fontWeight: 500 }}>
+                  <label htmlFor="permisosEscritura" style={{ fontSize: '0.9rem', cursor: 'pointer', fontWeight: 600, color: '#1e293b' }}>
                     Permisos de Escritura y Modificación habilitados
                   </label>
                 </div>
               </div>
-              <div className="modal-footer">
+              {/* Pie de Acciones (Tarjeta Visual) */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setModalType(null)}>Cancelar</button>
                 <button type="submit" className="btn btn-primary">Guardar</button>
               </div>

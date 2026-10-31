@@ -55,12 +55,18 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
             // API para crear una receta
-            recetas.MapPost("/", async (RecetaCreateDto dto, IRepository<Receta> repo) =>
+            recetas.MapPost("/", async (RecetaCreateDto dto, IRepository<Receta> repo, VeterinariodbContext db) =>
             {
                 var errores = dto.Validar();
                 if (errores.Count > 0)
                 {
                     return Results.ValidationProblem(errores);
+                }
+
+                var yaExiste = await db.Recetas.AnyAsync(r => r.ConsultaId == dto.ConsultaId);
+                if (yaExiste)
+                {
+                    return Results.Conflict(new { message = "Ya existe una receta médica registrada para esta consulta. Puede actualizarla o eliminarla." });
                 }
 
                 var nuevaReceta = new Receta
@@ -77,7 +83,7 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
 
             // API para editar una receta por ID
-            recetas.MapPut("/{id:int}", async (int id, RecetaCreateDto dto, IRepository<Receta> repo) =>
+            recetas.MapPut("/{id:int}", async (int id, RecetaCreateDto dto, IRepository<Receta> repo, VeterinariodbContext db) =>
             {
                 var errores = dto.Validar();
                 if (errores.Count > 0)
@@ -88,6 +94,15 @@ namespace VeterinariaAPI.Endpoints
                 var recetaExistente = await repo.ObtenerPorIdAsync(id);
                 if (recetaExistente is null) return Results.NotFound("La receta no existe");
 
+                if (recetaExistente.ConsultaId != dto.ConsultaId)
+                {
+                    var yaExisteEnOtra = await db.Recetas.AnyAsync(r => r.ConsultaId == dto.ConsultaId && r.Id != id);
+                    if (yaExisteEnOtra)
+                    {
+                        return Results.Conflict(new { message = "La consulta seleccionada ya tiene otra receta vinculada." });
+                    }
+                }
+
                 recetaExistente.ConsultaId = dto.ConsultaId;
                 recetaExistente.FechaEmision = dto.FechaEmision;
                 recetaExistente.ValidaHasta = dto.ValidaHasta;
@@ -96,11 +111,17 @@ namespace VeterinariaAPI.Endpoints
                 return Results.Ok(recetaExistente);
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
 
-            // API para eliminar recetas
-            recetas.MapDelete("/{id:int}", async (int id, IRepository<Receta> repo) =>
+            // API para eliminar recetas (eliminando también sus detalles asociados)
+            recetas.MapDelete("/{id:int}", async (int id, IRepository<Receta> repo, VeterinariodbContext db) =>
             {
                 var recetaExistente = await repo.ObtenerPorIdAsync(id);
                 if (recetaExistente is null) return Results.NotFound();
+
+                var detallesAsociados = await db.DetallesReceta.Where(d => d.RecetaId == id).ToListAsync();
+                if (detallesAsociados.Count > 0)
+                {
+                    db.DetallesReceta.RemoveRange(detallesAsociados);
+                }
 
                 await repo.EliminarAsync(recetaExistente);
                 await repo.GuardarCambiosAsync();

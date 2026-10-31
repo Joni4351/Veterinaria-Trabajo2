@@ -506,7 +506,7 @@ export const PacientesView = () => {
       </div>
 
       {/* =========================================================================
-          MODAL DETALLE DE PACIENTE (Lectura)
+          MODAL DETALLE DE PACIENTE (Lectura en Tarjetas Visuales)
           ========================================================================= */}
       {isDetailOpen && detailPaciente && (
         <div
@@ -521,10 +521,11 @@ export const PacientesView = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="detail-modal-title"
-            style={{ maxWidth: '480px' }}
+            style={{ maxWidth: '520px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}
           >
-            <div className="modal-header">
-              <h2 id="detail-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            {/* Tarjeta Visual Cabecera Ficha */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 id="detail-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
                 <Dog size={22} color="#0284c7" aria-hidden="true" />
                 Ficha Clínica: {detailPaciente.nombre}
               </h2>
@@ -538,7 +539,8 @@ export const PacientesView = () => {
                 <X size={20} aria-hidden="true" />
               </button>
             </div>
-            <div className="modal-body" style={{ lineHeight: 1.8 }}>
+            {/* Tarjeta Visual Datos Clínicos */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', lineHeight: 1.8 }}>
               <p><strong>Nombre del Paciente:</strong> {detailPaciente.nombre}</p>
               <p><strong>Especie:</strong> {detailPaciente.especie}</p>
               <p><strong>Raza:</strong> {detailPaciente.raza || 'No especificada'}</p>
@@ -557,7 +559,8 @@ export const PacientesView = () => {
                 </span>
               </p>
             </div>
-            <div className="modal-footer">
+            {/* Tarjeta Visual Pie */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -587,11 +590,23 @@ export const PacientesView = () => {
             role="dialog"
             aria-modal="true"
             aria-labelledby="form-modal-title"
+            style={{ maxWidth: '640px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}
           >
-            <div className="modal-header">
-              <h2 id="form-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
-                {editingId ? `Editar Paciente: ${formData.nombre}` : 'Registrar Nuevo Paciente'}
-              </h2>
+            {/* Tarjeta Visual Cabecera Formulario */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                  <Dog size={22} />
+                </div>
+                <div>
+                  <h2 id="form-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    {editingId ? `Editar Paciente: ${formData.nombre}` : 'Registrar Nuevo Paciente'}
+                  </h2>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    {editingId ? 'Actualice la información médica y tutor de la mascota' : 'Ingrese los datos clínicos y asocie un cliente responsable'}
+                  </span>
+                </div>
+              </div>
               <button
                 type="button"
                 className="btn-icon"
@@ -605,7 +620,7 @@ export const PacientesView = () => {
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
-              <div className="modal-body">
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {formGlobalError && (
                   <div
                     role="alert"
@@ -767,7 +782,8 @@ export const PacientesView = () => {
                 </div>
               </div>
 
-              <div className="modal-footer">
+              {/* Pie de Acciones (Tarjeta Visual) */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"

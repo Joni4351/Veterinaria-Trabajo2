@@ -132,6 +132,50 @@ El desarrollo del proyecto se planificó y ejecutó de forma incremental en 7 fa
 
 ---
 
+### Fase 7: Módulo de Facturación Avanzado, Gestión de Recetas y Refactorización Visual UX
+- **Prompts Empleados:**
+  > *"Quiero que me digas porque da error 500 al intentar logear en el proyecto de veterinaria-Trabajo2..."*  
+  > *"Quisiera que cuando registrara la receta, esta poder actualizar si es que coloco una nueva y poder borrarla si es que existe..."*  
+  > *"Necesito que revises y mejores el módulo de facturación del sistema: Cálculo automático del IVA (19%), Selección de tipos de citas y sus precios, Incorporación de insumos con validación de stock y descuento atómico de inventario, Actualización dinámica del formulario y consistencia entre frontend y backend..."*  
+  > *"Cuando me referia a la cita, me referia a la cita anteriormente creada en el apartado de citas y cuando se seleccione esta, no se puede seleccionar ninguna otra, hasta que se quite de seleccion esta, además cuando se edite la facturación tambien tiene que reaformular el costo total con su IVA"*  
+  > *"cuando voy al apartado de las facturas la pantalla esta en blanco y cuando retrocedo sigue en blanco"*  
+  > *"Ahora quisiera modificar la vista del formulario, la edición y los detalles, quiero que siga manteniendo el fondo transparente pero quisiera que alrededor del texto hubiera un fondo relacionado con los con contexto visual..."*
+- **Propuesta de la IA:**
+  - Diagnóstico del Error 500 en Login por discrepancia de nombre de archivo (`appsetting.json` vs `appsettings.json`) y robustecimiento de `AuthService.cs` ante excepciones de formato en contraseñas heredadas.
+  - Implementación de actualización y borrado en cascada para recetas médicas en `ConsultasView.jsx` y `Recetas.cs`.
+  - Creación de endpoints transaccionales atómicos en `Facturas.cs` y `DetalleFacturas.cs` que recalculan automáticamente el subtotal neto, IVA (19%) y total CLP, validando el stock de inventario y descontándolo de manera segura tras la emisión o edición de la factura.
+  - Conexión del formulario de facturación con la Agenda de Citas (`/api/v1/citas`), mostrando citas reales con paciente, dueño/RUT, especialidad y costo base, con bloqueo estricto a una sola cita por factura y desbloqueo inmediato al eliminarla.
+  - Corrección de la pantalla en blanco en React mediante la inclusión del hook `useMemo` en las importaciones y adición de comprobaciones `Array.isArray()`.
+  - Rediseño integral de la experiencia visual en los modales de creación, edición y detalles de facturación: preservando el fondo general translúcido con desenfoque (`glassmorphism`), pero envolviendo cada encabezado, bloque de formulario, tabla de ítems y resumen de impuestos en tarjetas visuales sólidas (`#ffffff`) con acentos contextuales temáticos y alta legibilidad.
+- **Decisión Tomada:**
+  - **Aceptado:** Cálculo automático del IVA (19%) bajo normativa tributaria chilena con redondeo de precisión a enteros CLP y campos de impuestos/total como `readOnly`.
+  - **Aceptado:** Transacciones atómicas de base de datos (`IDbContextTransaction`) para asegurar que el descuento de inventario se produzca únicamente tras la confirmación exitosa de la factura.
+  - **Aceptado:** Restricción de una sola cita médica por factura, bloqueando el selector y el botón mientras exista una cita en el detalle.
+  - **Corregido (Sincronización en Edición):** En `PUT /api/v1/facturas/{id}`, se implementó la restitución del stock de insumos anteriores antes de validar y deducir los nuevos requerimientos, recalculando automáticamente el IVA (19%) y el monto total en el servidor.
+  - **Corregido (Compatibilidad EF InMemory en Tests):** Se protegió `BeginTransactionAsync()` con `db.Database.IsRelational()` para permitir que la suite de pruebas automatizadas se ejecute sobre el proveedor InMemory sin excepciones.
+  - **Corregido (Estabilidad de Renderizado):** Se importó explícitamente `useMemo` en `FacturasView.jsx` y se garantizaron valores por defecto seguros ante respuestas vacías o asíncronas.
+  - **Resultado Final:** 11 de 11 pruebas de integración backend pasando en .NET 8 y 24 de 24 pruebas frontend pasando en Vitest (6 suites completas).
+
+---
+
+### Fase 8: Extensión del Rediseño UI/UX con Tarjetas Contextuales a Todos los Módulos del Sistema
+- **Prompts Empleados:**
+  > *"Los cambios anteriores relacionadas con la visual que te pedi, tambien quiero que los apliques a los demás modulos"*  
+  > *"continua"*
+- **Propuesta de la IA:**
+  - Analizar cada vista del sistema (`ClientesView.jsx`, `PacientesView.jsx`, `CitasView.jsx`, `ConsultasView.jsx`, `InsumosView.jsx`, `AdminConfigView.jsx`).
+  - Aplicar la arquitectura de tarjetas contextuales desacopladas sobre el fondo translúcido (`glassmorphism`):
+    - Tarjeta Cabecera: fondo `#ffffff`, bordes `#e2e8f0`, sombras sutiles, insignias con íconos temáticos (`Users`, `Dog`, `Calendar`, `Stethoscope`, `Pill`, `Package`, `Award`, `Shield`), títulos de alto contraste y botón de cierre.
+    - Tarjeta Formulario / Datos: fondo sólido `#ffffff`, espaciado y tipografía nítida con etiquetas `fontWeight: 600` en color pizarra (`#1e293b`), separadas de cualquier elemento subyacente.
+    - Tarjeta Pie de Acciones: alineación a la derecha, fondo sólido blanco y botones de acción primarios/secundarios claros.
+  - Añadir soporte por defecto en `index.css` a `.modal-content` alineado con `.modal-container` como mecanismo de fallback defensivo.
+- **Decisión Tomada:**
+  - **Aceptado:** Mantener el fondo translúcido general sin alterar la identidad visual moderna de la aplicación, pero garantizando el 100% de legibilidad en todos los formularios y modales del sistema.
+  - **Aceptado:** Homogeneizar los modales de lectura (Ficha clínica de paciente) y de edición/creación en todas las vistas.
+  - **Resultado Final:** Compilación exitosa en Vite (`npm run build`), 24/24 pruebas frontend aprobadas en Vitest y 11/11 pruebas backend aprobadas en .NET 8.
+
+---
+
 ## 4. Resumen de Decisiones de Ingeniería (Aceptado vs Corregido vs Descartado)
 
 | Componente / Módulo | Propuesta Inicial de IA | Decisión Final del Estudiante | Justificación Técnica |
@@ -141,6 +185,10 @@ El desarrollo del proyecto se planificó y ejecutó de forma incremental en 7 fa
 | **Manejo de Errores Zod** | Parseo directo de `error.errors` | **Corregido a iteración de `error.issues`** | Garantiza compatibilidad con las versiones modernas de Zod y evita que errores secundarios sobreescriban mensajes prioritarios. |
 | **Consultas de Selectores de Prueba** | Consultas globales con `screen` | **Corregido con `within(modal)`** | Evita falsos positivos y ambigüedad de nombres cuando coexisten campos de filtrado y campos de formulario. |
 | **Almacenamiento del Token** | Sugerencia de token solo en memoria | **Modificado a `localStorage` + mitigaciones XSS** | El token en memoria destruye la experiencia de usuario al recargar la página (`F5`). Se optó por `localStorage` reforzado con estricta mitigación de XSS y caducidad corta. |
+| **Descuento de Inventario** | Descontar al seleccionar insumo en cliente | **Transacción atómica en Backend tras confirmación** | Descontar en frontend o antes de confirmar genera inconsistencias si el usuario cancela o si falla la red. La transacción garantiza atomicidad ACID. |
+| **Cálculo de Impuestos** | Input numérico editable por usuario | **Cálculo automático 19% IVA con `readOnly`** | Evita evasión o discrepancias en la normativa tributaria chilena, calculando `IVA = round(Neto * 0.19)` de manera transparente. |
+| **Selección de Cita en Factura** | Selección múltiple de especialidades | **Cita única real desde `/api/v1/citas`** | Una factura clínica se vincula a una atención médica específica; se bloquea la adición de segundas citas para prevenir cobros duplicados. |
+| **Diseño Visual de Modales** | Fondo transparente plano sin contenedores | **Tarjetas contextuales sólidas sobre fondo translúcido** | Elimina el ruido visual y falta de contraste ocasionado por las tablas de fondo, manteniendo una estética moderna `glassmorphism` extendida a todos los módulos. |
 
 ---
 
