@@ -52,8 +52,8 @@ namespace VeterinariaAPI.Endpoints
                 return Results.Ok(listaFacturas);
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
-            // API para crear una factura
-            facturas.MapPost("/", async (FacturaCreateDto dto, IRepository<Factura> repo) =>
+            // API para crear una factura (con soporte transaccional para líneas de detalle y descuento automático de inventario)
+            facturas.MapPost("/", async (FacturaCreateDto dto, IRepository<Factura> repo, VeterinariodbContext db) =>
             {
                 var errores = dto.Validar();
                 if (errores.Count > 0)
@@ -61,22 +61,178 @@ namespace VeterinariaAPI.Endpoints
                     return Results.ValidationProblem(errores);
                 }
 
-                var nuevaFactura = new Factura
+                // Si la factura incluye líneas de ítems (citas / insumos), procesamos con transacción atómica
+                if (dto.Items != null && dto.Items.Count > 0)
                 {
-                    ClienteId = dto.ClienteId,
-                    FechaEmision = dto.FechaEmision,
-                    MontoImpuestos = dto.MontoImpuestos,
-                    MontoTotal = dto.MontoTotal
-                };
+                    var isRelational = db.Database.IsRelational();
+                    Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = isRelational 
+                        ? await db.Database.BeginTransactionAsync() 
+                        : null;
 
-                await repo.CrearAsync(nuevaFactura);
-                await repo.GuardarCambiosAsync();
+                    try
+                    {
+                        // 1. Validar que no haya más de una cita médica asociada a la factura
+                        var citasItems = dto.Items.Where(i => i.Tipo == "cita").ToList();
+                        if (citasItems.Count > 1)
+                        {
+                            return Results.BadRequest(new { message = "Solo se permite asociar una única cita médica por factura. Elimine la cita actual antes de seleccionar otra." });
+                        }
 
-                return Results.Created($"/api/v1/facturas/{nuevaFactura.Id}", nuevaFactura);
+                        // 2. Validar stock de insumos antes de cualquier descuento
+                        var insumosAfectados = new List<(Insumo Insumo, int Cantidad, decimal Subtotal)>();
+                        foreach (var item in dto.Items.Where(i => i.Tipo == "insumo" && i.InsumoId.HasValue))
+                        {
+                            if (item.Cantidad <= 0)
+                            {
+                                return Results.BadRequest(new { message = "La cantidad para cada insumo debe ser mayor a cero." });
+                            }
+
+                            var insumoDb = await db.Insumos.FindAsync(item.InsumoId!.Value);
+                            if (insumoDb is null)
+                            {
+                                return Results.BadRequest(new { message = $"El insumo con ID {item.InsumoId} no existe en el catálogo." });
+                            }
+
+                            if (insumoDb.StockActual < item.Cantidad)
+                            {
+                                return Results.BadRequest(new { 
+                                    message = $"Stock insuficiente para '{insumoDb.NombreProducto}'. Stock disponible: {insumoDb.StockActual}, solicitado: {item.Cantidad}." 
+                                });
+                            }
+
+                            insumosAfectados.Add((insumoDb, item.Cantidad, item.Cantidad * insumoDb.PrecioUnitario));
+                        }
+
+                        // 3. Recalcular subtotal neto acumulado en backend para garantizar consistencia tributaria
+                        decimal subtotalNetoCalculado = 0m;
+                        foreach (var item in dto.Items)
+                        {
+                            if (item.Tipo == "insumo" && item.InsumoId.HasValue)
+                            {
+                                var itemInsumo = insumosAfectados.First(x => x.Insumo.Id == item.InsumoId.Value);
+                                subtotalNetoCalculado += itemInsumo.Subtotal;
+                            }
+                            else if (item.Tipo == "cita")
+                            {
+                                if (item.CitaId.HasValue)
+                                {
+                                    var cita = await db.Citas.Include(c => c.Especialidad).FirstOrDefaultAsync(c => c.Id == item.CitaId.Value);
+                                    subtotalNetoCalculado += (cita?.Especialidad != null ? cita.Especialidad.CostoBase : item.PrecioUnitario);
+                                }
+                                else if (item.EspecialidadId.HasValue)
+                                {
+                                    var esp = await db.Especialidades.FindAsync(item.EspecialidadId.Value);
+                                    subtotalNetoCalculado += (esp != null ? esp.CostoBase : item.PrecioUnitario);
+                                }
+                                else
+                                {
+                                    subtotalNetoCalculado += item.Subtotal;
+                                }
+                            }
+                            else
+                            {
+                                subtotalNetoCalculado += item.Subtotal;
+                            }
+                        }
+
+                        // 4. Cálculo automático de IVA (19%) con precisión monetaria y redondeo chileno CLP
+                        decimal ivaCalculado = Math.Round(subtotalNetoCalculado * 0.19m, 0, MidpointRounding.AwayFromZero);
+                        decimal totalCalculado = subtotalNetoCalculado + ivaCalculado;
+
+                        // 5. Crear cabecera de la factura
+                        var nuevaFactura = new Factura
+                        {
+                            ClienteId = dto.ClienteId,
+                            FechaEmision = dto.FechaEmision,
+                            MontoImpuestos = ivaCalculado,
+                            MontoTotal = totalCalculado
+                        };
+
+                        await db.Facturas.AddAsync(nuevaFactura);
+                        await db.SaveChangesAsync();
+
+                        // 6. Registrar líneas de detalle y descontar stock
+                        foreach (var item in dto.Items)
+                        {
+                            decimal subtotalLinea = item.Subtotal;
+                            int? consultaId = item.ConsultaId;
+
+                            if (item.Tipo == "insumo" && item.InsumoId.HasValue)
+                            {
+                                var itemInsumo = insumosAfectados.First(x => x.Insumo.Id == item.InsumoId.Value);
+                                itemInsumo.Insumo.StockActual -= itemInsumo.Cantidad; // Descuento seguro de inventario
+                                subtotalLinea = itemInsumo.Subtotal;
+                            }
+                            else if (item.Tipo == "cita")
+                            {
+                                if (item.CitaId.HasValue)
+                                {
+                                    var cita = await db.Citas.Include(c => c.Especialidad).FirstOrDefaultAsync(c => c.Id == item.CitaId.Value);
+                                    if (cita?.Especialidad != null) subtotalLinea = cita.Especialidad.CostoBase;
+                                    var consultaDb = await db.Consultas.FirstOrDefaultAsync(c => c.CitaId == item.CitaId.Value);
+                                    if (consultaDb != null) consultaId = consultaDb.Id;
+                                }
+                                else if (item.EspecialidadId.HasValue)
+                                {
+                                    var esp = await db.Especialidades.FindAsync(item.EspecialidadId.Value);
+                                    if (esp != null) subtotalLinea = esp.CostoBase;
+                                }
+                            }
+
+                            var detalle = new DetallesFactura
+                            {
+                                FacturaId = nuevaFactura.Id,
+                                ConsultaId = consultaId,
+                                InsumoId = item.Tipo == "insumo" ? item.InsumoId : null,
+                                Subtotal = subtotalLinea
+                            };
+
+                            await db.DetallesFacturas.AddAsync(detalle);
+                        }
+
+                        await db.SaveChangesAsync();
+
+                        if (transaction != null)
+                        {
+                            await transaction.CommitAsync();
+                        }
+
+                        return Results.Created($"/api/v1/facturas/{nuevaFactura.Id}", nuevaFactura);
+                    }
+                    catch (Exception)
+                    {
+                        if (transaction != null)
+                        {
+                            await transaction.RollbackAsync();
+                        }
+                        throw;
+                    }
+                }
+                else
+                {
+                    if (dto.MontoTotal <= 0)
+                    {
+                        return Results.BadRequest(new { message = "El monto total debe ser mayor a 0 cuando no se especifican ítems." });
+                    }
+
+                    // Flujo directo tradicional sin ítems embebidos
+                    var nuevaFactura = new Factura
+                    {
+                        ClienteId = dto.ClienteId,
+                        FechaEmision = dto.FechaEmision,
+                        MontoImpuestos = dto.MontoImpuestos,
+                        MontoTotal = dto.MontoTotal
+                    };
+
+                    await repo.CrearAsync(nuevaFactura);
+                    await repo.GuardarCambiosAsync();
+
+                    return Results.Created($"/api/v1/facturas/{nuevaFactura.Id}", nuevaFactura);
+                }
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
 
-            // API para editar factura por ID
-            facturas.MapPut("/{id:int}", async (int id, FacturaCreateDto dto, IRepository<Factura> repo) =>
+            // API para editar factura por ID con recalculación de IVA (19%) y sincronización de ítems/stock
+            facturas.MapPut("/{id:int}", async (int id, FacturaCreateDto dto, IRepository<Factura> repo, VeterinariodbContext db) =>
             {
                 var errores = dto.Validar();
                 if (errores.Count > 0)
@@ -84,16 +240,173 @@ namespace VeterinariaAPI.Endpoints
                     return Results.ValidationProblem(errores);
                 }
 
-                var facturaExistente = await repo.ObtenerPorIdAsync(id);
+                var facturaExistente = await db.Facturas
+                    .Include(f => f.DetallesFacturas)
+                    .FirstOrDefaultAsync(f => f.Id == id);
+
                 if (facturaExistente is null) return Results.NotFound();
 
-                facturaExistente.ClienteId = dto.ClienteId;
-                facturaExistente.FechaEmision = dto.FechaEmision;
-                facturaExistente.MontoImpuestos = dto.MontoImpuestos;
-                facturaExistente.MontoTotal = dto.MontoTotal;
+                if (dto.Items != null && dto.Items.Count > 0)
+                {
+                    var citasItems = dto.Items.Where(i => i.Tipo == "cita").ToList();
+                    if (citasItems.Count > 1)
+                    {
+                        return Results.BadRequest(new { message = "Solo se permite asociar una única cita médica por factura. Elimine la cita actual antes de seleccionar otra." });
+                    }
 
-                await repo.GuardarCambiosAsync();
-                return Results.Ok(facturaExistente);
+                    var isRelational = db.Database.IsRelational();
+                    Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = isRelational 
+                        ? await db.Database.BeginTransactionAsync() 
+                        : null;
+
+                    try
+                    {
+                        // 1. Revertir temporalmente el stock de los insumos previamente descontados por esta factura
+                        foreach (var detViejo in facturaExistente.DetallesFacturas.Where(d => d.InsumoId.HasValue))
+                        {
+                            var insumoViejo = await db.Insumos.FindAsync(detViejo.InsumoId!.Value);
+                            if (insumoViejo != null && insumoViejo.PrecioUnitario > 0)
+                            {
+                                int cantVieja = Math.Max(1, (int)Math.Round(detViejo.Subtotal / insumoViejo.PrecioUnitario));
+                                insumoViejo.StockActual += cantVieja;
+                            }
+                        }
+
+                        // 2. Validar stock disponible para los nuevos insumos
+                        var insumosAfectados = new List<(Insumo Insumo, int Cantidad, decimal Subtotal)>();
+                        foreach (var item in dto.Items.Where(i => i.Tipo == "insumo" && i.InsumoId.HasValue))
+                        {
+                            if (item.Cantidad <= 0)
+                            {
+                                return Results.BadRequest(new { message = "La cantidad para cada insumo debe ser mayor a cero." });
+                            }
+
+                            var insumoDb = await db.Insumos.FindAsync(item.InsumoId!.Value);
+                            if (insumoDb is null)
+                            {
+                                return Results.BadRequest(new { message = $"El insumo con ID {item.InsumoId} no existe en el catálogo." });
+                            }
+
+                            if (insumoDb.StockActual < item.Cantidad)
+                            {
+                                return Results.BadRequest(new { 
+                                    message = $"Stock insuficiente para '{insumoDb.NombreProducto}'. Stock disponible: {insumoDb.StockActual}, solicitado: {item.Cantidad}." 
+                                });
+                            }
+
+                            insumosAfectados.Add((insumoDb, item.Cantidad, item.Cantidad * insumoDb.PrecioUnitario));
+                        }
+
+                        // 3. Recalcular subtotal neto, IVA (19%) y total para la factura editada
+                        decimal subtotalNetoCalculado = 0m;
+                        foreach (var item in dto.Items)
+                        {
+                            if (item.Tipo == "insumo" && item.InsumoId.HasValue)
+                            {
+                                var itemInsumo = insumosAfectados.First(x => x.Insumo.Id == item.InsumoId.Value);
+                                subtotalNetoCalculado += itemInsumo.Subtotal;
+                            }
+                            else if (item.Tipo == "cita")
+                            {
+                                if (item.CitaId.HasValue)
+                                {
+                                    var cita = await db.Citas.Include(c => c.Especialidad).FirstOrDefaultAsync(c => c.Id == item.CitaId.Value);
+                                    subtotalNetoCalculado += (cita?.Especialidad != null ? cita.Especialidad.CostoBase : item.PrecioUnitario);
+                                }
+                                else if (item.EspecialidadId.HasValue)
+                                {
+                                    var esp = await db.Especialidades.FindAsync(item.EspecialidadId.Value);
+                                    subtotalNetoCalculado += (esp != null ? esp.CostoBase : item.PrecioUnitario);
+                                }
+                                else
+                                {
+                                    subtotalNetoCalculado += item.Subtotal;
+                                }
+                            }
+                            else
+                            {
+                                subtotalNetoCalculado += item.Subtotal;
+                            }
+                        }
+
+                        decimal ivaCalculado = Math.Round(subtotalNetoCalculado * 0.19m, 0, MidpointRounding.AwayFromZero);
+                        decimal totalCalculado = subtotalNetoCalculado + ivaCalculado;
+
+                        // 4. Actualizar cabecera con montos reformulados
+                        facturaExistente.ClienteId = dto.ClienteId;
+                        facturaExistente.FechaEmision = dto.FechaEmision;
+                        facturaExistente.MontoImpuestos = ivaCalculado;
+                        facturaExistente.MontoTotal = totalCalculado;
+
+                        // 5. Reemplazar detalles y aplicar descuentos definitivos
+                        db.DetallesFacturas.RemoveRange(facturaExistente.DetallesFacturas);
+
+                        foreach (var item in dto.Items)
+                        {
+                            decimal subtotalLinea = item.Subtotal;
+                            int? consultaId = item.ConsultaId;
+
+                            if (item.Tipo == "insumo" && item.InsumoId.HasValue)
+                            {
+                                var itemInsumo = insumosAfectados.First(x => x.Insumo.Id == item.InsumoId.Value);
+                                itemInsumo.Insumo.StockActual -= itemInsumo.Cantidad;
+                                subtotalLinea = itemInsumo.Subtotal;
+                            }
+                            else if (item.Tipo == "cita")
+                            {
+                                if (item.CitaId.HasValue)
+                                {
+                                    var cita = await db.Citas.Include(c => c.Especialidad).FirstOrDefaultAsync(c => c.Id == item.CitaId.Value);
+                                    if (cita?.Especialidad != null) subtotalLinea = cita.Especialidad.CostoBase;
+                                    var consultaDb = await db.Consultas.FirstOrDefaultAsync(c => c.CitaId == item.CitaId.Value);
+                                    if (consultaDb != null) consultaId = consultaDb.Id;
+                                }
+                                else if (item.EspecialidadId.HasValue)
+                                {
+                                    var esp = await db.Especialidades.FindAsync(item.EspecialidadId.Value);
+                                    if (esp != null) subtotalLinea = esp.CostoBase;
+                                }
+                            }
+
+                            var nuevoDetalle = new DetallesFactura
+                            {
+                                FacturaId = facturaExistente.Id,
+                                ConsultaId = consultaId,
+                                InsumoId = item.Tipo == "insumo" ? item.InsumoId : null,
+                                Subtotal = subtotalLinea
+                            };
+
+                            await db.DetallesFacturas.AddAsync(nuevoDetalle);
+                        }
+
+                        await db.SaveChangesAsync();
+
+                        if (transaction != null)
+                        {
+                            await transaction.CommitAsync();
+                        }
+
+                        return Results.Ok(facturaExistente);
+                    }
+                    catch (Exception)
+                    {
+                        if (transaction != null)
+                        {
+                            await transaction.RollbackAsync();
+                        }
+                        throw;
+                    }
+                }
+                else
+                {
+                    facturaExistente.ClienteId = dto.ClienteId;
+                    facturaExistente.FechaEmision = dto.FechaEmision;
+                    facturaExistente.MontoImpuestos = dto.MontoImpuestos;
+                    facturaExistente.MontoTotal = dto.MontoTotal;
+
+                    await db.SaveChangesAsync();
+                    return Results.Ok(facturaExistente);
+                }
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
 
             // API para eliminar Facturas
@@ -128,8 +441,21 @@ namespace VeterinariaAPI.Endpoints
             decimal MontoImpuestos,
 
             [property: Required(ErrorMessage = "El monto total es obligatorio.")]
-            [property: Range(0.01, 10000000.0, ErrorMessage = "El monto total debe ser mayor a 0.")]
-            decimal MontoTotal
+            [property: Range(0.0, 10000000.0, ErrorMessage = "El monto total debe ser igual o mayor a 0.")]
+            decimal MontoTotal,
+
+            List<FacturaItemDto>? Items = null
+        );
+
+        public record FacturaItemDto(
+            string Tipo,
+            int? EspecialidadId = null,
+            int? ConsultaId = null,
+            int? InsumoId = null,
+            int? CitaId = null,
+            int Cantidad = 1,
+            decimal PrecioUnitario = 0m,
+            decimal Subtotal = 0m
         );
     }
 }

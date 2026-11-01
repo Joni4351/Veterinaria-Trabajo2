@@ -32,6 +32,10 @@ export const ConsultasView = () => {
   // Sub-modal Receta
   const [isRecetaModalOpen, setIsRecetaModalOpen] = useState(false);
   const [selectedConsulta, setSelectedConsulta] = useState(null);
+  const [existingReceta, setExistingReceta] = useState(null);
+  const [existingDetalle, setExistingDetalle] = useState(null);
+  const [recetasMap, setRecetasMap] = useState({});
+  const [recetaLoading, setRecetaLoading] = useState(false);
   const [recetaSuccess, setRecetaSuccess] = useState('');
   const [recetaError, setRecetaError] = useState('');
   const [recetaFieldErrors, setRecetaFieldErrors] = useState({});
@@ -55,6 +59,7 @@ export const ConsultasView = () => {
 
   useEffect(() => {
     fetchCatalogos();
+    fetchRecetas();
   }, []);
 
   useEffect(() => {
@@ -82,6 +87,20 @@ export const ConsultasView = () => {
     }
   };
 
+  const fetchRecetas = async () => {
+    try {
+      const res = await api.get('/api/v1/recetas');
+      const list = res.data || [];
+      const map = {};
+      list.forEach((r) => {
+        map[r.consultaId] = r;
+      });
+      setRecetasMap(map);
+    } catch (err) {
+      console.error('Error cargando recetas:', err);
+    }
+  };
+
   const fetchConsultas = async () => {
     setLoading(true);
     try {
@@ -92,6 +111,7 @@ export const ConsultasView = () => {
 
       const res = await api.get('/api/v1/consultas', { params });
       setConsultas(res.data || []);
+      fetchRecetas();
     } catch (err) {
       console.error('Error cargando consultas:', err);
     } finally {
@@ -186,19 +206,80 @@ export const ConsultasView = () => {
     }
   };
 
-  const handleOpenReceta = (consulta) => {
+  const handleOpenReceta = async (consulta) => {
     setSelectedConsulta(consulta);
     setRecetaError('');
     setRecetaSuccess('');
     setRecetaFieldErrors({});
-    setRecetaForm({
-      fechaEmision: new Date().toISOString().slice(0, 10),
-      validaHasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-      insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
-      dosis: '1 comprimido cada 12 horas con alimento',
-      duracionDias: 7
-    });
+    setRecetaLoading(true);
     setIsRecetaModalOpen(true);
+
+    try {
+      const res = await api.get('/api/v1/recetas', { params: { consultaId: consulta.id } });
+      const listaRecetas = res.data || [];
+      if (listaRecetas.length > 0) {
+        const rec = listaRecetas[0];
+        setExistingReceta(rec);
+
+        try {
+          const detRes = await api.get('/api/v1/detallesRe', { params: { recetaId: rec.id } });
+          const detalles = detRes.data || [];
+          if (detalles.length > 0) {
+            const det = detalles[0];
+            setExistingDetalle(det);
+            setRecetaForm({
+              fechaEmision: rec.fechaEmision,
+              validaHasta: rec.validaHasta,
+              insumoId: String(det.insumoId),
+              dosis: det.dosis || '',
+              duracionDias: det.duracionDias || 7
+            });
+          } else {
+            setExistingDetalle(null);
+            setRecetaForm({
+              fechaEmision: rec.fechaEmision,
+              validaHasta: rec.validaHasta,
+              insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
+              dosis: '',
+              duracionDias: 7
+            });
+          }
+        } catch (errDet) {
+          console.error('Error cargando detalles de la receta:', errDet);
+          setExistingDetalle(null);
+          setRecetaForm({
+            fechaEmision: rec.fechaEmision,
+            validaHasta: rec.validaHasta,
+            insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
+            dosis: '',
+            duracionDias: 7
+          });
+        }
+      } else {
+        setExistingReceta(null);
+        setExistingDetalle(null);
+        setRecetaForm({
+          fechaEmision: new Date().toISOString().slice(0, 10),
+          validaHasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+          insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
+          dosis: '1 comprimido cada 12 horas con alimento',
+          duracionDias: 7
+        });
+      }
+    } catch (err) {
+      console.error('Error verificando receta existente:', err);
+      setExistingReceta(null);
+      setExistingDetalle(null);
+      setRecetaForm({
+        fechaEmision: new Date().toISOString().slice(0, 10),
+        validaHasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+        insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
+        dosis: '1 comprimido cada 12 horas con alimento',
+        duracionDias: 7
+      });
+    } finally {
+      setRecetaLoading(false);
+    }
   };
 
   const handleSaveReceta = async (e) => {
@@ -217,25 +298,57 @@ export const ConsultasView = () => {
       return;
     }
 
+    setRecetaLoading(true);
     try {
-      const recetaRes = await api.post('/api/v1/recetas', {
-        consultaId: selectedConsulta.id,
-        fechaEmision: validation.data.fechaEmision,
-        validaHasta: validation.data.validaHasta
-      });
-
-      const recetaId = recetaRes.data?.id;
-
-      if (recetaId && validation.data.insumoId) {
-        await api.post('/api/v1/detallesRe', {
-          recetaId: recetaId,
-          insumoId: validation.data.insumoId,
-          dosis: validation.data.dosis,
-          duracionDias: validation.data.duracionDias
+      if (existingReceta) {
+        // Actualizar receta existente
+        await api.put(`/api/v1/recetas/${existingReceta.id}`, {
+          consultaId: selectedConsulta.id,
+          fechaEmision: validation.data.fechaEmision,
+          validaHasta: validation.data.validaHasta
         });
+
+        // Actualizar o crear detalle
+        if (existingDetalle) {
+          await api.put(`/api/v1/detallesRe/${existingDetalle.id}`, {
+            recetaId: existingReceta.id,
+            insumoId: validation.data.insumoId,
+            dosis: validation.data.dosis,
+            duracionDias: validation.data.duracionDias
+          });
+        } else if (validation.data.insumoId) {
+          await api.post('/api/v1/detallesRe', {
+            recetaId: existingReceta.id,
+            insumoId: validation.data.insumoId,
+            dosis: validation.data.dosis,
+            duracionDias: validation.data.duracionDias
+          });
+        }
+
+        setRecetaSuccess('Receta médica actualizada exitosamente.');
+      } else {
+        // Crear nueva receta
+        const recetaRes = await api.post('/api/v1/recetas', {
+          consultaId: selectedConsulta.id,
+          fechaEmision: validation.data.fechaEmision,
+          validaHasta: validation.data.validaHasta
+        });
+
+        const recetaId = recetaRes.data?.id;
+
+        if (recetaId && validation.data.insumoId) {
+          await api.post('/api/v1/detallesRe', {
+            recetaId: recetaId,
+            insumoId: validation.data.insumoId,
+            dosis: validation.data.dosis,
+            duracionDias: validation.data.duracionDias
+          });
+        }
+
+        setRecetaSuccess('Receta médica emitida exitosamente.');
       }
 
-      setRecetaSuccess('Receta médica emitida exitosamente.');
+      await fetchRecetas();
       setTimeout(() => {
         setIsRecetaModalOpen(false);
       }, 1000);
@@ -243,8 +356,36 @@ export const ConsultasView = () => {
       if (err.response?.data?.errors) {
         setRecetaError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setRecetaError(err.response?.data?.message || 'Error al emitir la receta.');
+        setRecetaError(err.response?.data?.message || 'Error al procesar la receta médica.');
       }
+    } finally {
+      setRecetaLoading(false);
+    }
+  };
+
+  const handleDeleteReceta = async () => {
+    if (!existingReceta) return;
+    if (!window.confirm('¿Está seguro de que desea eliminar la receta médica vinculada a esta consulta? Esta acción no se puede deshacer.')) {
+      return;
+    }
+
+    setRecetaLoading(true);
+    setRecetaError('');
+    setRecetaSuccess('');
+
+    try {
+      await api.delete(`/api/v1/recetas/${existingReceta.id}`);
+      setRecetaSuccess('Receta médica eliminada exitosamente.');
+      setExistingReceta(null);
+      setExistingDetalle(null);
+      await fetchRecetas();
+      setTimeout(() => {
+        setIsRecetaModalOpen(false);
+      }, 900);
+    } catch (err) {
+      setRecetaError(err.response?.data?.message || 'Error al eliminar la receta médica.');
+    } finally {
+      setRecetaLoading(false);
     }
   };
 
@@ -407,15 +548,21 @@ export const ConsultasView = () => {
                         <td data-label="Acciones" style={{ textAlign: 'right' }}>
                           {canCreateOrEdit && (
                             <>
-                              <button 
-                                className="btn btn-secondary btn-sm" 
-                                onClick={() => handleOpenReceta(c)}
-                                title="Emitir Receta Médica"
-                                aria-label="Emitir Receta Médica"
-                              >
-                                <Pill size={14} />
-                                Recetar
-                              </button>
+                              {(() => {
+                                const tieneReceta = !!recetasMap[c.id];
+                                return (
+                                  <button 
+                                    className={`btn btn-sm ${tieneReceta ? 'btn-primary' : 'btn-secondary'}`} 
+                                    onClick={() => handleOpenReceta(c)}
+                                    title={tieneReceta ? "Actualizar o Eliminar Receta Médica" : "Emitir Receta Médica"}
+                                    aria-label={tieneReceta ? "Actualizar o Eliminar Receta Médica" : "Emitir Receta Médica"}
+                                    style={tieneReceta ? { backgroundColor: '#059669', borderColor: '#059669' } : {}}
+                                  >
+                                    <Pill size={14} />
+                                    {tieneReceta ? 'Editar Receta' : 'Recetar'}
+                                  </button>
+                                );
+                              })()}
                               <button className="btn-icon" onClick={() => handleOpenModal(c)} title="Editar" aria-label="Editar consulta médica">
                                 <Edit2 size={16} />
                               </button>
@@ -440,21 +587,32 @@ export const ConsultasView = () => {
         })()}
       </div>
 
-      {/* Modal Consulta */}
+      {/* Modal Consulta (Estructura de Tarjetas Visuales) */}
       {isModalOpen && (
         <div className="modal-overlay">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
-                {editingId ? 'Editar Consulta' : 'Registrar Consulta Médica'}
-              </h3>
-              <button className="btn-icon" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-content" style={{ maxWidth: '640px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+            {/* Tarjeta Visual Cabecera Consulta */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                  <Stethoscope size={22} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    {editingId ? 'Editar Consulta' : 'Registrar Consulta Médica'}
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    {editingId ? 'Actualice el diagnóstico clínico y motivo de atención' : 'Complete la ficha de atención clínica veterinaria'}
+                  </span>
+                </div>
+              </div>
+              <button className="btn-icon" onClick={() => setIsModalOpen(false)} aria-label="Cerrar modal">
                 <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
-              <div className="modal-body">
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {error && (
                   <div className="alert alert-danger" role="alert">
                     <AlertCircle size={18} />
@@ -556,7 +714,8 @@ export const ConsultasView = () => {
                 </div>
               </div>
 
-              <div className="modal-footer">
+              {/* Pie de Acciones (Tarjeta Visual) */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>
@@ -575,42 +734,67 @@ export const ConsultasView = () => {
         const cli = pac?.cliente || clientes.find(c => c.id === pac?.clienteId);
         return (
           <div className="modal-overlay">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
-                  Emitir Receta Médica — {pac?.nombre || 'Paciente'}
-                </h3>
-                <button className="btn-icon" onClick={() => setIsRecetaModalOpen(false)}>
+            <div className="modal-content" style={{ maxWidth: '680px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+              {/* Tarjeta Visual Cabecera Receta */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: existingReceta ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: existingReceta ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                    <Pill size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                      {existingReceta ? 'Actualizar Receta Médica' : 'Emitir Receta Médica'} — {pac?.nombre || 'Paciente'}
+                    </h3>
+                    <span style={{ fontSize: '0.8rem', color: existingReceta ? '#059669' : '#64748b', fontWeight: existingReceta ? 600 : 400 }}>
+                      {existingReceta ? `Receta registrada (Folio #${existingReceta.id})` : 'Prescripción de medicamentos e indicaciones posológicas'}
+                    </span>
+                  </div>
+                </div>
+                <button className="btn-icon" onClick={() => setIsRecetaModalOpen(false)} disabled={recetaLoading} aria-label="Cerrar modal">
                   <X size={20} />
                 </button>
               </div>
 
               <form onSubmit={handleSaveReceta} noValidate>
-                <div className="modal-body">
-                  {/* Resumen del Paciente y Dueño */}
-                  <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.85rem 1rem', marginBottom: '1.25rem' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', fontSize: '0.85rem' }}>
-                      <div>
-                        <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>PACIENTE</span>
-                        <strong style={{ color: '#0f172a' }}>{pac?.nombre || 'Paciente'}</strong>
-                        <span style={{ color: '#64748b', fontSize: '0.78rem', marginLeft: '0.35rem' }}>({pac?.especie || 'Mascota'}{pac?.raza ? ` - ${pac.raza}` : ''})</span>
-                      </div>
-                      <div>
-                        <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>DUEÑO / TUTOR</span>
-                        <strong style={{ color: '#0f172a' }}>{cli?.nombreCompleto || 'Sin dueño asignado'}</strong>
-                      </div>
-                      <div>
-                        <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>RUT DEL DUEÑO</span>
-                        <span style={{ color: '#0284c7', fontWeight: 600 }}>{cli?.documentoIdentidad ? `RUT: ${cli.documentoIdentidad}` : '—'}</span>
-                      </div>
-                      {cli?.telefono && (
-                        <div>
-                          <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>CONTACTO</span>
-                          <span style={{ color: '#334155' }}>{cli.telefono}</span>
-                        </div>
-                      )}
+                {/* Tarjeta Visual Resumen del Paciente y Tutor */}
+                <div style={{ background: '#ffffff', border: '1px solid #bae6fd', borderRadius: '0.85rem', padding: '1rem 1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', fontSize: '0.85rem' }}>
+                    <div>
+                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>PACIENTE</span>
+                      <strong style={{ color: '#0f172a' }}>{pac?.nombre || 'Paciente'}</strong>
+                      <span style={{ color: '#64748b', fontSize: '0.78rem', marginLeft: '0.35rem' }}>({pac?.especie || 'Mascota'}{pac?.raza ? ` - ${pac.raza}` : ''})</span>
                     </div>
+                    <div>
+                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>DUEÑO / TUTOR</span>
+                      <strong style={{ color: '#0f172a' }}>{cli?.nombreCompleto || 'Sin dueño asignado'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>RUT DEL DUEÑO</span>
+                      <span style={{ color: '#0284c7', fontWeight: 600 }}>{cli?.documentoIdentidad ? `RUT: ${cli.documentoIdentidad}` : '—'}</span>
+                    </div>
+                    {cli?.telefono && (
+                      <div>
+                        <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>CONTACTO</span>
+                        <span style={{ color: '#334155' }}>{cli.telefono}</span>
+                      </div>
+                    )}
                   </div>
+                </div>
+
+                {/* Tarjeta Visual Formulario de Prescripción */}
+                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+
+                  {existingReceta && (
+                    <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0.375rem', padding: '0.65rem 0.85rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#166534' }}>
+                      <CheckCircle2 size={18} color="#16a34a" />
+                      <div>
+                        <strong>Receta existente detectada (Folio #{existingReceta.id}).</strong>
+                        <span style={{ display: 'block', fontSize: '0.8rem', color: '#15803d' }}>
+                          Puedes actualizar las indicaciones y vigencia, o borrar la receta si ya no es requerida.
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {recetaError && (
                   <div className="alert alert-danger" role="alert">
@@ -739,13 +923,30 @@ export const ConsultasView = () => {
                 </div>
               </div>
 
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setIsRecetaModalOpen(false)}>
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Generar Receta
-                </button>
+              {/* Pie de Acciones (Tarjeta Visual) */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  {existingReceta && (
+                    <button
+                      type="button"
+                      className="btn btn-danger"
+                      onClick={handleDeleteReceta}
+                      disabled={recetaLoading}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#ef4444', borderColor: '#ef4444', color: '#fff' }}
+                    >
+                      <Trash2 size={16} />
+                      {recetaLoading ? 'Procesando...' : 'Eliminar Receta'}
+                    </button>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button type="button" className="btn btn-secondary" onClick={() => setIsRecetaModalOpen(false)} disabled={recetaLoading}>
+                    Cancelar
+                  </button>
+                  <button type="submit" className="btn btn-primary" disabled={recetaLoading}>
+                    {recetaLoading ? 'Guardando...' : (existingReceta ? 'Actualizar Receta' : 'Generar Receta')}
+                  </button>
+                </div>
               </div>
             </form>
           </div>

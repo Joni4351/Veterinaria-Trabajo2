@@ -313,30 +313,41 @@ export const InsumosView = () => {
         )}
       </div>
 
-      {/* Modal */}
+      {/* Modal Insumo (Estructura de Tarjetas Visuales) */}
       {isModalOpen && (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-insumo-title">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3 id="modal-insumo-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
-                {editingId ? 'Editar Insumo / Producto' : 'Registrar Nuevo Insumo'}
-              </h3>
+          <div className="modal-content" style={{ maxWidth: '580px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+            {/* Tarjeta Visual Cabecera Insumo */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                  <Package size={22} />
+                </div>
+                <div>
+                  <h3 id="modal-insumo-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    {editingId ? 'Editar Insumo / Producto' : 'Registrar Nuevo Insumo'}
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    {editingId ? 'Actualice el stock, categoría o precio de venta' : 'Ingrese los datos del insumo o producto para inventario'}
+                  </span>
+                </div>
+              </div>
               <button className="btn-icon" onClick={() => setIsModalOpen(false)} aria-label="Cerrar modal">
                 <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
-              <div className="modal-body">
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {error && (
-                  <div className="alert alert-danger" role="alert">
+                  <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
                     <AlertCircle size={18} />
                     <span>{error}</span>
                   </div>
                 )}
 
                 <div className="form-group">
-                  <label htmlFor="insumo-nombre" className="form-label">
+                  <label htmlFor="insumo-nombre" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
                     Nombre del Producto o Medicamento <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
@@ -360,7 +371,7 @@ export const InsumosView = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="insumo-tipo" className="form-label">
+                  <label htmlFor="insumo-tipo" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
                     Tipo / Categoría <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <select
@@ -380,7 +391,7 @@ export const InsumosView = () => {
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label htmlFor="insumo-stock" className="form-label">
+                    <label htmlFor="insumo-stock" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
                       Stock Actual <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
@@ -404,7 +415,7 @@ export const InsumosView = () => {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="insumo-precio" className="form-label">
+                    <label htmlFor="insumo-precio" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
                       Precio Unitario ($) <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
@@ -430,7 +441,8 @@ export const InsumosView = () => {
                 </div>
               </div>
 
-              <div className="modal-footer">
+              {/* Pie de Acciones (Tarjeta Visual) */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>

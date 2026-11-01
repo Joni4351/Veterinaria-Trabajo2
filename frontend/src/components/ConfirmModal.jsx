@@ -49,7 +49,7 @@ export const ConfirmModal = ({
         aria-modal="true"
         aria-labelledby="confirm-modal-title"
         aria-describedby="confirm-modal-desc"
-        style={{ maxWidth: '420px', padding: '1.5rem' }}
+        style={{ maxWidth: '420px', padding: '1.5rem', background: '#ffffff', borderRadius: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
           <div

@@ -309,21 +309,32 @@ export const ClientesView = () => {
         )}
       </div>
 
-      {/* Modal de Creación / Edición con Validación */}
+      {/* Modal de Creación / Edición con Validación (Estructura de Tarjetas Visuales) */}
       {isModalOpen && (
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-cliente-title">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h3 id="modal-cliente-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a' }}>
-                {editingId ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
-              </h3>
+          <div className="modal-content" style={{ maxWidth: '580px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+            {/* Tarjeta Visual Cabecera */}
+            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                  <Users size={22} />
+                </div>
+                <div>
+                  <h3 id="modal-cliente-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    {editingId ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
+                  </h3>
+                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    {editingId ? 'Actualice la información del cliente registrado' : 'Ingrese los datos personales y de contacto del cliente'}
+                  </span>
+                </div>
+              </div>
               <button className="btn-icon" onClick={() => setIsModalOpen(false)} aria-label="Cerrar modal">
                 <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
-              <div className="modal-body">
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {error && (
                   <div className="alert alert-danger" role="alert">
                     <AlertCircle size={18} />
@@ -434,7 +445,8 @@ export const ClientesView = () => {
                 </div>
               </div>
 
-              <div className="modal-footer">
+              {/* Pie de Acciones (Tarjeta Visual) */}
+              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>

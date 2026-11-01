@@ -248,10 +248,109 @@ Se actualizaron todos los endpoints `GET` de la API para soportar query paramete
 
 ---
 
+### [Sesión 7] - 31 de Octubre de 2026
+**Objetivo:** Resolver el Error 500 en autenticación, implementar la gestión dinámica de recetas médicas, reestructurar integralmente el módulo de facturación (cálculo de IVA 19%, integración con agenda de citas, descuento atómico de inventario y recálculo en edición), subsanar la pantalla en blanco en el frontend y renovar el diseño visual de los modales con tarjetas contextuales sólidas sobre fondo translúcido.
+
+#### 1. Corrección de Error 500 en Login y Resiliencia de Autenticación
+- **Diagnóstico:** Se identificó que el archivo de configuración en `VeterinariaAPI` estaba nombrado `appsetting.json` en lugar del estándar `appsettings.json`, impidiendo la carga de la clave JWT (`Jwt:Key`) y provocando `ArgumentNullException`. Adicionalmente, contraseñas existentes en base de datos sin formato base64 producían `FormatException` en el algoritmo de verificación de hash.
+- **Solución implementada:**
+  - Renombrado del archivo a `appsettings.json` con la configuración completa de Issuer, Audience y Secret Key.
+  - En `AuthService.cs`, se implementó captura preventiva de `FormatException` en `VerifyPassword()`, garantizando rechazo limpio (HTTP 401) en lugar de error no controlado (HTTP 500).
+
+#### 2. Módulo de Recetas Médicas (`ConsultasView.jsx` y `Recetas.cs`)
+- Habilitada la actualización automática de recetas existentes al emitir un nuevo tratamiento farmacológico.
+- Implementado el borrado individual y en cascada de recetas médicas asociadas a una consulta médica desde la interfaz y el backend.
+
+#### 3. Refactorización Integral del Módulo de Facturación (`Facturas.cs`, `DetalleFacturas.cs` y `FacturasView.jsx`)
+- **Cálculo Automático del IVA (19% Chileno):**
+  - Campos `montoImpuestos` y `montoTotal` configurados como `readOnly`.
+  - Cálculo en tiempo real: $\text{IVA} = \text{round}(\text{Subtotal} \times 0.19)$, $\text{Total} = \text{Subtotal} + \text{IVA}$ con redondeo de moneda nacional chilena (CLP).
+- **Integración con la Agenda de Citas (`/api/v1/citas`):**
+  - Selección de citas médicas creadas previamente en la agenda, mostrando Paciente, Dueño (RUT), Especialidad, Costo Base, Fecha y Estado.
+  - Sincronización automática del cliente en la factura con el titular de la cita.
+- **Regla Estricta de Selección Única de Cita:**
+  - Al incorporar una cita médica a la factura, el selector y el botón "Agregar Cita" se bloquean (`disabled`) con aviso explicativo.
+  - Al remover la cita del detalle, el selector se desbloquea inmediatamente para permitir seleccionar otra.
+  - Validación en backend (`POST` y `PUT`) rechazando facturas con más de una cita (HTTP 400).
+- **Control y Descuento Atómico de Inventario:**
+  - Validación de stock disponible antes de cualquier deducción.
+  - Transacciones atómicas con EF Core (`IDbContextTransaction` con guarda `db.Database.IsRelational()`) que descuentan el stock únicamente tras confirmar y crear la factura.
+  - En edición (`PUT /api/v1/facturas/{id}`), el backend restituye el stock anterior antes de aplicar el nuevo consumo y reformula el IVA (19%) y el monto total automáticamente.
+
+#### 4. Corrección de Pantalla en Blanco en React
+- **Diagnóstico:** Omisión del import de `useMemo` desde `'react'` en `FacturasView.jsx`, arrojando `ReferenceError: useMemo is not defined` en el navegador.
+- **Solución:** Se incorporó `useMemo` a los imports y se blindaron todas las colecciones con `Array.isArray()` defensivo.
+- Creada suite de pruebas unitarias en `frontend/src/test/FacturasView.test.jsx`.
+
+#### 5. Rediseño Visual UI/UX con Tarjetas Contextuales
+- Se conservó el efecto translúcido del modal (`glassmorphism` con desenfoque de fondo).
+- Todos los textos, encabezados, formularios y tablas se envolvieron en tarjetas visuales de fondo sólido (`#ffffff`), con sombras suaves y acentos cromáticos temáticos:
+  - Cabecera de facturación: Tarjeta blanca con insignia verde/azul.
+  - Sección 1: Datos de cliente y fecha en tarjeta blanca con etiquetas legibles.
+  - Sección 2: Cita médica en tarjeta con acento azul clínico (`#bae6fd`).
+  - Sección 3: Insumos en tarjeta con acento verde farmacia (`#bbf7d0`).
+  - Sección 4: Tabla de detalles e insignias de subtotales agrupadas en tarjeta sólida.
+  - Sección 5: Métricas de IVA y total en tarjetas financieras diferenciadas.
+  - Pie de acciones: Botones de confirmación y cancelación en tarjeta inferior blanca.
+  - Modal de Detalles (`isDetalleModalOpen`) y `ConfirmModal`: Aplicada la misma arquitectura visual.
+
+#### 6. Verificación Técnica y Suites de Pruebas
+- **Backend .NET 8:** 11/11 pruebas unitarias e integración aprobadas (`dotnet test`).
+- **Frontend React (Vitest):** 24/24 pruebas aprobadas en 6 suites (`npm test`).
+- **Vite Build:** Compilación de producción en 347ms sin advertencias críticas.
+
+---
+
+### Sesión 8 (2026-10-31) - Fase 8: Extensión del Rediseño Visual UI/UX con Tarjetas Contextuales a Todos los Módulos
+
+#### 1. Contexto y Requerimiento
+El usuario solicitó extender la arquitectura visual implementada previamente en facturación a todos los demás módulos del sistema:
+- Mantener el fondo translúcido general con desenfoque (`modal-overlay` con `backdrop-filter: blur(4px)`).
+- Envolver cada encabezado, sección de formulario, ficha técnica y pie de acciones en tarjetas visuales sólidas (`#ffffff`), con bordes suaves (`#e2e8f0`), sombras sutiles (`0 2px 8px rgba(0,0,0,0.06)`), esquinas redondeadas (`0.85rem`) y etiquetas de alto contraste (`#1e293b`).
+- Evitar que los textos y campos floten directamente sobre el fondo transparente o se confundan con las tablas y datos subyacentes.
+
+#### 2. Módulos y Modales Adaptados
+1. **Módulo de Clientes (`ClientesView.jsx`):**
+   - **Modal de Creación / Edición:** Contenedor estilizado con cabecera en tarjeta blanca con insignia azul/verde (`Users`), cuerpo de formulario en tarjeta sólida con etiquetas legibles y pie de acciones alineado a la derecha en tarjeta contextual.
+2. **Módulo de Pacientes (`PacientesView.jsx`):**
+   - **Modal Detalle de Ficha Clínica:** Encabezado con insignia canina (`Dog`), cuerpo clínico en tarjeta blanca con interlineado óptimo y pie de cierre encapsulado.
+   - **Modal de Creación / Edición:** Cabecera con insignia temática, formulario en tarjeta sólida con campos Zod y pie de acciones (`Cancelar` / `Guardar Cambios`).
+3. **Módulo de Agenda y Citas (`CitasView.jsx`):**
+   - **Modal de Agendamiento / Edición:** Cabecera con insignia violeta de calendario (`Calendar`), cuerpo con selectores de mascota, especialidad, veterinario y fecha en tarjeta blanca, y pie de guardado encapsulado.
+4. **Módulo de Consultas y Recetas Médicas (`ConsultasView.jsx`):**
+   - **Modal de Consulta Clínica:** Cabecera con insignia médica (`Stethoscope`), formulario de diagnóstico y motivo en tarjeta sólida, y pie de acciones.
+   - **Modal de Emisión / Actualización de Receta:** Cabecera con insignia farmacológica (`Pill`), tarjeta de resumen de tutor/paciente con acento celeste (`#bae6fd`), tarjeta de prescripción con medicamentos y dosis, y pie de acciones con soporte de actualización o eliminación.
+5. **Módulo de Inventario e Insumos (`InsumosView.jsx`):**
+   - **Modal de Insumo / Producto:** Cabecera con insignia de inventario (`Package`), formulario en tarjeta blanca con validaciones de stock y precio, y pie de acciones.
+6. **Módulo de Configuración Administrativa (`AdminConfigView.jsx`):**
+   - **Modal de Especialidades:** Cabecera con insignia de reconocimiento (`Award`), campos de costo base y nombre en tarjeta sólida, y pie de guardado.
+   - **Modal de Roles y Permisos:** Cabecera con insignia de seguridad (`Shield`), campos de nombre y permisos de escritura en tarjeta blanca, y pie de guardado.
+7. **Estilos Globales (`index.css`):**
+   - Añadida regla predeterminada a `.modal-content` alineada con `.modal-container` para garantizar que ningún modal secundario quede sin fondo sólido si omite estilos específicos.
+
+#### 3. Verificación de Compilación y Suites de Pruebas
+- **Vite Build (`npm run build`):** Compilación de producción completada exitosamente sin errores de sintaxis ni de empaquetado (`✓ built in 1.16s`).
+- **Frontend Vitest (`npm test -- --run`):** 24 de 24 pruebas aprobadas en 6 suites completas:
+  - `clienteSchema.test.js` (5 pruebas)
+  - `ProtectedRoute.test.jsx` (4 pruebas)
+  - `FacturasView.test.jsx` (2 pruebas)
+  - `LoginView.test.jsx` (5 pruebas)
+  - `FlowIntegration.test.jsx` (1 prueba E2E integral)
+  - `PacientesView.test.jsx` (7 pruebas CRUD y validación)
+- **Backend .NET 8 (`dotnet test`):** 11 de 11 pruebas de integración y controladores aprobadas al 100%.
+
+---
+
 ## 📌 Próximos Pasos / Tareas Pendientes
 - [x] Rate limiting ampliado en backend (1000 req/min) y debouncing de filtros implementado.
 - [x] Interceptor de código 429 con notificación en frontend configurado.
 - [x] Rol Recepcionista autorizado para consultar médicos y agendar citas en backend y frontend.
+- [x] Corrección de Error 500 en Login y manejo de contraseñas legado.
+- [x] Gestión completa de recetas (actualización y eliminación en cascada).
+- [x] Módulo de facturación con IVA 19% automático, cita única de agenda y descuento atómico de stock.
+- [x] Pantalla en blanco solucionada con imports de React y guardas defensivas.
+- [x] Rediseño UI/UX de formularios y detalles con tarjetas contextuales sobre fondo translúcido aplicado a Facturación.
+- [x] Extensión del rediseño UI/UX con tarjetas contextuales a todos los módulos (Clientes, Pacientes, Citas, Consultas, Insumos, Administración).
 - [ ] Recibir nuevos requerimientos o ajustes adicionales por parte del usuario.
 - [ ] Mantener la bitácora actualizada con cada cambio solicitado.
 

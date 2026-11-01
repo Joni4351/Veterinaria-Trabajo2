@@ -1,4 +1,4 @@
-﻿using VeterinariaAPI.Models;
+using VeterinariaAPI.Models;
 using Microsoft.AspNetCore.Identity;
 
 namespace VeterinariaAPI.Services
@@ -14,8 +14,19 @@ namespace VeterinariaAPI.Services
 
         public bool VerifyPassword(Usuario usuario, string passwordIntento)
         {
-            var result = hasher.VerifyHashedPassword(usuario, usuario.PasswordHash, passwordIntento);
-            return result != PasswordVerificationResult.Failed;
+            if (string.IsNullOrEmpty(usuario.PasswordHash))
+                return false;
+
+            try
+            {
+                var result = hasher.VerifyHashedPassword(usuario, usuario.PasswordHash, passwordIntento);
+                return result != PasswordVerificationResult.Failed;
+            }
+            catch (FormatException)
+            {
+                // Fallback de contingencia si la contraseña se importó en texto plano
+                return usuario.PasswordHash == passwordIntento;
+            }
         }
     }
 }
