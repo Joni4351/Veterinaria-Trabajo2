@@ -199,3 +199,24 @@ El uso de Inteligencia Artificial Generativa bajo el modelo **Gemini 3.8 Flash**
 2. **Importancia del Criterio Técnico Humano:** La IA propuso soluciones que inicialmente fallaban por contexto de versión (.NET 10 vs 8, hoisting de Vitest, colisión de selectores). Fue indispensable poseer un conocimiento sólido de React, ASP.NET Core y pruebas automatizadas para depurar y guiar al asistente hacia código robusto y conforme a la rúbrica.
 3. **Calidad y Verificación Continua:** Cada bloque de código generado fue validado inmediatamente mediante linters, compilación estricta y pruebas automatizadas antes de darse por concluido.
 
+
+---
+
+### Registro de Sesión 9 - 01/11/2026: Conexión y Migración a Supabase PostgreSQL
+
+#### Prompts del Usuario:
+- "Quiero que te conectes a supabase, la base de datos va a estar ahora alojada en supabase, este es el string de conexión: postgresql://postgres:Yyg4XmreVcfU0H5x@db.gxbnrxhgwyckgcdfzmjs.supabase.co:5432/postgres. Quiero que hagas eso solamente, establezcas la conexión con supabase y ya no se pueda subir nada de forma local con sql server."
+
+#### Respuestas y Acciones Ejecutadas por el Asistente:
+1. **Reemplazo del Proveedor de Datos de EF Core:**
+   - Desinstalación de `Microsoft.EntityFrameworkCore.SqlServer` (v8.0.13).
+   - Instalación de `Npgsql.EntityFrameworkCore.PostgreSQL` (v8.0.11).
+   - Ajuste de dependencias en `VeterinariaAPI.Tests` a EF Core v8.0.11 para evitar conflictos de ensamblado MSB3277.
+2. **Eliminación de Acoplamiento a SQL Server Local:**
+   - Eliminación del método fallback `OnConfiguring` con cadena de conexión local en `VeterinariodbContext.cs`.
+   - Limpieza de archivos de migración inicial dependientes de extensiones SQL Server.
+3. **Manejo del Pooler IPv4 de Supabase:**
+   - Detección de cadena en formato URI `postgresql://` y enrutamiento hacia el pooler `aws-0-us-east-2.pooler.supabase.com:5432` con usuario compuesto (`postgres.gxbnrxhgwyckgcdfzmjs`), solventando la incompatibilidad DNS IPv6-only (`WSANO_DATA`) en entornos Windows locales.
+4. **Validación Automática:**
+   - Implementación de la prueba unitaria de conexión activa a Supabase `Test_Supabase_Connection` (`SELECT COUNT(*) FROM "Roles"`).
+   - 7/7 pruebas backend y 22/22 pruebas frontend ejecutadas satisfactoriamente.

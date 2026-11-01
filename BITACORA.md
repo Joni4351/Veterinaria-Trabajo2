@@ -355,3 +355,26 @@ El usuario solicitó extender la arquitectura visual implementada previamente en
 - [ ] Mantener la bitácora actualizada con cada cambio solicitado.
 
 
+
+---
+
+### Sesión 9 - 01/11/2026: Migración de Base de Datos de SQL Server Local a Supabase PostgreSQL
+
+#### 1. Contexto y Objetivos
+- Migración definitiva del motor de base de datos desde Microsoft SQL Server local (Express) hacia PostgreSQL alojado en la nube en **Supabase**.
+- Desacoplar por completo cualquier dependencia de SQL Server en el backend, impidiendo cargas y ejecuciones locales dependientes de dicho motor.
+- Adaptar Entity Framework Core en .NET 8 con el proveedor oficial `Npgsql.EntityFrameworkCore.PostgreSQL`.
+
+#### 2. Cambios Técnicos Implementados
+- **Desinstalación y Limpieza de SQL Server:**
+  - Se eliminó el paquete `Microsoft.EntityFrameworkCore.SqlServer` de `VeterinariaAPI.csproj`.
+  - Se incorporó `Npgsql.EntityFrameworkCore.PostgreSQL` v8.0.11 unificando dependencias en EF Core 8.0.11.
+  - Se eliminó la configuración fallback en `VeterinariodbContext.cs` (`optionsBuilder.UseSqlServer(...)`), garantizando que la API solo consuma la configuración inyectada por Dependency Injection sin fallbacks a instancias locales de SQLEXPRESS.
+  - Se eliminaron las migraciones históricas específicas de SQL Server (`20260904061906_InitialCreate`) que generaban incompatibilidades con los extension methods de Npgsql.
+- **Configuración de Conexión a Supabase:**
+  - En `VeterinariaAPI/Program.cs`, se implementó el parser para el URI de conexión (`postgresql://...`).
+  - Se integró la resolución automática hacia el Transaction/Session Pooler de Supabase (`aws-0-us-east-2.pooler.supabase.com:5432`) con autenticación `postgres.<project_ref>`, previniendo errores de resolución DNS en redes IPv4 (fallo clásico `WSANO_DATA` en el host directo `db.*.supabase.co`).
+- **Pruebas y Verificación:**
+  - Se añadió la prueba de conectividad directa a Supabase `Test_Supabase_Connection` en `VeterinariaAPI.Tests/ApiIntegrationTests.cs`.
+  - Pruebas del Backend: **7/7 pruebas superadas exitosamente** (`dotnet test`).
+  - Pruebas del Frontend: **22/22 pruebas superadas exitosamente** (`npm test -- --run`).
