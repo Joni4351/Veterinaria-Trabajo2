@@ -3,9 +3,7 @@
 
 ![.NET 8](https://img.shields.io/badge/.NET-8.0-blue)
 ![React](https://img.shields.io/badge/React-19.0-61dafb)
-![Vite](https://img.shields.io/badge/Vite-6.0-646cff)
-![Vitest](https://img.shields.io/badge/Vitest-22%2F22%20Passing-green)
-![xUnit](https://img.shields.io/badge/xUnit-6%2F6%20Passing-green)
+![Vite](https://img.shields.io/badge/Vite-8-646cff)
 ![WCAG](https://img.shields.io/badge/WCAG-2.2%20AA-success)
 ![Audit](https://img.shields.io/badge/npm%20audit-0%20vulnerabilities-brightgreen)
 
@@ -16,13 +14,13 @@ Plataforma integral para clínicas veterinarias que combina una **API RESTful de
 ## 📋 Estructura del Repositorio (Monorepo)
 
 ```
-VeterinariaAPI-master/
+Veterinaria-Trabajo2/
 ├── VeterinariaAPI/              # Backend en ASP.NET Core 8.0 (Minimal APIs)
-│   ├── Controllers/ y Endpoints/ # Endpoints RESTful con validación y roles
+│   ├── Endpoints/               # Endpoints RESTful con validación y roles
 │   ├── Middlewares/             # Excepciones sanitizadas y headers de seguridad
 │   ├── Models/ y Repositories/  # Entidades y capa de persistencia EF Core
 │   ├── Program.cs               # Configuración de CORS, JWT y Rate Limiting
-│   └── .env.example             # Plantilla de configuración segura del backend
+│   └── .env.example             # Referencia de variables; conexión SQL Server obsoleta
 ├── VeterinariaAPI.Tests/        # Suite de pruebas unitarias/integración (.NET xUnit)
 ├── frontend/                    # Cliente web en React 19 + Vite + React Router
 │   ├── src/
@@ -34,7 +32,7 @@ VeterinariaAPI-master/
 │   │   └── test/                # Pruebas con Vitest y React Testing Library
 │   ├── .env.example             # Plantilla de variables de entorno públicas
 │   └── package.json             # Dependencias del frontend
-├── veterinariodb.sql            # Script DDL y datos semilla para SQL Server
+├── veterinariodb.sql            # Script histórico SQL Server; incompatible con el backend actual
 ├── INFORME_TECNICO.md           # Informe técnico formal con matriz OWASP y WCAG
 ├── AI_LOG.md                    # Bitácora detallada de prompts y decisiones con IA
 ├── BITACORA.md                  # Registro cronológico de hitos del proyecto
@@ -43,87 +41,114 @@ VeterinariaAPI-master/
 
 ---
 
-## 🚀 Requisitos Previos
+## 🚀 Requisitos previos
 
-Asegúrate de contar con las siguientes herramientas instaladas en tu equipo:
-- **.NET SDK 8.0** (o superior): Comprueba con `dotnet --version`.
-- **Node.js 18+** y **npm**: Comprueba con `node -v` y `npm -v`.
-- **SQL Server 2019/2022** o **LocalDB** con **SQL Server Management Studio (SSMS)**.
+- **.NET SDK 8.0** (`dotnet --version`).
+- **Node.js 22.12 o superior** y npm (`node -v` y `npm -v`). Vite 8 también admite Node 20 desde 20.19; Node 18 no es compatible.
+- Una base **PostgreSQL local o en Supabase**, accesible y con las tablas de la aplicación ya creadas.
 
----
-
-## ⚙️ Paso 1: Configuración de la Base de Datos (SQL Server)
-
-1. Abre **SQL Server Management Studio (SSMS)** o ejecuta el script directamente mediante **sqlcmd** con soporte UTF-8:
-   ```bash
-   sqlcmd -S localhost -E -f 65001 -i veterinariodb.sql
-   # O si usas una instancia con nombre como SQLEXPRESS / SQLEXPRESS2:
-   sqlcmd -S .\SQLEXPRESS -E -f 65001 -i veterinariodb.sql
-   ```
-2. O bien, abre el archivo `veterinariodb.sql` en SSMS / Azure Data Studio y presiona **Execute** (`F5`).
-3. El script creará la base de datos `veterinariodb` con todas las tablas del modelo clínico, relaciones, llaves foráneas y datos semilla completos (usuarios, roles, especialidades, clientes, pacientes, citas, consultas, insumos y facturas con seeders válidos).
+Los comandos siguientes usan **PowerShell** y parten de la raíz del repositorio.
 
 ---
 
-## ⚙️ Paso 2: Configuración y Ejecución del Backend (.NET 8)
+## ⚙️ Paso 1: Preparar PostgreSQL
 
-1. Navega al directorio del backend:
-   ```bash
+El backend usa Npgsql y lee **`ConnectionStrings:miconexion`**. El archivo `veterinariodb.sql` es un script histórico para SQL Server y no puede ejecutarse directamente en PostgreSQL.
+
+**Limitación para una instalación desde cero:** el repositorio no incluye migraciones ni un script de creación para PostgreSQL. La API tampoco ejecuta `EnsureCreated` ni `Migrate`: solo intenta insertar datos iniciales en tablas existentes. Necesitas una base previamente preparada o un respaldo PostgreSQL compatible facilitado por el responsable del proyecto. Crear una base vacía no basta.
+
+Para preparar un esquema nuevo, queda pendiente adaptar el DDL a PostgreSQL y comprobar tablas, columnas, claves, identidades y tipos contra `VeterinariaAPI/Models/VeterinariodbContext.cs`. Ese modelo todavía contiene un valor predeterminado de SQL Server para `Factura.FechaEmision` (`CONVERT([date],getdate())`), que debe adaptarse antes de generar migraciones PostgreSQL.
+
+Para Supabase, usa los datos del pooler de tu propio proyecto. Se recomienda una cadena Npgsql `Host=...;Port=...;...`: el código reescribe algunas URL `postgresql://` hacia un pooler de región fija.
+
+---
+
+## ⚙️ Paso 2: Configurar y ejecutar el backend
+
+1. Entra en la carpeta de la API:
+
+   ```powershell
    cd VeterinariaAPI
    ```
-2. Crea tu archivo de configuración o verifica que `appsettings.json` apunte a tu servidor SQL Server:
+
+2. Crea o actualiza `appsettings.Development.json` con tus datos. El archivo está excluido de Git. Ejemplo para PostgreSQL local:
+
    ```json
-   "ConnectionStrings": {
-     "DefaultConnection": "Server=localhost;Database=veterinariodb;Trusted_Connection=True;TrustServerCertificate=True;"
+   {
+     "ConnectionStrings": {
+       "miconexion": "Host=localhost;Port=5432;Database=veterinariodb;Username=TU_USUARIO;Password=TU_PASSWORD"
+     },
+     "Jwt": {
+       "Key": "REEMPLAZAR_POR_UN_SECRETO_ALEATORIO_DE_AL_MENOS_32_BYTES",
+       "Issuer": "VeterinarioApi",
+       "Audience": "VeterinarioApiUsuarios",
+       "ExpireMinutes": "60"
+     }
    }
    ```
-3. Ejecuta las pruebas del backend para verificar la suite de integración:
-   ```bash
-   dotnet test ../VeterinariaAPI.Tests/VeterinariaAPI.Tests.csproj
+
+   Para Supabase, sustituye `miconexion` por tus datos de conexión:
+
+   ```text
+   Host=HOST_DEL_POOLER;Port=PUERTO_DEL_POOLER;Database=postgres;Username=USUARIO_DEL_POOLER;Password=TU_PASSWORD;SSL Mode=Require
    ```
-   *Debe arrojar: `Correctas! - Con error: 0, Superado: 6, Total: 6`.*
-4. Inicia la API:
-   ```bash
-   dotnet run
+
+   También puedes configurar variables de entorno en la misma terminal; tienen prioridad sobre los archivos JSON:
+
+   ```powershell
+   $env:ConnectionStrings__miconexion = 'Host=localhost;Port=5432;Database=veterinariodb;Username=TU_USUARIO;Password=TU_PASSWORD'
+   $env:Jwt__Key = 'REEMPLAZAR_POR_UN_SECRETO_ALEATORIO_DE_AL_MENOS_32_BYTES'
+   $env:Jwt__Issuer = 'VeterinarioApi'
+   $env:Jwt__Audience = 'VeterinarioApiUsuarios'
+   $env:Jwt__ExpireMinutes = '60'
    ```
-   *La API quedará escuchando en `http://localhost:5021` (y `https://localhost:7054` con HTTPS).*
+
+   Sustituye los marcadores antes de iniciar. **El backend no carga archivos `.env` automáticamente**. Copiar `VeterinariaAPI/.env.example` no configura la API; además, su conexión SQL Server está obsoleta. Las variables de PowerShell solo se aplican a esa terminal y sus procesos hijos.
+
+3. Restaura las dependencias e inicia el perfil HTTP:
+
+   ```powershell
+   dotnet restore
+   dotnet run --launch-profile http
+   ```
+
+   API: `http://localhost:5021`. Swagger en desarrollo: `http://localhost:5021/swagger`.
+
+   El perfil opcional `https` usa `https://localhost:7189` y `http://localhost:5021`; requiere un certificado de desarrollo confiable.
+
+4. Revisa los mensajes de arranque. `Aviso: No se pudo verificar o sembrar la base de datos inicial` indica un problema de conexión, esquema o datos. La API puede seguir escuchando aunque falle el sembrado; eso no confirma que la base funcione.
 
 ---
 
-## ⚙️ Paso 3: Configuración y Ejecución del Frontend (React 19)
+## ⚙️ Paso 3: Configurar y ejecutar el frontend
 
-1. Abre una **nueva terminal** y navega a la carpeta del frontend:
-   ```bash
+1. Abre otra terminal en la raíz del repositorio:
+
+   ```powershell
    cd frontend
+   Copy-Item .env.example .env
    ```
-2. Si es la primera vez, copia el archivo de entorno de ejemplo:
-   ```bash
-   copy .env.example .env
+
+   Si ya tienes `.env`, conserva tu configuración. Para el perfil HTTP del backend debe contener:
+
+   ```dotenv
+   VITE_API_URL=http://localhost:5021
    ```
-   *(Contiene `VITE_API_URL=http://localhost:5021`)*.
-3. Instala las dependencias:
-   ```bash
-   npm install
+
+2. Instala las dependencias del archivo de bloqueo e inicia Vite:
+
+   ```powershell
+   npm ci
+   npm run dev -- --port 5173 --strictPort
    ```
-4. Ejecuta la suite de pruebas del frontend:
-   ```bash
-   npm test -- --run
-   ```
-   *Debe arrojar: `22 passed (22)` en 5 archivos de prueba.*
-5. Inicia el servidor de desarrollo:
-   ```bash
-   npm run dev
-   ```
-6. Abre tu navegador en:
-   ```
-   http://localhost:5173
-   ```
+
+3. Abre `http://localhost:5173` con la API ejecutándose en la otra terminal. CORS permite `http://localhost:5173` y `http://localhost:3000`; otra dirección o puerto requiere ajustar la política del backend. Reinicia Vite si cambias `.env`.
 
 ---
 
 ## 👥 Credenciales de Prueba Preconfiguradas
 
-Puedes iniciar sesión con cualquiera de los siguientes usuarios precargados en la base de datos:
+Si las tablas existen y el sembrado termina correctamente, la API crea estos usuarios cuando la tabla de usuarios está vacía. En una base existente, las credenciales pueden ser diferentes. Estas cuentas son para desarrollo:
 
 | Rol | Correo Electrónico | Contraseña | Permisos y Alcance en el Sistema |
 | :--- | :--- | :--- | :--- |
@@ -164,22 +189,29 @@ Puedes iniciar sesión con cualquiera de los siguientes usuarios precargados en 
 
 ## 🧪 Pruebas Automatizadas
 
-El proyecto cuenta con un total de **28 pruebas automatizadas pasando al 100%**:
+Ejecuta las pruebas por separado de la instalación. La cantidad de casos y el resultado de la auditoría deben comprobarse en cada ejecución.
 
-```bash
-# 1. Pruebas Backend (.NET xUnit) - 6 pruebas
+Desde la raíz, configura JWT en una terminal separada antes de ejecutar las pruebas del backend. La suite genera tokens con estos valores fijos de prueba:
+
+```powershell
+$env:Jwt__Key = 'Mi_super-claveultra-secreta1234:)'
+$env:Jwt__Issuer = 'VeterinarioApi'
+$env:Jwt__Audience = 'VeterinarioApiUsuarios'
 dotnet test VeterinariaAPI.Tests/VeterinariaAPI.Tests.csproj
-
-# 2. Pruebas Frontend (Vitest + Testing Library) - 22 pruebas
-cd frontend && npm test -- --run
-
-# 3. Compilación de Producción del Frontend
-cd frontend && npm run build
-
-# 4. Auditoría de Seguridad de Dependencias
-cd frontend && npm audit
-# Resultado: found 0 vulnerabilities
 ```
+
+La suite utiliza EF Core InMemory; no verifica el esquema PostgreSQL. Conserva tu secreto propio para ejecutar la aplicación.
+
+Para el frontend, desde otra terminal en la raíz:
+
+```powershell
+cd frontend
+npm test
+npm run build
+npm audit
+```
+
+`npm test` ejecuta Vitest sobre `src/test`; no ejecuta el archivo de `e2e/`.
 
 ---
 
