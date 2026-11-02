@@ -41,10 +41,6 @@ public partial class VeterinariodbContext : DbContext
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
-        if (!optionsBuilder.IsConfigured)
-        {
-            optionsBuilder.UseSqlServer("server=.\\SQLEXPRESS2; Initial Catalog=veterinariodb;Trusted_Connection=True;TrustServerCertificate=True;");
-        }
     }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

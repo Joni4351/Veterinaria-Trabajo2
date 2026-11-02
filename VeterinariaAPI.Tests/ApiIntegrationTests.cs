@@ -115,6 +115,25 @@ namespace VeterinariaAPI.Tests
         }
 
         [Fact]
+        public async Task Test_Supabase_Connection()
+        {
+            var rawUri = "postgresql://postgres:Yyg4XmreVcfU0H5x@db.gxbnrxhgwyckgcdfzmjs.supabase.co:5432/postgres";
+            var uri = new Uri(rawUri);
+            var userInfo = uri.UserInfo.Split(':');
+            var user = Uri.UnescapeDataString(userInfo[0]);
+            var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+            var host = "aws-0-us-east-2.pooler.supabase.com";
+            var poolerUser = $"{user}.gxbnrxhgwyckgcdfzmjs";
+            var connStr = $"Host={host};Port=5432;Database=postgres;Username={poolerUser};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+
+            await using var conn = new Npgsql.NpgsqlConnection(connStr);
+            await conn.OpenAsync();
+            await using var cmd = new Npgsql.NpgsqlCommand("SELECT COUNT(*) FROM \"Roles\";", conn);
+            var count = await cmd.ExecuteScalarAsync();
+            Assert.NotNull(count);
+        }
+
+        [Fact]
         public async Task Test_GetUsuarios_Authenticated_ReturnsSuccessAndJson()
         {
             // Act: Invocación autenticada con rol Administrador

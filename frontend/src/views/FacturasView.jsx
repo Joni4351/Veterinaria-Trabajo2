@@ -627,7 +627,7 @@ export const FacturasView = () => {
           const displayedFacturas = facturas.filter((f) => {
             if (!searchRut) return true;
             const term = searchRut.toLowerCase();
-            const cliente = clientes.find(c => c.id === f.clienteId);
+            const cliente = (clientes || []).find(c => Number(c.id) === Number(f.clienteId));
             const nombre = cliente?.nombreCompleto?.toLowerCase() || '';
             const rut = cliente?.documentoIdentidad?.toLowerCase() || '';
             return nombre.includes(term) || rut.includes(term);
@@ -673,11 +673,11 @@ export const FacturasView = () => {
                             {cliente?.documentoIdentidad || '—'}
                           </span>
                         </td>
-                        <td data-label="Fecha Emisión">{f.fechaEmision}</td>
-                        <td data-label="Impuestos">${Number(f.montoImpuestos).toFixed(2)}</td>
+                        <td data-label="Fecha Emisión">{typeof f.fechaEmision === 'string' ? f.fechaEmision : (f.fechaEmision ? String(f.fechaEmision) : '—')}</td>
+                        <td data-label="Impuestos">${Number(f.montoImpuestos || 0).toFixed(2)}</td>
                         <td data-label="Total">
                           <strong style={{ color: '#16a34a', fontSize: '1rem' }}>
-                            ${Number(f.montoTotal).toFixed(2)}
+                            ${Number(f.montoTotal || 0).toFixed(2)}
                           </strong>
                         </td>
                         <td data-label="Acciones" style={{ textAlign: 'right' }}>
@@ -1289,7 +1289,7 @@ export const FacturasView = () => {
                     Líneas Registradas de la Factura ({facturaDetalles.length})
                   </h4>
                   <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>
-                    Total Factura: ${Number(selectedFactura.montoTotal).toLocaleString('es-CL')} CLP
+                    Total Factura: ${Number(selectedFactura?.montoTotal || 0).toLocaleString('es-CL')} CLP
                   </strong>
                 </div>
 

@@ -47,7 +47,7 @@
 //builder.Services.AddOpenApi();
 
 //builder.Services.AddDbContext<VeterinariodbContext>(options =>
-//    options.UseSqlServer(builder.Configuration.GetConnectionString("miconexion")));
+//    options.UseNpgsql(builder.Configuration.GetConnectionString("miconexion")));
 
 //// =========================================================
 //// CONSTRUIR LA APLICACIÓN
@@ -141,8 +141,40 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<AuthService>();
 
+var rawConn = builder.Configuration.GetConnectionString("miconexion") ?? string.Empty;
+var npgsqlConn = rawConn;
+
+if (rawConn.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase) || rawConn.StartsWith("postgres://", StringComparison.OrdinalIgnoreCase))
+{
+    var uri = new Uri(rawConn);
+    var userInfo = uri.UserInfo.Split(':');
+    var user = Uri.UnescapeDataString(userInfo[0]);
+    var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+    var host = uri.Host;
+    var port = uri.Port > 0 ? uri.Port : 5432;
+    var database = uri.AbsolutePath.TrimStart('/');
+
+    // Si es el host directo de Supabase db.xxxx.supabase.co, usar el pooler IPv4/IPv6 de Supabase
+    // para evitar fallos de resolución DNS en redes IPv4 (error WSANO_DATA / IPv6 only)
+    if (host.StartsWith("db.", StringComparison.OrdinalIgnoreCase) && host.EndsWith(".supabase.co", StringComparison.OrdinalIgnoreCase))
+    {
+        var projectRef = host.Substring(3, host.IndexOf(".supabase.co", StringComparison.OrdinalIgnoreCase) - 3);
+        host = "aws-0-us-east-2.pooler.supabase.com";
+        if (!user.Contains('.')) user = $"{user}.{projectRef}";
+    }
+
+    npgsqlConn = $"Host={host};Port={port};Database={database};Username={user};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
+}
+else if (rawConn.Contains("db.gxbnrxhgwyckgcdfzmjs.supabase.co", StringComparison.OrdinalIgnoreCase))
+{
+    npgsqlConn = rawConn.Replace("db.gxbnrxhgwyckgcdfzmjs.supabase.co", "aws-0-us-east-2.pooler.supabase.com")
+                        .Replace("Username=postgres;", "Username=postgres.gxbnrxhgwyckgcdfzmjs;")
+                        .Replace("Username=postgres ", "Username=postgres.gxbnrxhgwyckgcdfzmjs ")
+                        .Replace("User Id=postgres;", "User Id=postgres.gxbnrxhgwyckgcdfzmjs;");
+}
+
 builder.Services.AddDbContext<VeterinariodbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("miconexion")));
+    options.UseNpgsql(npgsqlConn));
 
 // OpenApi y Swagger
 builder.Services.AddEndpointsApiExplorer();

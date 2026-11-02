@@ -12,6 +12,7 @@ import { FacturasView } from './views/FacturasView';
 import { AdminConfigView } from './views/AdminConfigView';
 import { AccessDeniedView } from './views/AccessDeniedView';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ErrorBoundary } from './components/ErrorBoundary';
 import AuraParticleBackground from './components/AuraParticleBackground';
 
 import { 
@@ -463,7 +464,8 @@ function MainLayout() {
         </header>
 
         <main className="content-body" id="main-content" tabIndex="-1" style={{ position: 'relative', zIndex: 1 }}>
-          <Routes>
+          <ErrorBoundary>
+            <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route 
               path="/dashboard" 
@@ -532,6 +534,7 @@ function MainLayout() {
             <Route path="/403" element={<AccessDeniedView />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
+          </ErrorBoundary>
         </main>
       </div>
     </div>
