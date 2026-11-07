@@ -370,8 +370,8 @@ export default function VeterinaryPet3D() {
         position: 'relative',
         width: '100%',
         maxWidth: '420px',
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--gray-200)',
         borderRadius: '24px',
         padding: '1.5rem',
         boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04)',
@@ -398,8 +398,8 @@ export default function VeterinaryPet3D() {
             gap: '6px',
             fontSize: '0.78rem',
             fontWeight: 700,
-            color: '#0f766e',
-            background: '#ccfbf1',
+            color: 'var(--teal-text)',
+            background: 'var(--primary-border)',
             padding: '4px 12px',
             borderRadius: '999px',
           }}
@@ -415,7 +415,7 @@ export default function VeterinaryPet3D() {
           <span>Toby • Mascota de la Clínica (3D Interactivo)</span>
         </div>
 
-        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+        <span style={{ fontSize: '0.72rem', color: 'var(--gray-500)', fontWeight: 600 }}>
           Sigue tu cursor 👀
         </span>
       </div>
@@ -454,9 +454,9 @@ export default function VeterinaryPet3D() {
         style={{
           fontSize: '0.85rem',
           fontWeight: 600,
-          color: isScanning ? '#0f766e' : '#334155',
-          background: isScanning ? '#f0fdfa' : '#f8fafc',
-          border: `1px solid ${isScanning ? '#99f6e4' : '#e2e8f0'}`,
+          color: isScanning ? 'var(--teal-text)' : 'var(--gray-700)',
+          background: isScanning ? 'var(--primary-light)' : 'var(--gray-50)',
+          border: `1px solid ${isScanning ? 'var(--primary-border)' : 'var(--gray-200)'}`,
           padding: '6px 16px',
           borderRadius: '999px',
           marginBottom: '1rem',
@@ -483,9 +483,9 @@ export default function VeterinaryPet3D() {
           onClick={handlePet}
           className="btn btn-sm"
           style={{
-            backgroundColor: '#fee2e2',
-            color: '#b91c1c',
-            border: '1px solid #fecaca',
+            backgroundColor: 'var(--danger-light)',
+            color: 'var(--danger-text)',
+            border: '1px solid var(--danger-border)',
             borderRadius: '999px',
             fontSize: '0.8rem',
             padding: '6px 14px',
@@ -507,9 +507,9 @@ export default function VeterinaryPet3D() {
           onClick={handleGiveTreat}
           className="btn btn-sm"
           style={{
-            backgroundColor: '#fef3c7',
-            color: '#b45309',
-            border: '1px solid #fde68a',
+            backgroundColor: 'var(--warning-light)',
+            color: 'var(--warning-text)',
+            border: '1px solid var(--warning-border)',
             borderRadius: '999px',
             fontSize: '0.8rem',
             padding: '6px 14px',
@@ -531,9 +531,9 @@ export default function VeterinaryPet3D() {
           onClick={handleScan}
           className="btn btn-sm"
           style={{
-            backgroundColor: '#ccfbf1',
-            color: '#0f766e',
-            border: '1px solid #99f6e4',
+            backgroundColor: 'var(--primary-border)',
+            color: 'var(--teal-text)',
+            border: '1px solid var(--primary-border)',
             borderRadius: '999px',
             fontSize: '0.8rem',
             padding: '6px 14px',

@@ -49,7 +49,7 @@ export const ConfirmModal = ({
         aria-modal="true"
         aria-labelledby="confirm-modal-title"
         aria-describedby="confirm-modal-desc"
-        style={{ maxWidth: '420px', padding: '1.5rem', background: '#ffffff', borderRadius: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
+        style={{ maxWidth: '420px', padding: '1.5rem', background: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--gray-200)', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
           <div
@@ -57,7 +57,7 @@ export const ConfirmModal = ({
               width: '42px',
               height: '42px',
               borderRadius: '50%',
-              backgroundColor: danger ? '#fee2e2' : '#e0f2fe',
+              backgroundColor: danger ? 'var(--danger-light)' : 'var(--secondary-light)',
               color: danger ? '#ef4444' : '#0284c7',
               display: 'flex',
               alignItems: 'center',
@@ -71,14 +71,14 @@ export const ConfirmModal = ({
           <div>
             <h3
               id="confirm-modal-title"
-              style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}
+              style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--gray-900)' }}
             >
               {title}
             </h3>
           </div>
         </div>
 
-        <p id="confirm-modal-desc" style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+        <p id="confirm-modal-desc" style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
           {message}
         </p>
 

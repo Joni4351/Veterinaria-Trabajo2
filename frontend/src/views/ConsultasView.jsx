@@ -398,7 +398,7 @@ export const ConsultasView = () => {
               <Stethoscope size={24} color="#10b981" />
               Historial de Consultas Médicas y Diagnósticos
             </h2>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.2rem' }}>
+            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
               Filtros directos a `/api/v1/consultas` por paciente, cita, motivo clínico o diagnóstico
             </p>
           </div>
@@ -412,12 +412,12 @@ export const ConsultasView = () => {
 
         {/* Panel de Filtros para Endpoint */}
         <div className="filter-panel">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: '#334155' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--gray-700)' }}>
             <Filter size={16} /> Filtros de Consultas (API)
           </div>
           <div className="filter-grid">
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Paciente</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Paciente</label>
               <select
                 className="form-select"
                 value={filters.pacienteId}
@@ -431,7 +431,7 @@ export const ConsultasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Buscar por Motivo</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Buscar por Motivo</label>
               <input
                 type="text"
                 className="form-input"
@@ -442,7 +442,7 @@ export const ConsultasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Buscar por Diagnóstico</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Buscar por Diagnóstico</label>
               <input
                 type="text"
                 className="form-input"
@@ -453,7 +453,7 @@ export const ConsultasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Dueño (Buscar por RUT o Nombre)</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Dueño (Buscar por RUT o Nombre)</label>
               <input
                 type="text"
                 className="form-input"
@@ -485,14 +485,14 @@ export const ConsultasView = () => {
 
           if (loading) {
             return (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--gray-500)' }}>
                 Cargando consultas...
               </div>
             );
           }
           if (displayedConsultas.length === 0) {
             return (
-              <p style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+              <p style={{ textAlign: 'center', padding: '3rem', color: 'var(--gray-500)' }}>
                 No hay consultas registradas con los filtros indicados.
               </p>
             );
@@ -518,23 +518,23 @@ export const ConsultasView = () => {
                       <tr key={c.id}>
                         <td data-label="Paciente">
                           <strong>{paciente ? paciente.nombre : 'Paciente'}</strong>
-                          {paciente && <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{paciente.especie} ({paciente.raza || 'Mestizo'})</div>}
+                          {paciente && <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>{paciente.especie} ({paciente.raza || 'Mestizo'})</div>}
                         </td>
                         <td data-label="Dueño / RUT">
                           {cliente ? (
                             <div>
-                              <strong style={{ color: '#0f172a' }}>{cliente.nombreCompleto}</strong>
+                              <strong style={{ color: 'var(--gray-900)' }}>{cliente.nombreCompleto}</strong>
                               <div style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 600 }}>RUT: {cliente.documentoIdentidad}</div>
                             </div>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>—</span>
+                            <span style={{ color: 'var(--gray-400)' }}>—</span>
                           )}
                         </td>
                         <td data-label="Atención / Cita">
                           {c.citaId ? (
                             <span className="badge badge-secondary">Cita Programada</span>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>Atención Espontánea</span>
+                            <span style={{ color: 'var(--gray-400)' }}>Atención Espontánea</span>
                           )}
                         </td>
                         <td data-label="Motivo">
@@ -574,7 +574,7 @@ export const ConsultasView = () => {
                             </button>
                           )}
                           {!canCreateOrEdit && !canDelete && (
-                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Solo Lectura</span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Solo Lectura</span>
                           )}
                         </td>
                       </tr>
@@ -592,16 +592,16 @@ export const ConsultasView = () => {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '640px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera Consulta */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
                   <Stethoscope size={22} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? 'Editar Consulta' : 'Registrar Consulta Médica'}
                   </h3>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Actualice el diagnóstico clínico y motivo de atención' : 'Complete la ficha de atención clínica veterinaria'}
                   </span>
                 </div>
@@ -612,7 +612,7 @@ export const ConsultasView = () => {
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {error && (
                   <div className="alert alert-danger" role="alert">
                     <AlertCircle size={18} />
@@ -715,7 +715,7 @@ export const ConsultasView = () => {
               </div>
 
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>
@@ -736,16 +736,16 @@ export const ConsultasView = () => {
           <div className="modal-overlay">
             <div className="modal-content" style={{ maxWidth: '680px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
               {/* Tarjeta Visual Cabecera Receta */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: existingReceta ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: existingReceta ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: existingReceta ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: existingReceta ? '#0284c7' : '#10b981', flexShrink: 0 }}>
                     <Pill size={22} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                       {existingReceta ? 'Actualizar Receta Médica' : 'Emitir Receta Médica'} — {pac?.nombre || 'Paciente'}
                     </h3>
-                    <span style={{ fontSize: '0.8rem', color: existingReceta ? '#059669' : '#64748b', fontWeight: existingReceta ? 600 : 400 }}>
+                    <span style={{ fontSize: '0.8rem', color: existingReceta ? '#059669' : 'var(--gray-500)', fontWeight: existingReceta ? 600 : 400 }}>
                       {existingReceta ? `Receta registrada (Folio #${existingReceta.id})` : 'Prescripción de medicamentos e indicaciones posológicas'}
                     </span>
                   </div>
@@ -757,35 +757,35 @@ export const ConsultasView = () => {
 
               <form onSubmit={handleSaveReceta} noValidate>
                 {/* Tarjeta Visual Resumen del Paciente y Tutor */}
-                <div style={{ background: '#ffffff', border: '1px solid #bae6fd', borderRadius: '0.85rem', padding: '1rem 1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--info-border)', borderRadius: '0.85rem', padding: '1rem 1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', fontSize: '0.85rem' }}>
                     <div>
-                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>PACIENTE</span>
-                      <strong style={{ color: '#0f172a' }}>{pac?.nombre || 'Paciente'}</strong>
-                      <span style={{ color: '#64748b', fontSize: '0.78rem', marginLeft: '0.35rem' }}>({pac?.especie || 'Mascota'}{pac?.raza ? ` - ${pac.raza}` : ''})</span>
+                      <span style={{ color: 'var(--gray-500)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>PACIENTE</span>
+                      <strong style={{ color: 'var(--gray-900)' }}>{pac?.nombre || 'Paciente'}</strong>
+                      <span style={{ color: 'var(--gray-500)', fontSize: '0.78rem', marginLeft: '0.35rem' }}>({pac?.especie || 'Mascota'}{pac?.raza ? ` - ${pac.raza}` : ''})</span>
                     </div>
                     <div>
-                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>DUEÑO / TUTOR</span>
-                      <strong style={{ color: '#0f172a' }}>{cli?.nombreCompleto || 'Sin dueño asignado'}</strong>
+                      <span style={{ color: 'var(--gray-500)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>DUEÑO / TUTOR</span>
+                      <strong style={{ color: 'var(--gray-900)' }}>{cli?.nombreCompleto || 'Sin dueño asignado'}</strong>
                     </div>
                     <div>
-                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>RUT DEL DUEÑO</span>
+                      <span style={{ color: 'var(--gray-500)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>RUT DEL DUEÑO</span>
                       <span style={{ color: '#0284c7', fontWeight: 600 }}>{cli?.documentoIdentidad ? `RUT: ${cli.documentoIdentidad}` : '—'}</span>
                     </div>
                     {cli?.telefono && (
                       <div>
-                        <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>CONTACTO</span>
-                        <span style={{ color: '#334155' }}>{cli.telefono}</span>
+                        <span style={{ color: 'var(--gray-500)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>CONTACTO</span>
+                        <span style={{ color: 'var(--gray-700)' }}>{cli.telefono}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Tarjeta Visual Formulario de Prescripción */}
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
 
                   {existingReceta && (
-                    <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0.375rem', padding: '0.65rem 0.85rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#166534' }}>
+                    <div style={{ background: 'var(--success-light)', border: '1px solid #86efac', borderRadius: '0.375rem', padding: '0.65rem 0.85rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--success-text)' }}>
                       <CheckCircle2 size={18} color="#16a34a" />
                       <div>
                         <strong>Receta existente detectada (Folio #{existingReceta.id}).</strong>
@@ -803,7 +803,7 @@ export const ConsultasView = () => {
                   </div>
                 )}
                 {recetaSuccess && (
-                  <div className="alert alert-success" role="alert" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '0.75rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <div className="alert alert-success" role="alert" style={{ background: 'var(--success-light)', color: 'var(--success-text)', border: '1px solid #bbf7d0', padding: '0.75rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                     <CheckCircle2 size={18} />
                     <span>{recetaSuccess}</span>
                   </div>
@@ -924,7 +924,7 @@ export const ConsultasView = () => {
               </div>
 
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   {existingReceta && (
                     <button

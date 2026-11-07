@@ -10,6 +10,7 @@ import { ConsultasView } from './views/ConsultasView';
 import { InsumosView } from './views/InsumosView';
 import { FacturasView } from './views/FacturasView';
 import { AdminConfigView } from './views/AdminConfigView';
+import { ThemeToggle } from './components/ThemeToggle';
 import { AccessDeniedView } from './views/AccessDeniedView';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -137,7 +138,7 @@ function MainLayout() {
         >
           <ShieldAlert size={24} style={{ flexShrink: 0, marginTop: '2px', color: '#fca5a5' }} />
           <div style={{ flex: 1, fontSize: '0.88rem' }}>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.2rem', color: '#fecaca' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.2rem', color: 'var(--danger-border)' }}>
               403 Prohibido - Servidor API
             </div>
             <div>{forbiddenToast.mensaje}</div>
@@ -188,9 +189,9 @@ function MainLayout() {
             animation: 'fadeIn 0.25s ease-out'
           }}
         >
-          <ShieldAlert size={24} style={{ flexShrink: 0, marginTop: '2px', color: '#fde68a' }} />
+          <ShieldAlert size={24} style={{ flexShrink: 0, marginTop: '2px', color: 'var(--warning-border)' }} />
           <div style={{ flex: 1, fontSize: '0.88rem' }}>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.2rem', color: '#fef3c7' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.2rem', color: 'var(--warning-light)' }}>
               429 Solicitudes Excedidas - Rate Limiter
             </div>
             <div>{rateLimitToast.mensaje}</div>
@@ -223,24 +224,24 @@ function MainLayout() {
         aria-hidden="true"
       />
 
-      {/* Sidebar de Navegación VetClinic (Off-canvas en Móvil / Sticky en Desktop) */}
+      {/* Sidebar de Navegación VetClinic (Off-canvas en Móvil / Fija en Desktop) */}
       <aside 
         className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}
         style={{
-          background: '#ffffff',
-          borderRight: '1px solid #e2e8f0',
+          background: 'var(--bg-surface)',
+          borderRight: '1px solid var(--gray-200)',
           boxShadow: '4px 0 25px rgba(15, 23, 42, 0.06)',
         }}
       >
-        <div className="sidebar-header" style={{ borderBottom: '1px solid #e2e8f0', padding: '1.25rem' }}>
+        <div className="sidebar-header" style={{ borderBottom: '1px solid var(--gray-200)', padding: '1.25rem' }}>
           <div className="sidebar-brand">
             <div 
               style={{
                 width: '42px',
                 height: '42px',
                 borderRadius: '12px',
-                background: '#f0fdfa',
-                border: '1px solid #ccfbf1',
+                background: 'var(--primary-light)',
+                border: '1px solid var(--primary-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -256,7 +257,7 @@ function MainLayout() {
                   fontSize: '1.2rem',
                   fontWeight: 900,
                   letterSpacing: '-0.02em',
-                  color: '#0f172a',
+                  color: 'var(--gray-900)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'
@@ -264,7 +265,7 @@ function MainLayout() {
               >
                 VetClinic Pro
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#0f766e', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 800 }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--teal-text)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 800 }}>
                 Clínica Veterinaria
               </div>
             </div>
@@ -272,7 +273,7 @@ function MainLayout() {
           {/* Botón para cerrar drawer en móvil */}
           <button 
             className="btn-icon mobile-menu-btn" 
-            style={{ color: '#64748b', border: '1px solid #e2e8f0' }}
+            style={{ color: 'var(--gray-500)', border: '1px solid var(--gray-200)' }}
             onClick={() => setIsMobileMenuOpen(false)}
             aria-label="Cerrar menú lateral"
           >
@@ -284,6 +285,7 @@ function MainLayout() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const tienePermiso = hasRole(item.roles);
+            if (item.path === '/admin' && !tienePermiso) return null;
 
             return (
               <NavLink
@@ -305,7 +307,7 @@ function MainLayout() {
                   <span>{item.label}</span>
                 </div>
                 {!tienePermiso && (
-                  <Lock size={14} color="#94a3b8" title="Módulo restringido por rol" />
+                  <Lock size={14} color="var(--gray-400)" title="Módulo restringido por rol" />
                 )}
               </NavLink>
             );
@@ -315,8 +317,8 @@ function MainLayout() {
         <div 
           className="sidebar-footer"
           style={{
-            background: '#f8fafc',
-            borderTop: '1px solid #e2e8f0',
+            background: 'var(--gray-50)',
+            borderTop: '1px solid var(--gray-200)',
           }}
         >
           <div className="user-profile">
@@ -325,8 +327,8 @@ function MainLayout() {
                 width: '38px',
                 height: '38px',
                 borderRadius: '50%',
-                background: '#f0fdfa',
-                border: '1px solid #ccfbf1',
+                background: 'var(--primary-light)',
+                border: '1px solid var(--primary-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -339,10 +341,10 @@ function MainLayout() {
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="user-info">
-              <span className="user-name" title={user?.name} style={{ color: '#0f172a', fontWeight: 700 }}>
+              <span className="user-name" title={user?.name} style={{ color: 'var(--gray-900)', fontWeight: 700 }}>
                 {user?.name}
               </span>
-              <span style={{ fontSize: '0.72rem', color: '#0f766e', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--teal-text)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' }}>
                 {user?.role}
               </span>
             </div>
@@ -354,9 +356,9 @@ function MainLayout() {
               marginTop: '0.4rem', 
               justifyContent: 'center',
               borderRadius: '999px',
-              border: '1px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#334155',
+              border: '1px solid var(--gray-300)',
+              background: 'var(--bg-surface)',
+              color: 'var(--gray-700)',
             }}
             onClick={handleLogout}
             aria-label="Cerrar sesión actual"
@@ -371,8 +373,8 @@ function MainLayout() {
         <header 
           className="topbar"
           style={{
-            background: 'rgba(255, 255, 255, 0.95)',
-            borderBottom: '1px solid #e2e8f0',
+            background: 'var(--topbar-bg)',
+            borderBottom: '1px solid var(--gray-200)',
             backdropFilter: 'blur(12px)',
           }}
         >
@@ -381,7 +383,7 @@ function MainLayout() {
               className="mobile-menu-btn"
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               aria-label="Abrir menú de navegación"
-              style={{ color: '#334155', background: '#ffffff', border: '1px solid #cbd5e1' }}
+              style={{ color: 'var(--gray-700)', background: 'var(--bg-surface)', border: '1px solid var(--gray-300)' }}
             >
               <Menu size={20} />
             </button>
@@ -394,11 +396,11 @@ function MainLayout() {
                 alignItems: 'center',
                 gap: '8px',
                 fontSize: '0.75rem',
-                color: '#475569',
+                color: 'var(--gray-600)',
                 fontWeight: 600,
                 letterSpacing: '0.02em',
-                background: '#f0fdfa',
-                border: '1px solid #ccfbf1',
+                background: 'var(--primary-light)',
+                border: '1px solid var(--primary-border)',
                 padding: '5px 14px',
                 borderRadius: '999px',
               }}
@@ -412,13 +414,14 @@ function MainLayout() {
                   boxShadow: '0 0 6px rgba(13, 148, 136, 0.5)',
                 }}
               />
-              <span style={{ color: '#0f766e', fontWeight: 700 }}>CLÍNICA 100% OPERATIVA</span>
-              <span style={{ color: '#cbd5e1' }}>•</span>
+              <span style={{ color: 'var(--teal-text)', fontWeight: 700 }}>CLÍNICA 100% OPERATIVA</span>
+              <span style={{ color: 'var(--gray-300)' }}>•</span>
               <span>URGENCIAS 24/7</span>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <ThemeToggle />
             {/* Botón rápido "Agendar Cita" */}
             <button
               className="topbar-appointment-btn"
@@ -450,9 +453,9 @@ function MainLayout() {
                 fontSize: '0.78rem', 
                 padding: '0.35rem 0.85rem', 
                 borderRadius: '9999px',
-                backgroundColor: '#f0fdfa',
-                border: '1px solid #ccfbf1',
-                color: '#0f766e',
+                backgroundColor: 'var(--primary-light)',
+                border: '1px solid var(--primary-border)',
+                color: 'var(--teal-text)',
                 fontWeight: 800,
                 letterSpacing: '0.02em',
                 whiteSpace: 'nowrap',
@@ -555,7 +558,7 @@ function App() {
           flexDirection: 'column',
           alignItems: 'center', 
           justifyContent: 'center',
-          backgroundColor: '#f8fafc',
+          backgroundColor: 'var(--gray-50)',
           gap: '1rem',
         }}
       >
@@ -566,7 +569,7 @@ function App() {
               width: '46px',
               height: '46px',
               borderRadius: '50%',
-              border: '3px solid #ccfbf1',
+              border: '3px solid var(--primary-border)',
               borderTopColor: '#0d9488',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 1rem',
@@ -581,7 +584,7 @@ function App() {
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+    <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: 'var(--gray-50)' }}>
       {/* Fondo de Partículas Suaves Interactivas */}
       <AuraParticleBackground />
 

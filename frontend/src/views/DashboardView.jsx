@@ -77,11 +77,11 @@ export const DashboardView = ({ onNavigate }) => {
   };
 
   const statCards = [
-    { label: 'Pacientes Registrados', val: stats.pacientes, icon: Dog, color: '#0d9488', bg: '#f0fdfa', border: '#ccfbf1', nav: 'pacientes' },
-    { label: 'Clientes / Dueños', val: stats.clientes, icon: Users, color: '#0284c7', bg: '#f0f9ff', border: '#e0f2fe', nav: 'clientes' },
+    { label: 'Pacientes Registrados', val: stats.pacientes, icon: Dog, color: '#0d9488', bg: 'var(--primary-light)', border: 'var(--primary-border)', nav: 'pacientes' },
+    { label: 'Clientes / Dueños', val: stats.clientes, icon: Users, color: '#0284c7', bg: 'var(--secondary-light)', border: 'var(--secondary-light)', nav: 'clientes' },
     { label: 'Citas Médicas', val: stats.citas, icon: Calendar, color: '#7c3aed', bg: '#f5f3ff', border: '#ede9fe', nav: 'citas' },
-    { label: 'Consultas Realizadas', val: stats.consultas, icon: Stethoscope, color: '#059669', bg: '#ecfdf5', border: '#d1fae5', nav: 'consultas' },
-    { label: 'Facturas Emitidas', val: stats.facturas, icon: DollarSign, color: '#d97706', bg: '#fffbeb', border: '#fef3c7', nav: 'facturas' },
+    { label: 'Consultas Realizadas', val: stats.consultas, icon: Stethoscope, color: '#059669', bg: 'var(--success-light)', border: 'var(--success-light)', nav: 'consultas' },
+    { label: 'Facturas Emitidas', val: stats.facturas, icon: DollarSign, color: '#d97706', bg: 'var(--warning-light)', border: 'var(--warning-light)', nav: 'facturas' },
     { label: 'Insumos en Inventario', val: stats.insumos, icon: Package, color: '#db2777', bg: '#fdf2f8', border: '#fce7f3', nav: 'insumos' }
   ];
 
@@ -95,8 +95,8 @@ export const DashboardView = ({ onNavigate }) => {
         style={{
           position: 'relative',
           borderRadius: '24px',
-          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdfa 50%, #f8fafc 100%)',
-          border: '1px solid #e2e8f0',
+          background: 'linear-gradient(135deg, var(--bg-surface) 0%, var(--primary-light) 50%, var(--gray-50) 100%)',
+          border: '1px solid var(--gray-200)',
           padding: '2.25rem 2rem',
           boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.02)',
         }}
@@ -118,9 +118,9 @@ export const DashboardView = ({ onNavigate }) => {
                 gap: '8px',
                 padding: '6px 14px',
                 borderRadius: '999px',
-                background: '#ccfbf1',
+                background: 'var(--primary-border)',
                 border: '1px solid #99f6e4',
-                color: '#0f766e',
+                color: 'var(--teal-text)',
                 fontSize: '0.78rem',
                 fontWeight: 700,
                 letterSpacing: '0.04em',
@@ -136,7 +136,7 @@ export const DashboardView = ({ onNavigate }) => {
                 fontSize: 'clamp(1.9rem, 3.2vw, 2.7rem)',
                 fontWeight: 800,
                 lineHeight: 1.2,
-                color: '#0f172a',
+                color: 'var(--gray-900)',
                 letterSpacing: '-0.02em',
               }}
             >
@@ -146,7 +146,7 @@ export const DashboardView = ({ onNavigate }) => {
             <p
               style={{
                 fontSize: '1rem',
-                color: '#475569',
+                color: 'var(--gray-600)',
                 lineHeight: 1.6,
                 maxWidth: '560px',
               }}
@@ -210,9 +210,9 @@ export const DashboardView = ({ onNavigate }) => {
                 gap: '1.25rem',
                 marginTop: '0.75rem',
                 paddingTop: '1rem',
-                borderTop: '1px solid #e2e8f0',
+                borderTop: '1px solid var(--gray-200)',
                 fontSize: '0.78rem',
-                color: '#64748b',
+                color: 'var(--gray-500)',
                 fontWeight: 600,
               }}
             >
@@ -247,10 +247,10 @@ export const DashboardView = ({ onNavigate }) => {
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.25rem' }}>
           <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' }}>
+            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--gray-900)', letterSpacing: '-0.02em' }}>
               Resumen Clínico y Operativo
             </h2>
-            <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
+            <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>
               Métricas sincronizadas en tiempo real con la base de datos de la clínica.
             </p>
           </div>
@@ -270,7 +270,7 @@ export const DashboardView = ({ onNavigate }) => {
                 onKeyDown={(e) => { if (e.key === 'Enter') handleNav(c.nav); }}
                 style={{
                   cursor: 'pointer',
-                  background: '#ffffff',
+                  background: 'var(--bg-surface)',
                   border: `1px solid ${c.border}`,
                   borderRadius: '16px',
                   boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
@@ -288,8 +288,8 @@ export const DashboardView = ({ onNavigate }) => {
                   <Icon size={24} />
                 </div>
                 <div className="stat-content">
-                  <div className="stat-value" style={{ color: '#0f172a' }}>{c.val}</div>
-                  <div className="stat-label" style={{ color: '#64748b' }}>{c.label}</div>
+                  <div className="stat-value" style={{ color: 'var(--gray-900)' }}>{c.val}</div>
+                  <div className="stat-label" style={{ color: 'var(--gray-500)' }}>{c.label}</div>
                 </div>
               </div>
             );
@@ -310,7 +310,7 @@ export const DashboardView = ({ onNavigate }) => {
         {/* Próximas Citas */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--gray-900)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <Clock size={18} color="#0d9488" />
               Próximas Citas Médicas
             </h3>
@@ -324,7 +324,7 @@ export const DashboardView = ({ onNavigate }) => {
           </div>
 
           {citasRecientes.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8' }}>
+            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--gray-400)' }}>
               <Calendar size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: '#0d9488' }} />
               <p style={{ fontSize: '0.9rem' }}>No hay citas agendadas actualmente en el sistema.</p>
             </div>
@@ -339,8 +339,8 @@ export const DashboardView = ({ onNavigate }) => {
                     justifyContent: 'space-between',
                     padding: '0.75rem 1rem',
                     borderRadius: '12px',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
+                    background: 'var(--gray-50)',
+                    border: '1px solid var(--gray-200)',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -348,8 +348,8 @@ export const DashboardView = ({ onNavigate }) => {
                       width: '38px',
                       height: '38px',
                       borderRadius: '10px',
-                      backgroundColor: '#f0fdfa',
-                      border: '1px solid #ccfbf1',
+                      backgroundColor: 'var(--primary-light)',
+                      border: '1px solid var(--primary-border)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -358,10 +358,10 @@ export const DashboardView = ({ onNavigate }) => {
                       <Dog size={18} />
                     </div>
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--gray-900)' }}>
                         {cita.paciente?.nombre || 'Paciente en Atención'}
                       </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
                         {cita.paciente?.cliente 
                           ? `Dueño: ${cita.paciente.cliente.nombreCompleto} (RUT: ${cita.paciente.cliente.documentoIdentidad})`
                           : (cita.fechaHora ? new Date(cita.fechaHora).toLocaleString() : 'Fecha pendiente')}
@@ -380,7 +380,7 @@ export const DashboardView = ({ onNavigate }) => {
         {/* Insumos con Stock Bajo */}
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--gray-900)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <AlertTriangle size={18} color="#d97706" />
               Insumos con Stock Crítico
             </h3>
@@ -394,7 +394,7 @@ export const DashboardView = ({ onNavigate }) => {
           </div>
 
           {insumosBajoStock.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8' }}>
+            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--gray-400)' }}>
               <Package size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: '#0d9488' }} />
               <p style={{ fontSize: '0.9rem' }}>Todos los medicamentos y suministros tienen stock suficiente.</p>
             </div>
@@ -409,15 +409,15 @@ export const DashboardView = ({ onNavigate }) => {
                     justifyContent: 'space-between',
                     padding: '0.75rem 1rem',
                     borderRadius: '12px',
-                    background: '#fffbeb',
-                    border: '1px solid #fef3c7',
+                    background: 'var(--warning-light)',
+                    border: '1px solid var(--warning-light)',
                   }}
                 >
                   <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--gray-900)' }}>
                       {insumo.nombreProducto || 'Insumo'}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>
                       Categoría: {insumo.tipo || 'Clínico'}
                     </div>
                   </div>

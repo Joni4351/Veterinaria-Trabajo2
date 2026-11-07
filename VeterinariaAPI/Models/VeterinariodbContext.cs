@@ -6,6 +6,7 @@ namespace VeterinariaAPI.Models;
 
 public partial class VeterinariodbContext : DbContext
 {
+    public DbSet<ReconocimientoFacial> ReconocimientosFaciales { get; set; }
     public VeterinariodbContext()
     {
     }
@@ -45,6 +46,18 @@ public partial class VeterinariodbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<ReconocimientoFacial>(entity =>
+        {
+            entity.ToTable("ReconocimientoFacial", "public");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UsuarioId).IsUnique();
+            entity.Property(e => e.DescriptorFacial).HasColumnType("jsonb");
+            entity.Property(e => e.FechaRegistro).HasDefaultValueSql("now()");
+            entity.Property(e => e.Activo).HasDefaultValue(true);
+            entity.Property(e => e.FechaActualizacion).IsConcurrencyToken();
+            entity.HasOne<Usuario>().WithOne().HasForeignKey<ReconocimientoFacial>(e => e.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<Cita>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PK__Citas__3214EC07A639186A");

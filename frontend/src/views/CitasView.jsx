@@ -211,7 +211,7 @@ export const CitasView = () => {
               <Calendar size={24} color="#8b5cf6" />
               Agenda y Control de Citas
             </h2>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.2rem' }}>
+            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
               Filtros directos a `/api/v1/citas` por profesional, paciente, especialidad, fechas y estado
             </p>
           </div>
@@ -225,12 +225,12 @@ export const CitasView = () => {
 
         {/* Panel de Filtros */}
         <div className="filter-panel">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: '#334155' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--gray-700)' }}>
             <Filter size={16} /> Filtros de Agenda (API)
           </div>
           <div className="filter-grid">
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Profesional / Vet</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Profesional / Vet</label>
               <select
                 className="form-select"
                 value={filters.usuarioId}
@@ -243,7 +243,7 @@ export const CitasView = () => {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Especialidad</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Especialidad</label>
               <select
                 className="form-select"
                 value={filters.especialidadId}
@@ -256,7 +256,7 @@ export const CitasView = () => {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Estado</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Estado</label>
               <select
                 className="form-select"
                 value={filters.estado}
@@ -271,7 +271,7 @@ export const CitasView = () => {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Dueño (Buscar por RUT o Nombre)</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Dueño (Buscar por RUT o Nombre)</label>
               <input
                 type="text"
                 className="form-input"
@@ -281,7 +281,7 @@ export const CitasView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Desde Fecha</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Desde Fecha</label>
               <input
                 type="date"
                 className="form-input"
@@ -309,11 +309,11 @@ export const CitasView = () => {
           });
 
           if (loading) {
-            return <p style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>Cargando agenda de citas...</p>;
+            return <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Cargando agenda de citas...</p>;
           }
           if (displayedCitas.length === 0) {
             return (
-              <p style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+              <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-400)' }}>
                 No se encontraron citas médicas registradas con los filtros aplicados.
               </p>
             );
@@ -336,19 +336,19 @@ export const CitasView = () => {
                   {displayedCitas.map((c) => (
                     <tr key={c.id}>
                       <td data-label="Paciente">
-                        <strong style={{ color: '#0f172a' }}>{c.paciente?.nombre || 'Paciente'}</strong>
-                        <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{c.paciente?.especie} ({c.paciente?.raza || 'Mestizo'})</div>
+                        <strong style={{ color: 'var(--gray-900)' }}>{c.paciente?.nombre || 'Paciente'}</strong>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>{c.paciente?.especie} ({c.paciente?.raza || 'Mestizo'})</div>
                       </td>
                       <td data-label="Dueño / Cliente">
                         {(() => {
                           const cliente = c.paciente?.cliente || clientes.find(cl => cl.id === c.paciente?.clienteId);
                           return cliente ? (
                             <div>
-                              <strong style={{ color: '#0f172a' }}>{cliente.nombreCompleto}</strong>
+                              <strong style={{ color: 'var(--gray-900)' }}>{cliente.nombreCompleto}</strong>
                               <div style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 600 }}>RUT: {cliente.documentoIdentidad}</div>
                             </div>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>—</span>
+                            <span style={{ color: 'var(--gray-400)' }}>—</span>
                           );
                         })()}
                       </td>
@@ -357,8 +357,8 @@ export const CitasView = () => {
                       </td>
                       <td data-label="Profesional">{c.usuario?.nombreCompleto || 'Dr. Asignado'}</td>
                       <td data-label="Fecha y Hora">
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#334155', fontWeight: 500 }}>
-                          <Clock size={14} color="#64748b" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--gray-700)', fontWeight: 500 }}>
+                          <Clock size={14} color="var(--gray-500)" />
                           {new Date(c.fechaHora).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
                         </div>
                       </td>
@@ -384,7 +384,7 @@ export const CitasView = () => {
                             )}
                           </>
                         ) : (
-                          <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Solo Lectura</span>
+                          <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Solo Lectura</span>
                         )}
                       </td>
                     </tr>
@@ -401,16 +401,16 @@ export const CitasView = () => {
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-cita-title">
           <div className="modal-content" style={{ maxWidth: '640px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera Cita */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
                   <Calendar size={22} />
                 </div>
                 <div>
-                  <h3 id="modal-cita-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h3 id="modal-cita-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? 'Editar Cita Médica' : 'Agendar Nueva Cita'}
                   </h3>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Modifique los detalles y estado de la cita médica' : 'Seleccione paciente, profesional, especialidad y horario'}
                   </span>
                 </div>
@@ -422,7 +422,7 @@ export const CitasView = () => {
 
             <form onSubmit={handleSubmit} noValidate>
               {/* Tarjeta Visual Cuerpo del Formulario */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {error && (
                   <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
                     <AlertCircle size={18} />
@@ -431,7 +431,7 @@ export const CitasView = () => {
                 )}
 
                 <div className="form-group">
-                  <label htmlFor="cita-paciente" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
+                  <label htmlFor="cita-paciente" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                     Paciente (Mascota) <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <select
@@ -464,7 +464,7 @@ export const CitasView = () => {
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label htmlFor="cita-especialidad" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
+                    <label htmlFor="cita-especialidad" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                       Especialidad Clínica <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <select
@@ -493,7 +493,7 @@ export const CitasView = () => {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="cita-usuario" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
+                    <label htmlFor="cita-usuario" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                       Veterinario / Profesional <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <select
@@ -524,7 +524,7 @@ export const CitasView = () => {
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label htmlFor="cita-fechaHora" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
+                    <label htmlFor="cita-fechaHora" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                       Fecha y Hora <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
@@ -547,7 +547,7 @@ export const CitasView = () => {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="cita-estado" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
+                    <label htmlFor="cita-estado" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                       Estado de la Cita <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <select
@@ -567,7 +567,7 @@ export const CitasView = () => {
               </div>
 
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>

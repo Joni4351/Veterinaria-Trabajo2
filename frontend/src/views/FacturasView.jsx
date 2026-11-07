@@ -530,7 +530,7 @@ export const FacturasView = () => {
               <DollarSign size={24} color="#10b981" />
               Gestión de Facturación y Cobros
             </h2>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.2rem' }}>
+            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
               Filtros directos a `/api/v1/facturas` por cliente, rangos de fechas y montos
             </p>
           </div>
@@ -544,12 +544,12 @@ export const FacturasView = () => {
 
         {/* Panel de Filtros para Endpoint */}
         <div className="filter-panel">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: '#334155' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--gray-700)' }}>
             <Filter size={16} /> Filtros de Facturas (API)
           </div>
           <div className="filter-grid">
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Dueño / Cliente (Buscar por RUT o Nombre)</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Dueño / Cliente (Buscar por RUT o Nombre)</label>
               <input
                 type="text"
                 className="form-input"
@@ -560,7 +560,7 @@ export const FacturasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Cliente</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Cliente</label>
               <select
                 className="form-select"
                 value={filters.clienteId}
@@ -574,7 +574,7 @@ export const FacturasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Desde Fecha</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Desde Fecha</label>
               <input
                 type="date"
                 className="form-input"
@@ -584,7 +584,7 @@ export const FacturasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Hasta Fecha</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Hasta Fecha</label>
               <input
                 type="date"
                 className="form-input"
@@ -594,7 +594,7 @@ export const FacturasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Monto Min ($)</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Monto Min ($)</label>
               <input
                 type="number"
                 className="form-input"
@@ -605,7 +605,7 @@ export const FacturasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Monto Max ($)</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Monto Max ($)</label>
               <input
                 type="number"
                 className="form-input"
@@ -635,14 +635,14 @@ export const FacturasView = () => {
 
           if (loading) {
             return (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--gray-500)' }}>
                 Cargando facturas...
               </div>
             );
           }
           if (displayedFacturas.length === 0) {
             return (
-              <p style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+              <p style={{ textAlign: 'center', padding: '3rem', color: 'var(--gray-500)' }}>
                 No hay facturas registradas con los filtros seleccionados.
               </p>
             );
@@ -666,10 +666,10 @@ export const FacturasView = () => {
                     return (
                       <tr key={f.id}>
                         <td data-label="Cliente">
-                          <strong style={{ color: '#0f172a' }}>{cliente ? cliente.nombreCompleto : 'Cliente'}</strong>
+                          <strong style={{ color: 'var(--gray-900)' }}>{cliente ? cliente.nombreCompleto : 'Cliente'}</strong>
                         </td>
                         <td data-label="RUT">
-                          <span className="badge badge-secondary" style={{ fontFamily: 'monospace', letterSpacing: '0.04em', fontWeight: 700, color: '#0f766e', background: '#ccfbf1' }}>
+                          <span className="badge badge-secondary" style={{ fontFamily: 'monospace', letterSpacing: '0.04em', fontWeight: 700, color: 'var(--teal-text)', background: 'var(--primary-border)' }}>
                             {cliente?.documentoIdentidad || '—'}
                           </span>
                         </td>
@@ -701,7 +701,7 @@ export const FacturasView = () => {
                             </button>
                           )}
                           {!canCreateOrEdit && !canDelete && (
-                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Solo Lectura</span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Solo Lectura</span>
                           )}
                         </td>
                       </tr>
@@ -723,16 +723,16 @@ export const FacturasView = () => {
           <div className="modal-overlay">
             <div className="modal-content" style={{ maxWidth: '840px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
               {/* Tarjeta Visual Cabecera */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
                     <DollarSign size={24} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                       {editingId ? 'Editar Factura' : 'Emitir Factura de Atención y Cobro'}
                     </h3>
-                    <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                       Cálculo automático de IVA (19%), desglose de servicios e insumos con control de inventario
                     </span>
                   </div>
@@ -759,17 +759,17 @@ export const FacturasView = () => {
                   )}
 
                   {/* 1. Datos Generales de la Factura (Tarjeta Visual) */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                  <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       <FileText size={18} color="#0d9488" />
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                         1. Información Principal del Cliente y Fecha
                       </h4>
                     </div>
 
                     <div className="form-grid">
                       <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" htmlFor="factura-cliente" style={{ fontWeight: 600, color: '#1e293b' }}>
+                        <label className="form-label" htmlFor="factura-cliente" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                           Cliente Facturado *
                         </label>
                         <select
@@ -798,7 +798,7 @@ export const FacturasView = () => {
                       </div>
 
                       <div className="form-group" style={{ marginBottom: 0 }}>
-                        <label className="form-label" htmlFor="factura-fecha" style={{ fontWeight: 600, color: '#1e293b' }}>
+                        <label className="form-label" htmlFor="factura-fecha" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                           Fecha de Emisión *
                         </label>
                         <input
@@ -823,14 +823,14 @@ export const FacturasView = () => {
                   </div>
 
                   {/* 2. Sección: Selección de Cita Médica de la Agenda (Tarjeta Visual) */}
-                  <div style={{ background: '#ffffff', border: '1px solid #bae6fd', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                  <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--info-border)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
                       <Calendar size={18} color="#0284c7" />
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                         2. Selección de Cita Médica Registrada (Agenda de Citas)
                       </h4>
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.75rem' }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '0.75rem' }}>
                       Seleccione una cita previamente agendada en el sistema. Una vez seleccionada, no podrá seleccionar otra hasta que la quite del detalle.
                     </p>
 
@@ -844,7 +844,7 @@ export const FacturasView = () => {
                           setSelectedCitaId(e.target.value);
                           setItemError('');
                         }}
-                        style={{ flex: 1, backgroundColor: tieneCitaSeleccionada ? '#f1f5f9' : '#fff', cursor: tieneCitaSeleccionada ? 'not-allowed' : 'default' }}
+                        style={{ flex: 1, backgroundColor: tieneCitaSeleccionada ? 'var(--gray-100)' : 'var(--bg-surface)', cursor: tieneCitaSeleccionada ? 'not-allowed' : 'default' }}
                       >
                         <option value="">
                           {tieneCitaSeleccionada 
@@ -878,7 +878,7 @@ export const FacturasView = () => {
                     </div>
 
                     {tieneCitaSeleccionada && (
-                      <div style={{ marginTop: '0.6rem', padding: '0.5rem 0.75rem', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '0.375rem', fontSize: '0.8rem', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <div style={{ marginTop: '0.6rem', padding: '0.5rem 0.75rem', background: 'var(--secondary-light)', border: '1px solid #bfdbfe', borderRadius: '0.375rem', fontSize: '0.8rem', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                         <AlertCircle size={15} />
                         <span>
                           Ya se ha seleccionado una cita médica para esta factura. Para seleccionar una cita diferente, quítela primero de la tabla de detalle.
@@ -888,20 +888,20 @@ export const FacturasView = () => {
                   </div>
 
                   {/* 3. Sección: Incorporación de Insumos del Inventario (Tarjeta Visual) */}
-                  <div style={{ background: '#ffffff', border: '1px solid #bbf7d0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                  <div style={{ background: 'var(--bg-surface)', border: '1px solid #bbf7d0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
                       <ShoppingBag size={18} color="#10b981" />
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                         3. Insumos y Medicamentos del Inventario
                       </h4>
                     </div>
-                    <p style={{ fontSize: '0.8rem', color: '#64748b', marginBottom: '0.75rem' }}>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '0.75rem' }}>
                       Seleccione insumos con stock disponible. Al confirmar la factura, se descontarán automáticamente del inventario.
                     </p>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px auto', gap: '0.75rem', alignItems: 'end' }}>
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
                           Insumo disponible
                         </label>
                         <select
@@ -924,7 +924,7 @@ export const FacturasView = () => {
                       </div>
 
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
+                        <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
                           Cantidad {selectedInsumo ? `(Máx: ${selectedInsumo.stockActual})` : ''}
                         </label>
                         <input
@@ -960,29 +960,29 @@ export const FacturasView = () => {
                   </div>
 
                   {/* 4. Tabla Detallada de Conceptos Seleccionados (Tarjeta Visual) */}
-                  <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                  <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <FileText size={18} color="#6366f1" />
-                        <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                        <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                           4. Detalle de Conceptos Facturados ({itemsFactura.length})
                         </h4>
                       </div>
                       {itemsFactura.length > 0 && (
-                        <span style={{ fontSize: '0.82rem', color: '#0d9488', fontWeight: 700, background: '#f0fdfa', border: '1px solid #ccfbf1', padding: '0.25rem 0.65rem', borderRadius: '9999px' }}>
+                        <span style={{ fontSize: '0.82rem', color: '#0d9488', fontWeight: 700, background: 'var(--primary-light)', border: '1px solid var(--primary-border)', padding: '0.25rem 0.65rem', borderRadius: '9999px' }}>
                           Subtotal Neto: ${Number(subtotalNeto).toLocaleString('es-CL')} CLP
                         </span>
                       )}
                     </div>
 
                     {itemsFactura.length === 0 ? (
-                      <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: '0.5rem', padding: '1.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
+                      <div style={{ background: 'var(--gray-50)', border: '1px dashed var(--gray-300)', borderRadius: '0.5rem', padding: '1.5rem', textAlign: 'center', color: 'var(--gray-400)', fontSize: '0.88rem' }}>
                         No ha seleccionado citas ni insumos todavía. Utilice las secciones superiores para incorporar conceptos a la factura.
                       </div>
                     ) : (
-                      <div className="table-responsive" style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', overflowX: 'auto' }}>
+                      <div className="table-responsive" style={{ border: '1px solid var(--gray-200)', borderRadius: '0.5rem', overflowX: 'auto' }}>
                         <table className="custom-table" style={{ margin: 0 }}>
-                          <thead style={{ background: '#f1f5f9' }}>
+                          <thead style={{ background: 'var(--gray-100)' }}>
                             <tr>
                               <th>Tipo</th>
                               <th>Descripción / Concepto</th>
@@ -997,17 +997,17 @@ export const FacturasView = () => {
                               <tr key={it.id}>
                                 <td data-label="Tipo">
                                   {it.tipo === 'cita' ? (
-                                    <span style={{ background: '#e0f2fe', color: '#0369a1', padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                    <span style={{ background: 'var(--secondary-light)', color: 'var(--blue-text)', padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
                                       Cita Médica
                                     </span>
                                   ) : (
-                                    <span style={{ background: '#dcfce7', color: '#15803d', padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                    <span style={{ background: 'var(--success-light)', color: '#15803d', padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
                                       Insumo / Fármaco
                                     </span>
                                   )}
                                 </td>
                                 <td data-label="Descripción">
-                                  <strong style={{ color: '#0f172a' }}>{it.nombre}</strong>
+                                  <strong style={{ color: 'var(--gray-900)' }}>{it.nombre}</strong>
                                 </td>
                                 <td data-label="Cantidad" style={{ textAlign: 'center' }}>
                                   {it.tipo === 'insumo' ? (
@@ -1028,7 +1028,7 @@ export const FacturasView = () => {
                                         max={it.stockMax}
                                         value={it.cantidad}
                                         onChange={(e) => handleModificarCantidad(it.id, e.target.value)}
-                                        style={{ width: '50px', textAlign: 'center', padding: '0.2rem', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                                        style={{ width: '50px', textAlign: 'center', padding: '0.2rem', borderRadius: '4px', border: '1px solid var(--gray-300)' }}
                                       />
                                       <button
                                         type="button"
@@ -1048,7 +1048,7 @@ export const FacturasView = () => {
                                 <td data-label="Precio Unit." style={{ textAlign: 'right' }}>
                                   ${Number(it.precioUnitario).toLocaleString('es-CL')}
                                 </td>
-                                <td data-label="Subtotal Neto" style={{ textAlign: 'right', fontWeight: 600, color: '#0f172a' }}>
+                                <td data-label="Subtotal Neto" style={{ textAlign: 'right', fontWeight: 600, color: 'var(--gray-900)' }}>
                                   ${Number(it.subtotal).toLocaleString('es-CL')}
                                 </td>
                                 <td data-label="Acción" style={{ textAlign: 'center' }}>
@@ -1071,21 +1071,21 @@ export const FacturasView = () => {
                   </div>
 
                   {/* 5. Resumen Financiero e Impuestos (Tarjeta Visual) */}
-                  <div style={{ background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: '#0f172a', marginBottom: '0.75rem' }}>
+                  <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-300)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-900)', marginBottom: '0.75rem' }}>
                       5. Resumen Financiero e Impuestos (Normativa Tributaria Chilena)
                     </h4>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '0.75rem' }}>
-                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: 600 }}>SUBTOTAL NETO</span>
-                        <span style={{ fontSize: '1.15rem', fontWeight: 700, color: '#1e293b' }}>
+                      <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', display: 'block', fontWeight: 600 }}>SUBTOTAL NETO</span>
+                        <span style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--gray-800)' }}>
                           ${Number(subtotalNeto).toLocaleString('es-CL')} CLP
                         </span>
                       </div>
 
-                      <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block', fontWeight: 600 }}>
+                      <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', display: 'block', fontWeight: 600 }}>
                           IVA (19% AUTOMÁTICO)
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
@@ -1095,14 +1095,14 @@ export const FacturasView = () => {
                             className="form-input"
                             value={formData.montoImpuestos}
                             readOnly
-                            style={{ backgroundColor: '#ffffff', cursor: 'not-allowed', color: '#0369a1', fontWeight: 700, maxWidth: '140px', border: '1px solid #cbd5e1' }}
+                            style={{ backgroundColor: 'var(--bg-surface)', cursor: 'not-allowed', color: 'var(--blue-text)', fontWeight: 700, maxWidth: '140px', border: '1px solid var(--gray-300)' }}
                             title="Campo bloqueado para edición manual (calculado automáticamente al 19%)"
                           />
-                          <span style={{ fontSize: '0.75rem', color: '#64748b' }}>(Readonly)</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>(Readonly)</span>
                         </div>
                       </div>
 
-                      <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
+                      <div style={{ background: 'var(--success-light)', border: '1px solid #bbf7d0', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
                         <span style={{ fontSize: '0.75rem', color: '#15803d', display: 'block', fontWeight: 600 }}>
                           TOTAL FINAL A COBRAR
                         </span>
@@ -1113,7 +1113,7 @@ export const FacturasView = () => {
                             className={`form-input ${fieldErrors.montoTotal ? 'border-red-500' : ''}`}
                             value={formData.montoTotal}
                             readOnly
-                            style={{ backgroundColor: '#ffffff', cursor: 'not-allowed', color: '#15803d', fontWeight: 800, fontSize: '1.05rem', maxWidth: '160px', border: '1px solid #86efac' }}
+                            style={{ backgroundColor: 'var(--bg-surface)', cursor: 'not-allowed', color: '#15803d', fontWeight: 800, fontSize: '1.05rem', maxWidth: '160px', border: '1px solid #86efac' }}
                             title="Total = Subtotal Neto + IVA (19%)"
                           />
                         </div>
@@ -1125,11 +1125,11 @@ export const FacturasView = () => {
                       </div>
                     </div>
 
-                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '0.65rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                    <div style={{ borderTop: '1px solid var(--gray-200)', paddingTop: '0.65rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                         Fórmula aplicada: <code>IVA = Subtotal × 0.19</code> | <code>Total = Subtotal + IVA</code> (Redondeo CLP)
                       </span>
-                      <strong style={{ fontSize: '1.15rem', color: '#0f172a' }}>
+                      <strong style={{ fontSize: '1.15rem', color: 'var(--gray-900)' }}>
                         Total: ${Number(formData.montoTotal).toLocaleString('es-CL')} CLP
                       </strong>
                     </div>
@@ -1137,7 +1137,7 @@ export const FacturasView = () => {
                 </div>
 
                 {/* Pie del Formulario (Tarjeta Visual) */}
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem', marginTop: '0.85rem' }}>
+                <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem', marginTop: '0.85rem' }}>
                   <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                     Cancelar
                   </button>
@@ -1156,16 +1156,16 @@ export const FacturasView = () => {
         <div className="modal-overlay">
           <div className="modal-content" style={{ maxWidth: '780px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera de Detalles */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981', flexShrink: 0 }}>
                   <FileText size={24} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     Detalles de Factura #{selectedFactura.id}
                   </h3>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     Cliente: <strong>{clientes.find(c => c.id === selectedFactura.clienteId)?.nombreCompleto || 'Cliente'}</strong> (RUT: {clientes.find(c => c.id === selectedFactura.clienteId)?.documentoIdentidad || '—'}) — Fecha: {selectedFactura.fechaEmision}
                   </span>
                 </div>
@@ -1184,17 +1184,17 @@ export const FacturasView = () => {
               )}
 
               {/* Tarjeta Visual: Añadir Ítem / Concepto al Detalle */}
-              <div style={{ background: '#ffffff', padding: '1.1rem 1.35rem', borderRadius: '0.85rem', marginBottom: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div style={{ background: 'var(--bg-surface)', padding: '1.1rem 1.35rem', borderRadius: '0.85rem', marginBottom: '0.85rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <Plus size={18} color="#0d9488" />
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                     Añadir Ítem / Concepto al Detalle
                   </h4>
                 </div>
 
                 <form onSubmit={handleAgregarDetalle} noValidate style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem', alignItems: 'end' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="detalle-tipo" style={{ fontWeight: 600, color: '#1e293b' }}>Tipo</label>
+                    <label className="form-label" htmlFor="detalle-tipo" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Tipo</label>
                     <select
                       id="detalle-tipo"
                       className="form-select"
@@ -1210,7 +1210,7 @@ export const FacturasView = () => {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="detalle-concepto" style={{ fontWeight: 600, color: '#1e293b' }}>Concepto</label>
+                    <label className="form-label" htmlFor="detalle-concepto" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Concepto</label>
                     {nuevoItem.tipo === 'insumo' ? (
                       <select
                         id="detalle-concepto"
@@ -1250,7 +1250,7 @@ export const FacturasView = () => {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="detalle-subtotal" style={{ fontWeight: 600, color: '#1e293b' }}>Subtotal ($)</label>
+                    <label className="form-label" htmlFor="detalle-subtotal" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Subtotal ($)</label>
                     <input
                       id="detalle-subtotal"
                       type="number"
@@ -1283,24 +1283,24 @@ export const FacturasView = () => {
               </div>
 
               {/* Tarjeta Visual: Líneas Registradas de la Factura */}
-              <div style={{ background: '#ffffff', padding: '1.1rem 1.35rem', borderRadius: '0.85rem', marginBottom: '0.85rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div style={{ background: 'var(--bg-surface)', padding: '1.1rem 1.35rem', borderRadius: '0.85rem', marginBottom: '0.85rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#1e293b', margin: 0 }}>
+                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                     Líneas Registradas de la Factura ({facturaDetalles.length})
                   </h4>
-                  <strong style={{ fontSize: '0.92rem', color: '#0f172a' }}>
+                  <strong style={{ fontSize: '0.92rem', color: 'var(--gray-900)' }}>
                     Total Factura: ${Number(selectedFactura?.montoTotal || 0).toLocaleString('es-CL')} CLP
                   </strong>
                 </div>
 
                 {facturaDetalles.length === 0 ? (
-                  <p style={{ color: '#94a3b8', fontSize: '0.88rem', textAlign: 'center', padding: '1.5rem', background: '#f8fafc', borderRadius: '0.5rem', border: '1px dashed #cbd5e1' }}>
+                  <p style={{ color: 'var(--gray-400)', fontSize: '0.88rem', textAlign: 'center', padding: '1.5rem', background: 'var(--gray-50)', borderRadius: '0.5rem', border: '1px dashed var(--gray-300)' }}>
                     No se han registrado líneas de detalle para esta factura todavía.
                   </p>
                 ) : (
-                  <div className="table-responsive" style={{ border: '1px solid #e2e8f0', borderRadius: '0.5rem', overflowX: 'auto' }}>
+                  <div className="table-responsive" style={{ border: '1px solid var(--gray-200)', borderRadius: '0.5rem', overflowX: 'auto' }}>
                     <table className="custom-table" style={{ margin: 0 }}>
-                      <thead style={{ background: '#f1f5f9' }}>
+                      <thead style={{ background: 'var(--gray-100)' }}>
                         <tr>
                           <th>Concepto / Tipo</th>
                           <th>Subtotal</th>
@@ -1316,9 +1316,9 @@ export const FacturasView = () => {
                               <td data-label="Concepto / Tipo">
                                 {ins && <span><strong>Insumo:</strong> {ins.nombreProducto}</span>}
                                 {con && <span><strong>Consulta:</strong> {con.motivo}</span>}
-                                {!ins && !con && <span style={{ color: '#94a3b8' }}>Servicio Veterinario</span>}
+                                {!ins && !con && <span style={{ color: 'var(--gray-400)' }}>Servicio Veterinario</span>}
                               </td>
-                              <td data-label="Subtotal"><strong style={{ color: '#0f172a' }}>${Number(d.subtotal).toLocaleString('es-CL')}</strong></td>
+                              <td data-label="Subtotal"><strong style={{ color: 'var(--gray-900)' }}>${Number(d.subtotal).toLocaleString('es-CL')}</strong></td>
                               <td data-label="Acción" style={{ textAlign: 'right' }}>
                                 <button className="btn-icon danger" onClick={() => handleRequestDeleteDetalle(d.id)} aria-label="Eliminar línea">
                                   <Trash2 size={16} />
@@ -1335,7 +1335,7 @@ export const FacturasView = () => {
             </div>
 
             {/* Tarjeta Visual: Pie del Modal */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', marginTop: '0.85rem' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', marginTop: '0.85rem' }}>
               <button type="button" className="btn btn-secondary" onClick={() => setIsDetalleModalOpen(false)}>
                 Cerrar
               </button>

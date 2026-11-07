@@ -34,10 +34,10 @@ export class ErrorBoundary extends React.Component {
             padding: '2.5rem', 
             maxWidth: '620px', 
             margin: '2rem auto', 
-            background: 'rgba(255, 255, 255, 0.95)',
+            background: 'var(--topbar-bg)',
             backdropFilter: 'blur(10px)',
             borderRadius: '16px',
-            border: '1px solid #fecaca',
+            border: '1px solid var(--danger-border)',
             boxShadow: '0 10px 25px -5px rgba(239, 68, 68, 0.15)',
             textAlign: 'center'
           }}
@@ -46,7 +46,7 @@ export class ErrorBoundary extends React.Component {
             width: '56px',
             height: '56px',
             borderRadius: '50%',
-            background: '#fee2e2',
+            background: 'var(--danger-light)',
             color: '#ef4444',
             display: 'flex',
             alignItems: 'center',
@@ -56,22 +56,22 @@ export class ErrorBoundary extends React.Component {
             <AlertCircle size={32} />
           </div>
 
-          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#991b1b', marginBottom: '0.5rem' }}>
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--danger-text)', marginBottom: '0.5rem' }}>
             Ocurrió un error al cargar la vista
           </h3>
 
-          <p style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+          <p style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: '1.5' }}>
             No te preocupes, tus datos están a salvo. Puedes intentar recargar el módulo o volver al panel principal.
           </p>
 
           {this.state.error?.message && (
             <div style={{
-              background: '#f8fafc',
-              border: '1px solid #e2e8f0',
+              background: 'var(--gray-50)',
+              border: '1px solid var(--gray-200)',
               borderRadius: '8px',
               padding: '0.75rem',
               fontSize: '0.8rem',
-              color: '#475569',
+              color: 'var(--gray-600)',
               fontFamily: 'monospace',
               marginBottom: '1.5rem',
               textAlign: 'left',

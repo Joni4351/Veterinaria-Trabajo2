@@ -234,7 +234,7 @@ export const PacientesView = () => {
               <Dog size={26} color="#0284c7" aria-hidden="true" />
               Gestión de Pacientes (Mascotas)
             </h1>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.25rem' }}>
+            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.25rem' }}>
               Operación completa CRUD del recurso principal consumiendo `/api/v1/pacientes`
             </p>
           </div>
@@ -254,7 +254,7 @@ export const PacientesView = () => {
 
         {/* Panel de Filtros de Búsqueda */}
         <section className="filter-panel" aria-label="Filtros de búsqueda de pacientes">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: '#334155' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--gray-700)' }}>
             <Filter size={16} aria-hidden="true" />
             <span>Filtros de Búsqueda de Pacientes</span>
           </div>
@@ -387,7 +387,7 @@ export const PacientesView = () => {
                     return (
                       <tr key={p.id}>
                         <td data-label="Nombre">
-                          <strong style={{ color: '#0f172a' }}>{p.nombre}</strong>
+                          <strong style={{ color: 'var(--gray-900)' }}>{p.nombre}</strong>
                         </td>
                         <td data-label="Especie">
                           <span className="badge badge-primary">{p.especie}</span>
@@ -397,18 +397,18 @@ export const PacientesView = () => {
                         <td data-label="Dueño Responsable">
                           {cliente ? (
                             <div>
-                              <strong style={{ color: '#0f172a' }}>{cliente.nombreCompleto}</strong>
+                              <strong style={{ color: 'var(--gray-900)' }}>{cliente.nombreCompleto}</strong>
                               <div style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 600 }}>RUT: {cliente.documentoIdentidad}</div>
                             </div>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>Sin dueño asignado</span>
+                            <span style={{ color: 'var(--gray-400)' }}>Sin dueño asignado</span>
                           )}
                         </td>
                         <td data-label="Alergias">
                           {p.alergias ? (
                             <span className="badge badge-danger">{p.alergias}</span>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>Ninguna</span>
+                            <span style={{ color: 'var(--gray-400)' }}>Ninguna</span>
                           )}
                         </td>
                         <td data-label="Acciones" style={{ textAlign: 'right' }}>
@@ -469,13 +469,13 @@ export const PacientesView = () => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '1rem 0.5rem 0.5rem',
-                borderTop: '1px solid #e2e8f0',
+                borderTop: '1px solid var(--gray-200)',
                 marginTop: '1rem',
                 flexWrap: 'wrap',
                 gap: '0.75rem'
               }}
             >
-              <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
                 Mostrando <strong>{paginatedPacientes.length}</strong> de <strong>{pacientes.length}</strong> pacientes (Página {currentPage} de {totalPages})
               </span>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -524,8 +524,8 @@ export const PacientesView = () => {
             style={{ maxWidth: '520px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}
           >
             {/* Tarjeta Visual Cabecera Ficha */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2 id="detail-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 id="detail-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
                 <Dog size={22} color="#0284c7" aria-hidden="true" />
                 Ficha Clínica: {detailPaciente.nombre}
               </h2>
@@ -540,7 +540,7 @@ export const PacientesView = () => {
               </button>
             </div>
             {/* Tarjeta Visual Datos Clínicos */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', lineHeight: 1.8 }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', lineHeight: 1.8 }}>
               <p><strong>Nombre del Paciente:</strong> {detailPaciente.nombre}</p>
               <p><strong>Especie:</strong> {detailPaciente.especie}</p>
               <p><strong>Raza:</strong> {detailPaciente.raza || 'No especificada'}</p>
@@ -554,13 +554,13 @@ export const PacientesView = () => {
               </p>
               <p>
                 <strong>Alergias o Observaciones:</strong>{' '}
-                <span style={{ color: detailPaciente.alergias ? '#dc2626' : '#64748b' }}>
+                <span style={{ color: detailPaciente.alergias ? '#dc2626' : 'var(--gray-500)' }}>
                   {detailPaciente.alergias || 'Sin alergias conocidas'}
                 </span>
               </p>
             </div>
             {/* Tarjeta Visual Pie */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -593,16 +593,16 @@ export const PacientesView = () => {
             style={{ maxWidth: '640px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}
           >
             {/* Tarjeta Visual Cabecera Formulario */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
                   <Dog size={22} />
                 </div>
                 <div>
-                  <h2 id="form-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h2 id="form-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? `Editar Paciente: ${formData.nombre}` : 'Registrar Nuevo Paciente'}
                   </h2>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Actualice la información médica y tutor de la mascota' : 'Ingrese los datos clínicos y asocie un cliente responsable'}
                   </span>
                 </div>
@@ -620,7 +620,7 @@ export const PacientesView = () => {
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {formGlobalError && (
                   <div
                     role="alert"
@@ -783,7 +783,7 @@ export const PacientesView = () => {
               </div>
 
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"

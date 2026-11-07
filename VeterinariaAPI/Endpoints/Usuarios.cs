@@ -55,7 +55,7 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
             // API para registrar/crear un usuario (Protegido con AuthPolicy)
-            usuarios.MapPost("/register", async (UsuarioRegisterDto dto, IUsuarioRepository repo, AuthService auth) =>
+            usuarios.MapPost("/register", async (UsuarioRegisterDto dto, IUsuarioRepository repo, AuthService auth, VeterinariodbContext db) =>
             {
                 // Validar DTO antes de procesar
                 var errores = dto.Validar();
@@ -63,6 +63,9 @@ namespace VeterinariaAPI.Endpoints
                 {
                     return Results.ValidationProblem(errores);
                 }
+
+                if (!await db.Roles.AnyAsync(r => r.Id == dto.RolId))
+                    return Results.ValidationProblem(new Dictionary<string, string[]> { ["RolId"] = new[] { "Seleccione un rol existente." } });
 
                 // Validar unicidad del correo electrónico
                 var usuarioExistente = await repo.ObtenerPorEmailAsync(dto.Email.Trim().ToLower());
@@ -77,7 +80,7 @@ namespace VeterinariaAPI.Endpoints
                 var nuevoUsuario = new Usuario
                 {
                     RolId = dto.RolId,
-                    NombreCompleto = dto.NombreCompleto,
+                    NombreCompleto = dto.NombreCompleto.Trim(),
                     Email = dto.Email.Trim().ToLower()
                 };
 
@@ -93,7 +96,7 @@ namespace VeterinariaAPI.Endpoints
                     nuevoUsuario.Email,
                     nuevoUsuario.RolId
                 });
-            }).RequireRateLimiting("AuthPolicy");
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
 
             // API para Iniciar Sesión (Login) y obtener JWT Token (Protegido con AuthPolicy)
             usuarios.MapPost("/login", async (LoginRequest login, IUsuarioRepository repo, AuthService auth, IConfiguration config) =>

@@ -217,6 +217,8 @@ npm audit
 
 ## 📚 Documentación de Entrega
 
+- **[Registro Facial](docs/REGISTRO_FACIAL.md)**: configuración de cifrado, adaptación de la tabla existente en Supabase, consentimiento, endpoints y verificación del módulo administrativo.
+
 Para detalles exhaustivos de evaluación, consulta los siguientes documentos:
 - 📄 **[INFORME_TECNICO.md](INFORME_TECNICO.md)**: Informe técnico formal con la justificación de diseño, matriz completa de 7 riesgos OWASP mitigados, auditoría WCAG 2.2 AA y métricas.
 - 🤖 **[AI_LOG.md](AI_LOG.md)**: Bitácora de Inteligencia Artificial que declara la herramienta (Gemini 3.8 Flash), modelo, plan, prompts empleados y decisiones de aceptación/corrección/descarte.

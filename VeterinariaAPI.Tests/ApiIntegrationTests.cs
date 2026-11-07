@@ -189,6 +189,7 @@ namespace VeterinariaAPI.Tests
         [Fact]
         public async Task Test_Register_InvalidModel_ReturnsValidationProblem()
         {
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", GenerateTestJwt());
             // Arrange: DTO con datos inválidos (correo erróneo y contraseña corta)
             var invalidRegister = new
             {

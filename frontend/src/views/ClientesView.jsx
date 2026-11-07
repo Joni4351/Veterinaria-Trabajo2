@@ -177,10 +177,10 @@ export const ClientesView = () => {
         <div className="card-header">
           <div>
             <h2 className="card-title">
-              <Users size={24} color="#0f766e" />
+              <Users size={24} color="var(--teal-text)" />
               Gestión de Clientes (Dueños de Pacientes)
             </h2>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.2rem' }}>
+            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
               Búsqueda, validación estricta de RUT chileno (Módulo 11) y administración
             </p>
           </div>
@@ -194,12 +194,12 @@ export const ClientesView = () => {
 
         {/* Panel de Filtros para Endpoint */}
         <div className="filter-panel">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: '#334155' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--gray-700)' }}>
             <Filter size={16} /> Filtros de Clientes (API)
           </div>
           <div className="filter-grid">
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>RUT / Documento</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>RUT / Documento</label>
               <input
                 type="text"
                 className="form-input"
@@ -209,7 +209,7 @@ export const ClientesView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Nombre Completo</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Nombre Completo</label>
               <input
                 type="text"
                 className="form-input"
@@ -219,7 +219,7 @@ export const ClientesView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Correo Electrónico</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Correo Electrónico</label>
               <input
                 type="text"
                 className="form-input"
@@ -229,7 +229,7 @@ export const ClientesView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Teléfono</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Teléfono</label>
               <input
                 type="text"
                 className="form-input"
@@ -247,9 +247,9 @@ export const ClientesView = () => {
         </div>
 
         {loading ? (
-          <p style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>Cargando clientes...</p>
+          <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Cargando clientes...</p>
         ) : clientes.length === 0 ? (
-          <p style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+          <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-400)' }}>
             No se encontraron clientes con los filtros aplicados.
           </p>
         ) : (
@@ -268,21 +268,21 @@ export const ClientesView = () => {
                 {clientes.map((c) => (
                   <tr key={c.id}>
                     <td data-label="RUT">
-                      <span className="badge badge-secondary" style={{ fontFamily: 'monospace', letterSpacing: '0.04em', fontWeight: 700, color: '#0f766e', background: '#ccfbf1' }}>
+                      <span className="badge badge-secondary" style={{ fontFamily: 'monospace', letterSpacing: '0.04em', fontWeight: 700, color: 'var(--teal-text)', background: 'var(--primary-border)' }}>
                         {c.documentoIdentidad}
                       </span>
                     </td>
                     <td data-label="Nombre Completo">
-                      <strong style={{ color: '#0f172a' }}>{c.nombreCompleto}</strong>
+                      <strong style={{ color: 'var(--gray-900)' }}>{c.nombreCompleto}</strong>
                     </td>
                     <td data-label="Teléfono">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--gray-600)' }}>
                         <Phone size={14} />
                         {c.telefono || '—'}
                       </div>
                     </td>
                     <td data-label="Correo Electrónico">
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: 'var(--gray-600)' }}>
                         <Mail size={14} />
                         {c.email || '—'}
                       </div>
@@ -298,7 +298,7 @@ export const ClientesView = () => {
                           </button>
                         </>
                       ) : (
-                        <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Solo Lectura</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Solo Lectura</span>
                       )}
                     </td>
                   </tr>
@@ -314,16 +314,16 @@ export const ClientesView = () => {
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-cliente-title">
           <div className="modal-content" style={{ maxWidth: '580px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
                   <Users size={22} />
                 </div>
                 <div>
-                  <h3 id="modal-cliente-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h3 id="modal-cliente-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
                   </h3>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Actualice la información del cliente registrado' : 'Ingrese los datos personales y de contacto del cliente'}
                   </span>
                 </div>
@@ -334,7 +334,7 @@ export const ClientesView = () => {
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {error && (
                   <div className="alert alert-danger" role="alert">
                     <AlertCircle size={18} />
@@ -363,7 +363,7 @@ export const ClientesView = () => {
                       {Array.isArray(fieldErrors.documentoIdentidad) ? fieldErrors.documentoIdentidad[0] : fieldErrors.documentoIdentidad}
                     </span>
                   ) : (
-                    <small id="hint-rut" style={{ color: '#64748b', fontSize: '0.75rem', marginTop: '0.2rem', display: 'block' }}>
+                    <small id="hint-rut" style={{ color: 'var(--gray-500)', fontSize: '0.75rem', marginTop: '0.2rem', display: 'block' }}>
                       Validado matemáticamente con algoritmo Módulo 11 (acepta puntos y guion).
                     </small>
                   )}
@@ -446,7 +446,7 @@ export const ClientesView = () => {
               </div>
 
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>

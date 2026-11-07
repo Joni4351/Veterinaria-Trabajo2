@@ -140,6 +140,7 @@ builder.Services.AddAuthorization();
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<FacialEncryptionService>();
 
 var rawConn = builder.Configuration.GetConnectionString("miconexion") ?? string.Empty;
 var npgsqlConn = rawConn;
@@ -270,6 +271,7 @@ app.MapRecetaApi();
 app.MapDetalleFacApi();
 app.MapConsultasApi();
 app.MapUsuariosApi();
+app.MapRegistroFacialApi();
 
 app.MapGet("/api/test-error", () =>
 {

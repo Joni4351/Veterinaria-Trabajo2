@@ -23,7 +23,7 @@ export const LoadingSpinner = ({ message = 'Cargando datos...', size = 28 }) => 
         }}
         aria-hidden="true"
       />
-      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: '#64748b' }}>
+      <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--gray-500)' }}>
         {message}
       </span>
       <span className="sr-only">Cargando contenido</span>

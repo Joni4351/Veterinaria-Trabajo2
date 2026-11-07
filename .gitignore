@@ -369,6 +369,8 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Frontend / Node
+test-results/
+playwright-report/
 node_modules/
 dist/
 dist-ssr/

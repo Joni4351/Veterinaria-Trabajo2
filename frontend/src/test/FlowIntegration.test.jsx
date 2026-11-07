@@ -1,3 +1,4 @@
+import { ThemeProvider } from '../context/ThemeContext';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
@@ -82,7 +83,7 @@ describe('E2E Full Flow Integration Test: Login -> Crear Recurso -> Listar Recur
     render(
       <MemoryRouter initialEntries={['/login']}>
         <AuthProvider>
-          <App />
+          <ThemeProvider><App /></ThemeProvider>
         </AuthProvider>
       </MemoryRouter>
     );

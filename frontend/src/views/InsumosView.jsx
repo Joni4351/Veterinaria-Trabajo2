@@ -173,10 +173,10 @@ export const InsumosView = () => {
         <div className="card-header">
           <div>
             <h2 className="card-title">
-              <Package size={24} color="#0f766e" />
+              <Package size={24} color="var(--teal-text)" />
               Gestión de Insumos y Medicamentos
             </h2>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.2rem' }}>
+            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
               Control de inventario, stock y tarifas
             </p>
           </div>
@@ -190,12 +190,12 @@ export const InsumosView = () => {
 
         {/* Panel de Filtros */}
         <div className="filter-panel">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: '#334155' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--gray-700)' }}>
             <Filter size={16} /> Filtros de Inventario (API)
           </div>
           <div className="filter-grid">
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Producto</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Producto</label>
               <input
                 type="text"
                 className="form-input"
@@ -205,7 +205,7 @@ export const InsumosView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Tipo / Categoría</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Tipo / Categoría</label>
               <select
                 className="form-select"
                 value={filters.tipo}
@@ -221,7 +221,7 @@ export const InsumosView = () => {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Stock Mínimo</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Stock Mínimo</label>
               <input
                 type="number"
                 className="form-input"
@@ -231,7 +231,7 @@ export const InsumosView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Precio Máximo</label>
+              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Precio Máximo</label>
               <input
                 type="number"
                 className="form-input"
@@ -249,9 +249,9 @@ export const InsumosView = () => {
         </div>
 
         {loading ? (
-          <p style={{ textAlign: 'center', padding: '2rem', color: '#64748b' }}>Cargando inventario...</p>
+          <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Cargando inventario...</p>
         ) : insumos.length === 0 ? (
-          <p style={{ textAlign: 'center', padding: '2rem', color: '#94a3b8' }}>
+          <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-400)' }}>
             No se encontraron insumos con los filtros seleccionados.
           </p>
         ) : (
@@ -270,7 +270,7 @@ export const InsumosView = () => {
                 {insumos.map((i) => (
                   <tr key={i.id}>
                     <td data-label="Producto">
-                      <strong style={{ color: '#0f172a' }}>{i.nombreProducto}</strong>
+                      <strong style={{ color: 'var(--gray-900)' }}>{i.nombreProducto}</strong>
                     </td>
                     <td data-label="Categoría">
                       <span className="badge badge-secondary">{i.tipo}</span>
@@ -279,14 +279,14 @@ export const InsumosView = () => {
                       <span style={{ 
                         fontWeight: 700, 
                         color: i.stockActual < 5 ? '#ef4444' : '#10b981',
-                        backgroundColor: i.stockActual < 5 ? '#fef2f2' : '#ecfdf5',
+                        backgroundColor: i.stockActual < 5 ? 'var(--danger-light)' : 'var(--success-light)',
                         padding: '3px 8px',
                         borderRadius: '6px'
                       }}>
                         {i.stockActual} unidades {i.stockActual < 5 && '⚠️ (Bajo Stock)'}
                       </span>
                     </td>
-                    <td data-label="Precio" style={{ fontWeight: 600, color: '#334155' }}>
+                    <td data-label="Precio" style={{ fontWeight: 600, color: 'var(--gray-700)' }}>
                       ${Number(i.precioUnitario).toLocaleString('es-CL')}
                     </td>
                     <td data-label="Acciones" style={{ textAlign: 'right' }}>
@@ -302,7 +302,7 @@ export const InsumosView = () => {
                           )}
                         </>
                       ) : (
-                        <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Solo Lectura</span>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Solo Lectura</span>
                       )}
                     </td>
                   </tr>
@@ -318,16 +318,16 @@ export const InsumosView = () => {
         <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-insumo-title">
           <div className="modal-content" style={{ maxWidth: '580px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera Insumo */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
                   <Package size={22} />
                 </div>
                 <div>
-                  <h3 id="modal-insumo-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h3 id="modal-insumo-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? 'Editar Insumo / Producto' : 'Registrar Nuevo Insumo'}
                   </h3>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Actualice el stock, categoría o precio de venta' : 'Ingrese los datos del insumo o producto para inventario'}
                   </span>
                 </div>
@@ -338,7 +338,7 @@ export const InsumosView = () => {
             </div>
 
             <form onSubmit={handleSubmit} noValidate>
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {error && (
                   <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
                     <AlertCircle size={18} />
@@ -347,7 +347,7 @@ export const InsumosView = () => {
                 )}
 
                 <div className="form-group">
-                  <label htmlFor="insumo-nombre" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
+                  <label htmlFor="insumo-nombre" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                     Nombre del Producto o Medicamento <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <input
@@ -371,7 +371,7 @@ export const InsumosView = () => {
                 </div>
 
                 <div className="form-group">
-                  <label htmlFor="insumo-tipo" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
+                  <label htmlFor="insumo-tipo" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                     Tipo / Categoría <span style={{ color: '#ef4444' }}>*</span>
                   </label>
                   <select
@@ -391,7 +391,7 @@ export const InsumosView = () => {
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label htmlFor="insumo-stock" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
+                    <label htmlFor="insumo-stock" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                       Stock Actual <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
@@ -415,7 +415,7 @@ export const InsumosView = () => {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="insumo-precio" className="form-label" style={{ fontWeight: 600, color: '#1e293b' }}>
+                    <label htmlFor="insumo-precio" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                       Precio Unitario ($) <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <input
@@ -442,7 +442,7 @@ export const InsumosView = () => {
               </div>
 
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>
