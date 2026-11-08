@@ -3,6 +3,9 @@
 **Sistema:** VetClinic Pro — Plataforma Veterinaria  
 **Estudiante:** Jonathan Garrido / Proyecto Veterinario  
 **Fecha:** Octubre 2026  
+**Actualización de intervenciones con Codex:** 7 de noviembre de 2026.
+
+> Los apartados históricos siguientes conservan la atribución, declaraciones y resultados registrados previamente. No constituyen una nueva verificación de la herramienta, el plan comercial, la revisión personal del estudiante o las métricas de aquel periodo. La sección 6 distingue las intervenciones observadas en esta conversación y el estado actual del código.
 
 ---
 
@@ -220,3 +223,86 @@ El uso de Inteligencia Artificial Generativa bajo el modelo **Gemini 3.8 Flash**
 4. **Validación Automática:**
    - Implementación de la prueba unitaria de conexión activa a Supabase `Test_Supabase_Connection` (`SELECT COUNT(*) FROM "Roles"`).
    - 7/7 pruebas backend y 22/22 pruebas frontend ejecutadas satisfactoriamente.
+
+---
+
+## 6. Intervenciones solicitadas y realizadas con Codex
+
+### 6.1. Identificación y alcance del registro
+
+- **Herramienta:** Codex, aplicación de escritorio de OpenAI, con acceso al repositorio local y herramientas de desarrollo.
+- **Modelo:** asistente basado en GPT-6, según la identificación del entorno de esta sesión. No se verificó un identificador comercial más específico ni el plan de suscripción; no se atribuye una modalidad de pago al estudiante.
+- **Periodo de referencia:** solicitudes de esta conversación entre el 2 y el 7 de noviembre de 2026; fecha de corte de esta actualización: 7 de noviembre de 2026, America/Santiago.
+- **Proyecto y rama de trabajo:** VetClinic Pro, `feature/FaceAPI`.
+- **Alcance de la asistencia:** revisión del código, implementación bajo instrucciones del usuario, corrección de errores, elaboración y ejecución de pruebas, documentación y operaciones Git expresamente solicitadas.
+- **Criterio de evidencia:** las pruebas automatizadas demuestran los casos ejecutados. No certifican ausencia absoluta de fallos, cumplimiento integral de WCAG/OWASP ni validación de mecanismos PostgreSQL que no se ensayaron con ese motor.
+
+Las solicitudes de la tabla siguiente se resumen; no se presentan como una transcripción literal íntegra de los mensajes. Las fechas exactas de cada ejecución deben contrastarse con el historial de la conversación si se necesita una trazabilidad temporal más detallada.
+
+### 6.2. Requerimientos que autorizaron modificaciones del código
+
+| Solicitud del usuario | Intervención realizada | Decisión y límites |
+| --- | --- | --- |
+| Revisar el proyecto y hacer consistente la instalación del README. | Se corrigieron PostgreSQL/Supabase, `ConnectionStrings:miconexion`, puertos, Node, configuración JWT y carga de variables. | Se documentó que falta un esquema/migración PostgreSQL inicial; no se afirmó que el script SQL Server fuera compatible. |
+| Actualizar la rama principal, crear `feature/FaceAPI` y publicarla. | Se actualizó `main` y se creó/publicó la rama solicitada. | Las operaciones Git se realizaron por solicitud expresa. Una publicación anterior de implementación quedó en el commit `8f031d3`; las modificaciones posteriores deben revisarse con `git status` antes de afirmar que están publicadas. |
+| Implementar registro facial por fotografía, exclusivamente dentro de Administración. | Se añadieron entidad, mapeo, servicio de cifrado, endpoints administrativos, vista, servicios frontend, modelos locales y pruebas. | Se implementaron registro, metadatos, reemplazo y eliminación. No se implementaron login facial, comparación para autenticación ni acceso a cámara. |
+| Proteger los descriptores, registrar consentimiento y utilizar la tabla facial existente. | Descriptor de 128 números validado y cifrado con AES-256-GCM; constancia de consentimiento con fecha, administrador y versión. Se preparó el script de adaptación de `ReconocimientoFacial`. | Se conserva JSONB como sobre cifrado y se modifica su restricción anterior; la foto no se envía al backend. La clave es privada y distinta de JWT. No se publica en documentación. |
+| Resolver los errores de guardado facial. | El diagnóstico de metadatos confirmó columnas de consentimiento faltantes y una restricción de arreglo sin cifrar. Tras la aplicación del script por el usuario, se verificó una inserción sintética cifrada y se revirtió la transacción de prueba. | No se conservaron registros de esa prueba. El usuario configuró posteriormente la clave de cifrado y confirmó el guardado desde la web. Esto no equivale a haber verificado toda la concurrencia del generador en PostgreSQL. |
+| Mover la creación de usuarios a Administración y ocultar esa sección a otros roles. | Se retiró el registro público del login, se incorporó `UserCreateForm` y se exigió Administrador en `/api/v1/usuarios/register`. Se ocultó el enlace y se mantuvo la protección de la ruta. | La cuenta del administrador no cambia al crear otro usuario. La API valida que el rol asignado exista. |
+| Corregir alineación de campos y hacer que la barra izquierda ocupe la pantalla al desplazarse. | Se alineó la cuadrícula del formulario y se dejó fija la barra en escritorio, con margen reservado al contenido. | Comprobación en navegador al inicio, mitad y final de una página larga; se conservó el comportamiento móvil. |
+| Incorporar modo oscuro con luna/sol y la paleta del proyecto. | Se añadieron contexto de tema, selector, persistencia de preferencia, inicialización del tema y colores mediante variables en vistas y componentes. | Se adaptaron formularios, tablas, modales, login y navegación. No se utilizaron filtros que invirtieran fotografías o descriptores. |
+| Revisar y ampliar validaciones según el negocio veterinario. | Se añadieron comprobaciones de relaciones y consistencia clínica/contable, estados de cita, fechas, contactos, cantidades y manejo de errores de Zod 4. Se alineó el timestamp de citas y la edición de hora local. | No se asumieron duración de citas u horarios de apertura. Los controles previos no sustituyen restricciones de concurrencia en PostgreSQL. |
+| Crear seeders completos desde la página web. | Se añadieron `DemoSeederService`, endpoints y pestaña Datos de prueba con vista previa, aceptación, confirmación y resumen. | El lote `vetclinic-demo-v1` contiene 28 registros y un rol adicional solo si falta. Se persiste en la base conectada; no se implementó activación/desactivación o borrado masivo del lote. |
+| Ejecutar pruebas y corregir posibles fallos del generador. | Se reprodujeron conflictos de identidad y de facturas incompletas; se añadieron verificaciones previas. Se corrigieron reintentos y dobles confirmaciones de la interfaz. | El lote intacto es repetible sin duplicación ni otro descuento. No es una restauración de cualquier dato alterado; los conflictos requieren revisión. |
+| Crear automáticamente los roles obligatorios, incluso con una tabla parcialmente poblada. | `DefaultRoleService` asegura Administrador/true, Veterinario/true y Recepcionista/false al iniciar la API. El sembrado usa IDs encontrados/generados en lugar de asumir 1, 2 y 3. | Conserva usuarios y roles personalizados; corrige nombres y banderas de los roles coincidentes. La reposición se ejecuta al iniciar, no como vigilancia continua. |
+| Activar la validación de audiencia del JWT y comprobar su funcionamiento. | Se estableció `ValidateAudience = true` y se incorporaron nueve pruebas de audiencia, firma, emisor, vencimiento, roles y login. | La emisión y aceptación comparten `Jwt:Audience`; un token autenticado no concede por sí solo privilegios de administrador. |
+| Aplicar solamente la primera solución de sesión: comprobar el JWT antes de restaurar el usuario. | `AuthContext` valida estructura básica y expiración antes de reutilizar `vet_user`. Limpia token/usuario si están vencidos o son inválidos y conserva la restauración con un token vigente. | Se añadió prueba de navegador de retorno al login. La verificación criptográfica continúa en el servidor. No se añadieron cookies, refresh tokens, revocación ni temporizador automático. |
+
+### 6.3. Pruebas observadas y correcciones derivadas
+
+Las cifras siguientes son resultados de las últimas ejecuciones correspondientes, realizadas en momentos distintos; no deben sumarse ni presentarse como pruebas exclusivas de un solo módulo.
+
+| Área | Resultado y alcance |
+| --- | --- |
+| Backend, después de activar audiencia JWT | **67 pruebas locales aprobadas**, incluidas 9 nuevas de JWT. Se excluyó `Test_Supabase_Connection` para no ejecutar la prueba externa en esa verificación. |
+| Frontend, después de corregir la restauración de sesión | **59 pruebas aprobadas**, incluidas restauración con caché, token vencido/malformado, expiración ausente o inválida y usuario guardado sin token. |
+| Playwright en Edge, después de corregir la restauración | **6 pruebas aprobadas**: sesión vencida, confirmación del generador, restricciones de dos roles, creación administrativa y flujo facial. Las respuestas de la API se simulan; la inferencia facial usa modelos reales. |
+| Compilación frontend de producción | Correcta. Persisten advertencias sobre tamaño de bundles y externalización de `fs` en face-api.js. |
+| Auditoría npm durante la incorporación facial | La ejecución realizada tras corregir dependencias informó cero vulnerabilidades. Es una evidencia de ese momento, no una garantía actual permanente. |
+
+Se corrigieron los siguientes problemas durante la implementación y el testeo:
+
+- El registro público permitía enviar un rol: se restringió a Administrador y se movió su interfaz.
+- El formato de almacenamiento facial no coincidía con la restricción anterior de Supabase: se preparó y verificó la adaptación descrita.
+- El formulario de citas ofrecía estados que el esquema Zod rechazaba: se alinearon estados admitidos y se mantuvo compatibilidad con Atendida.
+- Varias vistas accedían a `error.errors`: se cambió a `error.issues`, compatible con Zod 4.
+- La carga repetida podía crear otra factura cuando faltaba una línea clínica, omitir una línea de insumo ausente o vincular un correo reservado ajeno: se añadieron verificaciones previas y regresiones específicas.
+- La vista previa fallida carecía de reintento y se reforzó el bloqueo de doble confirmación.
+- La sesión restauraba `vet_user` antes de comprobar la expiración: se invirtió ese orden.
+- Una aserción del test facial comprobaba la liberación de la URL antes de completarse el efecto de React: se esperó mediante `waitFor`, sin modificar por ello la lógica productiva facial.
+- Los fixtures de navegador utilizaban tokens ficticios sin expiración: se actualizaron para representar sesiones vigentes al endurecer la restauración. No son tokens criptográficamente válidos para una API real.
+
+Las pruebas locales utilizan InMemory o API simulada según su nivel. La reversión y el bloqueo de cargas simultáneas del generador no se comprobaron en un PostgreSQL aislado. La prueba facial sintética revertida y las consultas de diagnóstico no permiten afirmar esa cobertura.
+
+### 6.4. Requerimientos documentales y decisiones de alcance
+
+El usuario solicitó explicaciones académicas de datos de prueba, API con validaciones, JWT, roles y migraciones. Se distinguió entre API propia, biblioteca face-api.js y OpenAPI/Swagger. No se implementaron migraciones por el hecho de explicar sus pasos.
+
+Posteriormente indicó que la documentación para el informe debía entregarse directamente en el chat, sin generar archivos salvo solicitud expresa. La presente modificación de README y AI_LOG responde a una solicitud posterior explícita de actualizar esos archivos; no autoriza cambios adicionales en otras piezas del informe.
+
+Ante una propuesta con varias mejoras de sesión, el usuario pidió literalmente **"Haz la primera solución solamente"**. Se respetó ese límite: se corrigió la restauración de sesión y se probaron sus resultados. Las demás propuestas no deben figurar como implementadas.
+
+### 6.5. Aspectos pendientes que no se presentan como completados
+
+- Baseline y migraciones EF Core para la base existente; alineación restante del modelo con PostgreSQL, incluido el valor predeterminado SQL Server de la fecha de factura.
+- Cookies HttpOnly y protección CSRF asociada, renovación y revocación de tokens, eliminación del fallback heredado de contraseñas en texto plano y cierre temporizado de sesión.
+- Login o identificación mediante rostro y protección de prueba de vida.
+- Cantidad y precio histórico separados en el detalle de factura, necesarios para reconstruir correctamente stock cuando cambian precios.
+- Ensayos transaccionales y concurrentes del generador sobre PostgreSQL aislado.
+- Auditoría completa de accesibilidad y seguridad. Las validaciones implementadas no equivalen a una certificación.
+
+### 6.6. Revisión y responsabilidad académica
+
+Esta bitácora registra asistencia, cambios y evidencia técnica observada. No afirma que el estudiante haya revisado personalmente cada línea, comprendido toda la implementación o realizado una defensa: esas actividades deben ser verificadas por su autor. Antes de la entrega, corresponde contrastar el código con la rúbrica, revisar los resultados reproducibles y declarar las herramientas efectivamente utilizadas.
+
+Las configuraciones privadas, claves de cifrado, contraseñas de conexión y tokens reales no deben copiarse al informe ni a esta bitácora. La subida de cambios posteriores al commit referido requiere una operación Git adicional solicitada por el usuario.

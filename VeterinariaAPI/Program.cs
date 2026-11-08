@@ -123,7 +123,7 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
-            ValidateAudience = false,
+            ValidateAudience = true,
             ValidateLifetime = true,
             ValidateIssuerSigningKey = true,
             ValidIssuer = jwtIssuer,
@@ -141,6 +141,8 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<FacialEncryptionService>();
+builder.Services.AddScoped<DemoSeederService>();
+builder.Services.AddScoped<DefaultRoleService>();
 
 var rawConn = builder.Configuration.GetConnectionString("miconexion") ?? string.Empty;
 var npgsqlConn = rawConn;
@@ -272,6 +274,7 @@ app.MapDetalleFacApi();
 app.MapConsultasApi();
 app.MapUsuariosApi();
 app.MapRegistroFacialApi();
+app.MapDatosPruebaApi();
 
 app.MapGet("/api/test-error", () =>
 {
@@ -290,23 +293,15 @@ using (var scope = app.Services.CreateScope())
         var db = services.GetRequiredService<VeterinariodbContext>();
         var auth = services.GetRequiredService<AuthService>();
 
-        // 1. Roles
-        if (!db.Roles.Any())
-        {
-            db.Roles.AddRange(
-                new Role { Id = 1, Nombre = "Administrador", PermisosEscritura = true },
-                new Role { Id = 2, Nombre = "Veterinario", PermisosEscritura = true },
-                new Role { Id = 3, Nombre = "Recepcionista", PermisosEscritura = false }
-            );
-            db.SaveChanges();
-        }
+        // 1. Reconcile each required role on every startup, including partially populated databases.
+        var defaultRoles = await services.GetRequiredService<DefaultRoleService>().EnsureAsync();
 
         // 2. Usuarios
         if (!db.Usuarios.Any())
         {
             var admin = new Usuario
             {
-                RolId = 1,
+                RolId = defaultRoles["Administrador"].Id,
                 NombreCompleto = "Jonathan Garrido",
                 Email = "admin@veterinaria.com"
             };
@@ -314,7 +309,7 @@ using (var scope = app.Services.CreateScope())
 
             var vet = new Usuario
             {
-                RolId = 2,
+                RolId = defaultRoles["Veterinario"].Id,
                 NombreCompleto = "Dr. Carlos Mendoza",
                 Email = "vet@veterinaria.com"
             };
@@ -322,7 +317,7 @@ using (var scope = app.Services.CreateScope())
 
             var recep = new Usuario
             {
-                RolId = 3,
+                RolId = defaultRoles["Recepcionista"].Id,
                 NombreCompleto = "Ana Silva",
                 Email = "recep@veterinaria.com"
             };
@@ -414,7 +409,7 @@ using (var scope = app.Services.CreateScope())
                 db.SaveChanges();
 
                 // Citas
-                var vetUser = db.Usuarios.FirstOrDefault(u => u.RolId == 2) ?? db.Usuarios.First();
+                var vetUser = db.Usuarios.FirstOrDefault(u => u.RolId == defaultRoles["Veterinario"].Id) ?? db.Usuarios.First();
                 var espGeneral = db.Especialidades.FirstOrDefault(e => e.Nombre == "Medicina General") ?? db.Especialidades.First();
                 var espDerma = db.Especialidades.FirstOrDefault(e => e.Nombre == "Dermatología") ?? db.Especialidades.First();
                 var espOdonto = db.Especialidades.FirstOrDefault(e => e.Nombre == "Odontología") ?? db.Especialidades.First();

@@ -10,7 +10,7 @@ namespace VeterinariaAPI.Endpoints
     {
         public static void MapCitasApi(this WebApplication app)
         {
-            var citas = app.MapGroup("/api/v1/citas").WithTags("Citas (v1)");
+            var citas = app.MapGroup("/api/v1/citas").WithTags("Citas (v1)").AddEndpointFilter<BusinessValidationFilter>();
 
             // API para listar citas con filtros
             citas.MapGet("/", async (
@@ -126,23 +126,23 @@ namespace VeterinariaAPI.Endpoints
 
         // DTO de entrada estructurado con reglas de validación
         public record CitaCreateDto(
-            [Required(ErrorMessage = "El ID del paciente es obligatorio.")]
-            [Range(1, int.MaxValue, ErrorMessage = "El ID del paciente debe ser un número entero positivo.")]
+            [property: Required(ErrorMessage = "El ID del paciente es obligatorio.")]
+            [property: Range(1, int.MaxValue, ErrorMessage = "El ID del paciente debe ser un número entero positivo.")]
             int PacienteId,
 
-            [Required(ErrorMessage = "El ID del usuario/veterinario es obligatorio.")]
-            [Range(1, int.MaxValue, ErrorMessage = "El ID del usuario debe ser un número entero positivo.")]
+            [property: Required(ErrorMessage = "El ID del usuario/veterinario es obligatorio.")]
+            [property: Range(1, int.MaxValue, ErrorMessage = "El ID del usuario debe ser un número entero positivo.")]
             int UsuarioId,
 
-            [Required(ErrorMessage = "El ID de la especialidad es obligatorio.")]
-            [Range(1, int.MaxValue, ErrorMessage = "El ID de la especialidad debe ser un número entero positivo.")]
+            [property: Required(ErrorMessage = "El ID de la especialidad es obligatorio.")]
+            [property: Range(1, int.MaxValue, ErrorMessage = "El ID de la especialidad debe ser un número entero positivo.")]
             int EspecialidadId,
 
-            [Required(ErrorMessage = "La fecha y hora de la cita son obligatorias.")]
+            [property: Required(ErrorMessage = "La fecha y hora de la cita son obligatorias.")]
             DateTime FechaHora,
 
-            [Required(ErrorMessage = "El estado de la cita es obligatorio.")]
-            [StringLength(50, ErrorMessage = "El estado no puede superar los 50 caracteres.")]
+            [property: Required(ErrorMessage = "El estado de la cita es obligatorio.")]
+            [property: StringLength(50, ErrorMessage = "El estado no puede superar los 50 caracteres.")]
             string Estado
         );
     }

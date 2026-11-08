@@ -13,7 +13,7 @@ export const AuthProvider = ({ children }) => {
     try {
       if (!t || typeof t !== 'string') return null;
       const parts = t.split('.');
-      if (parts.length < 2) return null;
+      if (parts.length !== 3 || parts.some(part => !part)) return null;
       let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
       while (base64.length % 4 !== 0) {
         base64 += '=';
@@ -37,6 +37,14 @@ export const AuthProvider = ({ children }) => {
     const savedToken = localStorage.getItem('vet_token');
     const savedUser = localStorage.getItem('vet_user');
     if (savedToken) {
+      // Check expiry before trusting any cached user data. Signature validation remains server-side.
+      const payload = parseJwt(savedToken);
+      if (!payload || typeof payload !== 'object' || Array.isArray(payload) ||
+          typeof payload.exp !== 'number' || !Number.isFinite(payload.exp) || Date.now() >= payload.exp * 1000) {
+        logout();
+        setLoading(false);
+        return;
+      }
       if (savedUser) {
         try {
           setUser(JSON.parse(savedUser));
@@ -46,15 +54,7 @@ export const AuthProvider = ({ children }) => {
         } catch {}
       }
 
-      const payload = parseJwt(savedToken);
       if (payload) {
-        // Verificar expiración del token (exp en segundos)
-        if (payload.exp && Date.now() >= payload.exp * 1000) {
-          logout();
-          setLoading(false);
-          return;
-        }
-
         // En .NET ClaimTypes.Role suele mapear a URI de microsoft o 'role'
         const role = payload['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || payload.role || 'Usuario';
         const name = payload['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'] || payload.name || payload.unique_name || 'Usuario';
@@ -66,6 +66,8 @@ export const AuthProvider = ({ children }) => {
       } else {
         logout();
       }
+    } else {
+      logout();
     }
     setLoading(false);
   }, []);

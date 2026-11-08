@@ -10,7 +10,7 @@ namespace VeterinariaAPI.Endpoints
     {
         public static void MapDetalleFacApi(this WebApplication app)
         {
-            var detallefac = app.MapGroup("/api/v1/detallefac").WithTags("DetalleFactura (v1)");
+            var detallefac = app.MapGroup("/api/v1/detallefac").WithTags("DetalleFactura (v1)").AddEndpointFilter<BusinessValidationFilter>();
 
             // API para listar detalle factura con filtros
             detallefac.MapGet("/", async (

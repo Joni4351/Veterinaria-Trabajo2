@@ -159,7 +159,7 @@ export const ConsultasView = () => {
     const validation = consultaSchema.safeParse(formData);
     if (!validation.success) {
       const errors = {};
-      validation.error.errors.forEach((err) => {
+      validation.error.issues.forEach((err) => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setFieldErrors(errors);
@@ -291,7 +291,7 @@ export const ConsultasView = () => {
     const validation = recetaMedicaSchema.safeParse(recetaForm);
     if (!validation.success) {
       const errors = {};
-      validation.error.errors.forEach((err) => {
+      validation.error.issues.forEach((err) => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setRecetaFieldErrors(errors);

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { calendarDateSchema } from './dateValidation';
 
 export const facturaSchema = z.object({
   clienteId: z.coerce
@@ -6,11 +7,10 @@ export const facturaSchema = z.object({
       required_error: 'Debe seleccionar un cliente',
       invalid_type_error: 'Debe seleccionar un cliente válido'
     })
+    .int('Seleccione un identificador entero válido')
     .min(1, 'Debe seleccionar un cliente'),
 
-  fechaEmision: z
-    .string({ required_error: 'La fecha de emisión es obligatoria' })
-    .min(1, 'La fecha de emisión es obligatoria'),
+  fechaEmision: calendarDateSchema('La fecha de emisión'),
 
   montoImpuestos: z.coerce
     .number({
@@ -26,6 +26,8 @@ export const facturaSchema = z.object({
     })
     .min(0.01, 'El monto total debe ser mayor a 0')
     .max(10000000, 'El monto no puede superar 10.000.000')
+}).refine(data => data.montoImpuestos <= data.montoTotal, {
+  message: 'Los impuestos no pueden superar el total de la factura', path: ['montoImpuestos']
 });
 
 export const detalleFacturaSchema = z.object({

@@ -10,7 +10,7 @@ namespace VeterinariaAPI.Endpoints
     {
         public static void MapRecetaApi(this WebApplication app)
         {
-            var recetas = app.MapGroup("/api/v1/recetas").WithTags("Recetas (v1)");
+            var recetas = app.MapGroup("/api/v1/recetas").WithTags("Recetas (v1)").AddEndpointFilter<BusinessValidationFilter>();
 
             // API para listar recetas con filtros
             recetas.MapGet("/", async (

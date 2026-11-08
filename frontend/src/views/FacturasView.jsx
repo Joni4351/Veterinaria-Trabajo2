@@ -278,8 +278,8 @@ export const FacturasView = () => {
     if (!ins) return;
 
     const cant = Number(insumoCantidad);
-    if (isNaN(cant) || cant <= 0) {
-      setItemError('La cantidad del insumo debe ser mayor a cero.');
+    if (!Number.isInteger(cant) || cant <= 0) {
+      setItemError('La cantidad del insumo debe ser un número entero mayor a cero.');
       return;
     }
 
@@ -385,7 +385,7 @@ export const FacturasView = () => {
     const validation = facturaSchema.safeParse(formData);
     if (!validation.success) {
       const errors = {};
-      validation.error.errors.forEach((err) => {
+      validation.error.issues.forEach((err) => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setFieldErrors(errors);
@@ -473,7 +473,7 @@ export const FacturasView = () => {
     const validation = detalleFacturaSchema.safeParse(nuevoItem);
     if (!validation.success) {
       const errors = {};
-      validation.error.errors.forEach((err) => {
+      validation.error.issues.forEach((err) => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setDetalleFieldErrors(errors);

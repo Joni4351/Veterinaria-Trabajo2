@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { citaSchema } from '../schemas/citasSchema';
+import { dateTimeInputValue } from '../schemas/dateValidation';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { Calendar, Plus, Search, Edit2, Trash2, X, AlertCircle, Clock, Filter, RotateCcw } from 'lucide-react';
 
@@ -18,7 +19,7 @@ export const CitasView = () => {
 
   // Filtrar estrictamente solo usuarios con rol de Veterinario para atención clínica
   const veterinarios = useMemo(() => {
-    return usuarios.filter(u => (u.rol || '').toLowerCase().includes('veterinario'));
+    return usuarios.filter(u => (u.rol || '').trim().toLowerCase() === 'veterinario');
   }, [usuarios]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -117,7 +118,7 @@ export const CitasView = () => {
     setFieldErrors({});
     if (cita) {
       setEditingId(cita.id);
-      const formattedDate = cita.fechaHora ? new Date(cita.fechaHora).toISOString().slice(0, 16) : '';
+      const formattedDate = cita.fechaHora ? dateTimeInputValue(cita.fechaHora) : '';
       setFormData({
         pacienteId: cita.pacienteId,
         usuarioId: cita.usuarioId,
@@ -131,7 +132,7 @@ export const CitasView = () => {
         pacienteId: pacientes[0]?.id || '',
         usuarioId: veterinarios[0]?.id || '',
         especialidadId: especialidades[0]?.id || '',
-        fechaHora: new Date().toISOString().slice(0, 16),
+        fechaHora: dateTimeInputValue(new Date()),
         estado: 'Pendiente'
       });
     }

@@ -87,10 +87,10 @@ namespace VeterinariaAPI.Endpoints
 
                 var nuevoCliente = new Cliente
                 {
-                    DocumentoIdentidad = dto.DocumentoIdentidad,
-                    NombreCompleto = dto.NombreCompleto,
-                    Telefono = dto.Telefono,
-                    Email = dto.Email
+                    DocumentoIdentidad = dto.DocumentoIdentidad.Trim(),
+                    NombreCompleto = dto.NombreCompleto.Trim(),
+                    Telefono = dto.Telefono.Trim(),
+                    Email = dto.Email.Trim().ToLowerInvariant()
                 };
 
                 await repo.CrearAsync(nuevoCliente);
@@ -140,10 +140,10 @@ namespace VeterinariaAPI.Endpoints
                     }
                 }
 
-                clienteExistente.DocumentoIdentidad = dto.DocumentoIdentidad;
-                clienteExistente.NombreCompleto = dto.NombreCompleto;
-                clienteExistente.Telefono = dto.Telefono;
-                clienteExistente.Email = dto.Email;
+                clienteExistente.DocumentoIdentidad = dto.DocumentoIdentidad.Trim();
+                clienteExistente.NombreCompleto = dto.NombreCompleto.Trim();
+                clienteExistente.Telefono = dto.Telefono.Trim();
+                clienteExistente.Email = dto.Email.Trim().ToLowerInvariant();
 
                 await repo.GuardarCambiosAsync();
                 return Results.Ok(clienteExistente);
@@ -186,10 +186,12 @@ namespace VeterinariaAPI.Endpoints
 
             [property: Required(ErrorMessage = "El teléfono es obligatorio.")]
             [property: StringLength(20, MinimumLength = 8, ErrorMessage = "El teléfono debe tener entre 8 y 20 caracteres.")]
+            [property: RegularExpression(@"\+?(?=(?:\D*\d){8,15}\D*$)[0-9() \-]+", ErrorMessage = "El teléfono debe contener entre 8 y 15 dígitos; el signo + solo puede ir al inicio.")]
             string Telefono,
 
             [property: Required(ErrorMessage = "El correo electrónico es obligatorio.")]
             [property: EmailAddress(ErrorMessage = "El formato del correo electrónico no es válido.")]
+            [property: StringLength(150, ErrorMessage = "El correo no puede superar 150 caracteres.")]
             string Email
         );
     }

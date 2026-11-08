@@ -55,7 +55,7 @@ describe('Registro Facial', () => {
     await screen.findByText('Registro facial guardado correctamente.');
     expect(service.guardar).toHaveBeenCalledWith(2, Array(128).fill(0.1), null);
     expect(screen.queryByAltText('Vista previa de la fotografía seleccionada')).not.toBeInTheDocument();
-    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:photo');
+    await waitFor(() => expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:photo'));
   });
 
   it('rechaza formatos incorrectos y fotografías mayores a 5 MB', async () => {

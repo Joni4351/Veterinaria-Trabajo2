@@ -60,6 +60,7 @@ public partial class VeterinariodbContext : DbContext
         });
         modelBuilder.Entity<Cita>(entity =>
         {
+            entity.Property(e => e.FechaHora).HasColumnType("timestamp without time zone");
             entity.HasKey(e => e.Id).HasName("PK__Citas__3214EC07A639186A");
 
             entity.Property(e => e.Estado).HasMaxLength(50);

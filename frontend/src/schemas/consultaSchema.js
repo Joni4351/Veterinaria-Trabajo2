@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { calendarDateSchema } from './dateValidation';
 
 export const consultaSchema = z.object({
   pacienteId: z.coerce
@@ -6,11 +7,12 @@ export const consultaSchema = z.object({
       required_error: 'Debe seleccionar un paciente',
       invalid_type_error: 'Debe seleccionar un paciente válido'
     })
+    .int('Seleccione un identificador entero válido')
     .min(1, 'Debe seleccionar un paciente'),
 
   citaId: z.preprocess(
     (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
-    z.number().positive().nullable().optional()
+    z.number().int().positive().nullable().optional()
   ),
 
   motivo: z
@@ -31,19 +33,16 @@ export const consultaSchema = z.object({
 });
 
 export const recetaMedicaSchema = z.object({
-  fechaEmision: z
-    .string({ required_error: 'La fecha de emisión es obligatoria' })
-    .min(1, 'La fecha de emisión es obligatoria'),
+  fechaEmision: calendarDateSchema('La fecha de emisión'),
 
-  validaHasta: z
-    .string({ required_error: 'La fecha de validez es obligatoria' })
-    .min(1, 'La fecha de validez es obligatoria'),
+  validaHasta: calendarDateSchema('La fecha de validez'),
 
   insumoId: z.coerce
     .number({
       required_error: 'Debe seleccionar un insumo o medicamento',
       invalid_type_error: 'Debe seleccionar un insumo válido'
     })
+    .int('Seleccione un identificador entero válido')
     .min(1, 'Debe seleccionar un insumo o medicamento'),
 
   dosis: z

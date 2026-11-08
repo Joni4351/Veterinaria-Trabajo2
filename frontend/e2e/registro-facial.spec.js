@@ -1,10 +1,55 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
+test('una sesión vencida no se restaura aunque el usuario siga en caché', async ({ page }) => {
+  await page.addInitScript(() => {
+    const token = ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) - 60 })), 'test-signature'].join('.');
+    localStorage.setItem('vet_token', token);
+    localStorage.setItem('vet_user', JSON.stringify({ id: 1, name: 'Administrador de prueba', role: 'Administrador' }));
+  });
+  await page.goto('/admin');
+  await expect(page.getByRole('button', { name: 'Iniciar Sesión', exact: true })).toBeVisible();
+  expect(await page.evaluate(() => localStorage.getItem('vet_token'))).toBeNull();
+  expect(await page.evaluate(() => localStorage.getItem('vet_user'))).toBeNull();
+});
+
+test('datos de prueba requieren doble confirmación y muestran el resumen', async ({ page }) => {
+  let calls = 0;
+  await page.addInitScript(() => {
+    localStorage.setItem('vet_token', ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })), 'test-signature'].join('.'));
+    localStorage.setItem('vet_user', JSON.stringify({ id: 1, name: 'Administrador de prueba', role: 'Administrador' }));
+  });
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    if (path.endsWith('/admin/datos-prueba')) {
+      if (route.request().method() === 'POST') {
+        calls++;
+        expect(route.request().postDataJSON()).toEqual({ dataset: 'vetclinic-demo-v1', confirmado: true });
+        return route.fulfill({ json: { creados: { clientes: 3, pacientes: 4 } } });
+      }
+      return route.fulfill({ json: { dataset: 'vetclinic-demo-v1', descripcion: 'Lote académico', clientesExistentes: calls ? 3 : 0, previstos: { clientes: 3, pacientes: 4 } } });
+    }
+    return route.fulfill({ json: [] });
+  });
+  await page.goto('/admin');
+  await page.getByRole('button', { name: 'Datos de prueba', exact: true }).click();
+  const generate = page.getByRole('button', { name: 'Generar datos de prueba', exact: true });
+  await expect(generate).toBeDisabled();
+  await page.getByRole('checkbox').check();
+  await generate.click();
+  expect(calls).toBe(0);
+  await page.getByRole('button', { name: 'Sí, generar datos' }).click();
+  await expect(page.getByRole('status').filter({ hasText: 'Carga completada:' })).toContainText('Carga completada: 7 registros nuevos.');
+  expect(calls).toBe(1);
+  await expect(generate).toBeDisabled();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
 for (const role of ['Veterinario', 'Recepcionista']) {
   test(`Administración no aparece para ${role} y la ruta está bloqueada`, async ({ page }) => {
     await page.addInitScript(role => {
-      localStorage.setItem('vet_token', 'test.session.token');
+      localStorage.setItem('vet_token', ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })), 'test-signature'].join('.'));
       localStorage.setItem('vet_user', JSON.stringify({ id: 2, name: 'Usuario de prueba', role }));
     }, role);
     await page.route('**/api/**', route => route.fulfill({ json: [] }));
@@ -18,7 +63,7 @@ for (const role of ['Veterinario', 'Recepcionista']) {
 test('administrador crea cuentas desde Administración sin cambiar su sesión', async ({ page }) => {
   let payload;
   await page.addInitScript(() => {
-    localStorage.setItem('vet_token', 'test.session.token');
+    localStorage.setItem('vet_token', ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })), 'test-signature'].join('.'));
     localStorage.setItem('vet_user', JSON.stringify({ id: 1, name: 'Administrador de prueba', role: 'Administrador' }));
   });
   await page.route('**/api/**', async route => {
@@ -47,7 +92,7 @@ test('modelos locales y registro real desde foto, sin subir imagen', async ({ pa
   let registration = null;
   const user = { id: 2, nombreCompleto: 'Usuario de prueba', email: 'usuario@example.com', rol: 'Veterinario' };
   await page.addInitScript(() => {
-    localStorage.setItem('vet_token', 'test.session.token');
+    localStorage.setItem('vet_token', ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })), 'test-signature'].join('.'));
     localStorage.setItem('vet_user', JSON.stringify({ id: 1, name: 'Admin de prueba', role: 'Administrador' }));
   });
   await page.route('**/api/**', async route => {

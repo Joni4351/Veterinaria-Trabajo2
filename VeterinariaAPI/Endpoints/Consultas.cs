@@ -10,7 +10,7 @@ namespace VeterinariaAPI.Endpoints
     {
         public static void MapConsultasApi(this WebApplication app)
         {
-            var consultas = app.MapGroup("/api/v1/consultas").WithTags("Consultas (v1)");
+            var consultas = app.MapGroup("/api/v1/consultas").WithTags("Consultas (v1)").AddEndpointFilter<BusinessValidationFilter>();
 
             // API para listar consultas con filtros
             consultas.MapGet("/", async (
@@ -56,7 +56,7 @@ namespace VeterinariaAPI.Endpoints
                 {
                     PacienteId = dto.PacienteId,
                     CitaId = dto.CitaId,
-                    Motivo = dto.Motivo,
+                    Motivo = dto.Motivo.Trim(),
                     Diagnostico = dto.Diagnostico
                 };
 
@@ -80,8 +80,8 @@ namespace VeterinariaAPI.Endpoints
 
                 consultaExistente.PacienteId = dto.PacienteId;
                 consultaExistente.CitaId = dto.CitaId;
-                consultaExistente.Motivo = dto.Motivo;
-                consultaExistente.Diagnostico = dto.Diagnostico;
+                consultaExistente.Motivo = dto.Motivo.Trim();
+                consultaExistente.Diagnostico = dto.Diagnostico.Trim();
 
                 await repo.GuardarCambiosAsync();
                 return Results.Ok(consultaExistente);

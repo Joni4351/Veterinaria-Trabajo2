@@ -5,6 +5,7 @@ import { especialidadSchema, rolSchema } from '../schemas/adminSchema';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { RegistroFacialView } from './RegistroFacialView';
 import { UserCreateForm } from '../components/UserCreateForm';
+import { DatosPruebaView } from './DatosPruebaView';
 
 export const AdminConfigView = () => {
   const [activeTab, setActiveTab] = useState('especialidades');
@@ -107,7 +108,7 @@ export const AdminConfigView = () => {
     const validation = especialidadSchema.safeParse(espForm);
     if (!validation.success) {
       const errors = {};
-      validation.error.errors.forEach(err => {
+      validation.error.issues.forEach(err => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setFieldErrors(errors);
@@ -154,7 +155,7 @@ export const AdminConfigView = () => {
     const validation = rolSchema.safeParse(rolForm);
     if (!validation.success) {
       const errors = {};
-      validation.error.errors.forEach(err => {
+      validation.error.issues.forEach(err => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setFieldErrors(errors);
@@ -238,6 +239,10 @@ export const AdminConfigView = () => {
 
         {/* Pestañas de Navegación */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--gray-200)', padding: '0 1.5rem', background: 'var(--gray-50)' }}>
+          <button type="button" className={`btn ${activeTab === 'datos-prueba' ? 'btn-primary' : 'btn-secondary'}`}
+            onClick={() => setActiveTab('datos-prueba')} aria-pressed={activeTab === 'datos-prueba'}>
+            Datos de prueba
+          </button>
           <button type="button" className={`btn ${activeTab === 'facial' ? 'btn-primary' : 'btn-secondary'}`}
             onClick={() => setActiveTab('facial')} aria-pressed={activeTab === 'facial'}>
             <UserCheck size={18} /> Registro Facial
@@ -299,6 +304,7 @@ export const AdminConfigView = () => {
         </div>
 
         {activeTab === 'facial' && <RegistroFacialView />}
+        {activeTab === 'datos-prueba' && <DatosPruebaView />}
         {/* Tab 1: Especialidades */}
         {activeTab === 'especialidades' && (
           <div style={{ padding: '1.5rem' }}>
