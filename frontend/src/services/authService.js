@@ -11,6 +11,11 @@ export const authService = {
     return res.data;
   },
 
+  async verifyFacial(challenge, descriptor) {
+    const res = await api.post('/api/v1/usuarios/login/facial', { challenge, descriptor });
+    return res.data;
+  },
+
   async getUsuarios(params = {}) {
     const res = await api.get('/api/v1/usuarios', { params });
     return res.data;

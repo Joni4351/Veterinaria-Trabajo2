@@ -40,7 +40,7 @@ function DatosPruebaPanel() {
 
   return <section style={{ padding: '1.5rem' }} aria-labelledby="demo-heading">
     <h3 id="demo-heading" style={{ display: 'flex', gap: '.6rem', alignItems: 'center' }}><Database size={24} aria-hidden="true" /> Datos de prueba</h3>
-    <p style={{ color: 'var(--gray-600)', margin: '1rem 0' }}>Genere un escenario académico completo para explorar el funcionamiento de VetClinic. Los registros se identificarán como DEMO V1.</p>
+
     {error && <div className="alert alert-danger" role="alert">{error}</div>}
     {error && !plan && !loading && <button type="button" className="btn btn-secondary" disabled={saving} onClick={load}>Reintentar vista previa</button>}
     {loading ? <p role="status">Cargando vista previa…</p> : plan && <>

@@ -234,10 +234,7 @@ export const PacientesView = () => {
               <Dog size={26} color="#0284c7" aria-hidden="true" />
               Gestión de Pacientes (Mascotas)
             </h1>
-            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.25rem' }}>
-              Operación completa CRUD del recurso principal consumiendo `/api/v1/pacientes`
-            </p>
-          </div>
+            </div>
           {canCreateOrEdit && (
             <button
               type="button"

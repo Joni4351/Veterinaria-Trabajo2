@@ -3,7 +3,7 @@
 **Sistema:** VetClinic Pro — Plataforma Veterinaria  
 **Estudiante:** Jonathan Garrido / Proyecto Veterinario  
 **Fecha:** Octubre 2026  
-**Actualización de intervenciones con Codex:** 7 de noviembre de 2026.
+**Actualización de intervenciones con Codex:** 9 de noviembre de 2026.
 
 > Los apartados históricos siguientes conservan la atribución, declaraciones y resultados registrados previamente. No constituyen una nueva verificación de la herramienta, el plan comercial, la revisión personal del estudiante o las métricas de aquel periodo. La sección 6 distingue las intervenciones observadas en esta conversación y el estado actual del código.
 
@@ -306,3 +306,226 @@ Ante una propuesta con varias mejoras de sesión, el usuario pidió literalmente
 Esta bitácora registra asistencia, cambios y evidencia técnica observada. No afirma que el estudiante haya revisado personalmente cada línea, comprendido toda la implementación o realizado una defensa: esas actividades deben ser verificadas por su autor. Antes de la entrega, corresponde contrastar el código con la rúbrica, revisar los resultados reproducibles y declarar las herramientas efectivamente utilizadas.
 
 Las configuraciones privadas, claves de cifrado, contraseñas de conexión y tokens reales no deben copiarse al informe ni a esta bitácora. La subida de cambios posteriores al commit referido requiere una operación Git adicional solicitada por el usuario.
+
+## 7. Política de trazabilidad de las intervenciones asistidas
+
+### 7.1. Formalización del registro técnico y académico
+
+**Fecha:** 9 de noviembre de 2026.
+
+**Requerimiento reformulado:** Establecer un procedimiento obligatorio de
+trazabilidad documental para las modificaciones del proyecto, mediante la
+actualización de la bitácora de asistencia con inteligencia artificial. El
+registro debe expresar los requerimientos como objetivos técnicos y describir
+las acciones ejecutadas con una redacción académica, sin reproducir
+literalmente las instrucciones conversacionales del solicitante.
+
+**Intervención realizada:** Se creó `AGENTS.md` en la raíz del repositorio para
+incorporar la actualización de `AI_LOG.md` al flujo de trabajo de futuras
+intervenciones. Se definió una estructura de registro basada en fecha,
+requerimiento reformulado, implementación, componentes afectados y evidencia
+de validación. Asimismo, se estableció la conservación del historial, la
+exclusión de información confidencial y la distinción entre resultados
+comprobados y actividades pendientes. La incorporación de esta política se
+documentó en la presente entrada y se actualizó la fecha de la bitácora.
+
+**Archivos afectados:** `AGENTS.md` y `AI_LOG.md`.
+
+**Validación:** Se revisó la coherencia de las instrucciones y del registro
+documental, y se comprobó el formato de los cambios con `git diff --check`.
+No se ejecutaron pruebas de software, ya que esta intervención modifica
+únicamente documentación e instrucciones de trabajo.
+
+**Alcance:** La regla se aplica a las siguientes modificaciones del proyecto.
+Esta entrada no representa una actualización retrospectiva ni una nueva
+verificación de las funcionalidades descritas en apartados anteriores.
+
+### 7.2. Actualización coordinada de las bitácoras
+
+**Fecha:** 9 de noviembre de 2026.
+
+**Requerimiento reformulado:** Extender el procedimiento de trazabilidad para
+que las modificaciones del proyecto se documenten de manera coordinada en el
+registro de asistencia con inteligencia artificial y en la bitácora de
+desarrollo, dentro de una misma entrega.
+
+**Intervención realizada:** Se actualizó `AGENTS.md` para exigir la modificación
+conjunta de `AI_LOG.md` y `BITACORA.md`. Se distinguió la finalidad de cada
+registro: el primero documenta el requerimiento reformulado y la intervención
+asistida; el segundo describe el avance técnico, los componentes modificados y
+su validación. Se mantuvieron las reglas de redacción técnica y académica,
+preservación del historial, exclusión de información confidencial y registro
+exclusivo de resultados comprobados. Esta política se registró en ambos
+documentos.
+
+**Archivos afectados:** `AGENTS.md`, `AI_LOG.md` y `BITACORA.md`.
+
+**Validación:** Revisión de coherencia de las instrucciones y comprobación de
+formato mediante `git diff --check`. No se ejecutaron pruebas de software,
+puesto que los cambios son exclusivamente documentales.
+
+**Alcance:** La actualización coordinada se exige desde esta intervención;
+no se reconstruyen ni se revalidan retrospectivamente sesiones anteriores.
+
+## 8. Consolidación de las últimas modificaciones del programa
+
+**Fecha de registro:** 9 de noviembre de 2026. Esta sección consolida las
+intervenciones recientes observadas en la conversación y contrastadas con los
+archivos del proyecto. Los apartados anteriores conservan su carácter histórico;
+en particular, el login facial mencionado como pendiente en 6.5 se implementó
+posteriormente con las limitaciones descritas a continuación.
+
+### 8.1. Auditoría de operaciones y consulta administrativa
+
+**Requerimiento reformulado:** Implementar trazabilidad de las modificaciones
+persistidas por la aplicación y proporcionar una consulta administrativa de
+eventos, con identificación del responsable y comparación de valores.
+
+**Intervención realizada:** Se incorporaron el modelo `Auditoria`, su mapeo a
+la tabla existente, la captura de altas, modificaciones y eliminaciones desde
+`SaveChanges` y una identificación de operación compartida por solicitud. La
+captura emplea una lista explícita de campos y excluye contraseñas, tokens y
+descriptores faciales. En PostgreSQL, la escritura de auditoría se vincula a la
+conexión y transacción de la operación de negocio. Se corrigió el error
+`Connection already open` evitando copiar la cadena de conexión al contexto
+auxiliar cuando se reutiliza una conexión abierta.
+
+Se añadieron endpoints de lectura restringidos a administradores, con
+comprobación del rol vigente en la base de datos, filtros, paginación, búsqueda,
+resúmenes por acción y detalle de valores anteriores y nuevos. La interfaz
+incorpora tarjetas de resumen, etiquetas por acción, avatares, navegación entre
+páginas y consulta de eventos asociados. Se retiraron los identificadores con
+almohadilla de los textos visibles del listado.
+
+**Componentes principales:** `VeterinariodbContext.Audit.cs`, `Auditoria.cs`
+(modelo y endpoints), `AuditOperation.cs`, `AuditoriaView.jsx`,
+`AuditoriaView.css` y `AuditoriaTests.cs`.
+
+**Alcance:** Se registran cambios de entidades rastreadas mediante Entity
+Framework Core desde la habilitación de la funcionalidad. No se reconstruye
+historial anterior ni se auditan modificaciones directas por SQL. No se ofrecen
+endpoints de edición o eliminación del historial. La atomicidad y concurrencia
+no se verificaron sobre una instancia PostgreSQL aislada.
+
+### 8.2. Exportación controlada del historial
+
+**Requerimiento reformulado:** Permitir la obtención de informes del historial
+con selección explícita del volumen de registros y consultas acotadas.
+
+**Intervención realizada:** Se añadió exportación CSV de la página visible y
+un diálogo de preparación de PDF con selección de 1 a 100 registros, sujeto a
+los filtros activos y al orden de eventos más recientes. La preparación realiza
+una solicitud paginada desde la primera página y permite revisar los resultados
+antes de abrir la impresión del navegador para guardar el PDF. Se incorporaron
+validación del límite, bloqueo durante la preparación, cancelación de la
+solicitud y estilos específicos de impresión.
+
+**Validación y límites:** Se comprobó en navegador el rechazo de cantidades
+superiores a 100, los parámetros de consulta, la vista de impresión y la
+descarga CSV. La función no escribe en la base de datos. El límite acota los
+registros transferidos, pero no constituye una garantía general de capacidad o
+rendimiento de la base de datos; la consulta también calcula totales filtrados.
+
+### 8.3. Orden estable y homogeneización de la interfaz
+
+**Requerimiento reformulado:** Garantizar estabilidad en la presentación de
+los registros tras su edición y uniformar el lenguaje visual de los módulos.
+
+**Intervención realizada:** Los repositorios general y de usuarios aplican
+orden ascendente por identificador, evitando depender del orden físico de las
+filas. Se verificó que la actualización de un cliente conserve su posición.
+El estilo de las tablas del historial se extendió a los listados de clientes,
+pacientes, citas, consultas, inventario, facturas y Administración. Se ajustaron
+encabezados, separación de filas, bordes, etiquetas y botones, conservando las
+tarjetas y objetivos táctiles amplios en pantallas pequeñas.
+
+Se rediseñó la navegación de Administración con iconos e indicador de sección
+activa, y se retiraron los subtítulos descriptivos de los módulos, incluidos
+textos sobre rutas internas de la API. Se mantuvieron las etiquetas de campos,
+las validaciones y las instrucciones operativas de formularios.
+
+La barra lateral dispone de un botón de visibilidad que libera su espacio en
+escritorio. El comportamiento móvil conserva el panel superpuesto y el cierre
+al navegar. Se añadieron cierre con Escape, retorno del foco al control,
+atributos de accesibilidad, exclusión de interacción del panel oculto mediante
+`inert` y adaptación a preferencias de movimiento reducido.
+
+**Componentes principales:** `Repository.cs`, `UsuarioRepository.cs`,
+`ListOrderingTests.cs`, `AdminConfigView.jsx`, `AdminConfigView.css`, las vistas
+de los módulos, `App.jsx` e `index.css`.
+
+### 8.4. Verificación facial durante el inicio de sesión
+
+**Requerimiento reformulado:** Incorporar una comprobación facial posterior a
+la validación de credenciales para las cuentas con registro facial activo,
+manteniendo el acceso convencional para las cuentas sin registro activo.
+
+**Intervención realizada:** La validación correcta de correo y contraseña
+entrega un desafío temporal a las cuentas que requieren reconocimiento facial,
+sin emitir todavía un JWT de acceso. El desafío es aleatorio, de un solo uso,
+tiene vigencia de dos minutos y se almacena temporalmente en memoria del
+servidor. La verificación comprueba su vigencia, la continuidad de las
+credenciales y del registro facial, y la coincidencia del descriptor mediante
+distancia euclídea con umbral de 0,5. El descriptor almacenado se descifra en
+el servidor mediante AES-256-GCM con vinculación al identificador del usuario.
+
+El frontend solicita la cámara tras una acción explícita, procesa el rostro
+localmente con face-api.js y transmite el descriptor para su comparación. La
+sesión solo se guarda al recibir el JWT definitivo. La cámara se detiene al
+completar, cancelar, vencer o abandonar el paso. El acceso facial correcto
+actualiza `UltimoAcceso` y se audita a nombre del usuario verificado. Las
+cuentas sin registro facial activo omiten este paso después de validar su
+contraseña.
+
+**Componentes principales:** `LoginFacial.cs`, `Usuarios.cs`,
+`FacialLoginChallenges.cs`, `FacialEncryptionService.cs`, `FacialLoginStep.jsx`,
+`LoginView.jsx`, `AuthContext.jsx`, los servicios de autenticación y detección,
+`FacialLoginTests.cs` y `FacialLogin.test.jsx`.
+
+**Limitaciones:** No se implementó detección de vida ni protección integral
+contra presentación de fotografías. La comparación recibe un descriptor
+calculado en el cliente y no acredita por sí misma presencia física. La cámara
+requiere un contexto seguro, como HTTPS o localhost. Los desafíos no se
+comparten entre procesos y se invalidan al reiniciar el servidor; una operación
+con varias instancias requeriría un mecanismo compartido. Las pruebas de
+interfaz utilizan cámara simulada o mocks y no certifican precisión biométrica
+con cámaras y personas reales.
+
+### 8.5. Plantillas de configuración y alcance documental
+
+Se crearon `VeterinariaAPI/appsettings.json.example` y
+`VeterinariaAPI/appsettings.Development.json.example`, con campos para completar
+y sin credenciales reales. Se actualizó `VeterinariaAPI/.env.example` para
+PostgreSQL/Supabase y las opciones de JWT y cifrado facial, dejando vacíos los
+secretos. Se validó la sintaxis de ambas plantillas JSON. El archivo `.env` no
+se carga automáticamente por el backend; sus variables deben proporcionarse al
+proceso. Los archivos reales de configuración permanecen excluidos por las
+reglas existentes de Git.
+
+Se precisó la regla de `AGENTS.md`: la actualización conjunta de `AI_LOG.md` y
+`BITACORA.md` acompaña las modificaciones efectivas del código y los ajustes
+asociados. Las consultas y explicaciones no generan entradas. Los cambios
+exclusivamente documentales se registran cuando existe una solicitud expresa,
+como en esta consolidación.
+
+### 8.6. Evidencia de validación y estado de entrega
+
+| Verificación observada | Resultado y alcance |
+| --- | --- |
+| Backend tras incorporar login facial | 86 pruebas locales aprobadas; se excluyó `Test_Supabase_Connection`. |
+| Regresiones específicas de login facial, tras atribuir el evento al usuario | 6 casos aprobados, incluidos omisión sin rostro activo, contraseña incorrecta, coincidencia, rechazo, reutilización y expiración. |
+| Frontend tras incorporar la barra desplegable | 65 pruebas aprobadas en 14 archivos. |
+| Suite de navegador previa a la barra desplegable | 9 pruebas aprobadas, con API simulada y comprobaciones de listados, login, auditoría, datos de prueba, roles y registro facial. |
+| Barra desplegable, comprobación adicional | 1 prueba dirigida aprobada: alternancia en escritorio, ampliación del contenido, Escape y cierre móvil al navegar. No se presenta como una ejecución completa de 10 pruebas. |
+| Compilación del frontend | Correcta en las intervenciones verificadas; persisten avisos de tamaño de paquetes y compatibilidad de `fs` procedentes de face-api.js. |
+
+Estos resultados corresponden a las ejecuciones observadas durante la
+implementación, no a nuevas ejecuciones realizadas al redactar esta entrada.
+Las pruebas de API utilizan InMemory; las pruebas de navegador emplean una API
+simulada y, para el registro desde fotografía, modelos locales reales con una
+imagen de prueba. No se alteró Supabase para estas verificaciones ni se
+efectuaron despliegues o subidas a GitHub de los cambios aquí consolidados.
+
+**Validación de esta actualización documental:** Revisión de correspondencia
+con el código y los resultados observados, y comprobación de formato mediante
+`git diff --check`. No se ejecutaron nuevamente las suites de software.

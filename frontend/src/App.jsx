@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { LoginView } from './views/LoginView';
@@ -27,6 +27,27 @@ function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
+  const sidebarToggle = useRef(null);
+  const sidebarVisible = isDesktop ? !isSidebarCollapsed : isMobileMenuOpen;
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const media = window.matchMedia('(min-width: 1024px)');
+    const sync = () => { setIsDesktop(media.matches); setIsMobileMenuOpen(false); };
+    sync(); media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
+  useEffect(() => {
+    if (!sidebarVisible) return;
+    const escape = event => {
+      if (event.key !== 'Escape') return;
+      if (isDesktop) setIsSidebarCollapsed(true); else setIsMobileMenuOpen(false);
+      sidebarToggle.current?.focus();
+    };
+    window.addEventListener('keydown', escape);
+    return () => window.removeEventListener('keydown', escape);
+  }, [sidebarVisible, isDesktop]);
   const [forbiddenToast, setForbiddenToast] = useState(null);
   const [rateLimitToast, setRateLimitToast] = useState(null);
 
@@ -109,7 +130,7 @@ function MainLayout() {
   const currentTitle = currentNavItem ? currentNavItem.label : (location.pathname === '/403' ? 'Acceso Denegado' : 'AURA VET');
 
   return (
-    <div className="app-container" style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent' }}>
+    <div className={`app-container${isSidebarCollapsed ? ' sidebar-collapsed' : ''}`} style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent' }}>
       
       {/* Toast flotante de error 403 Forbidden interceptado desde la API */}
       {forbiddenToast && (
@@ -219,13 +240,17 @@ function MainLayout() {
 
       {/* Backdrop para cerrar el menú en móvil */}
       <div 
-        className={`sidebar-overlay ${isMobileMenuOpen ? 'visible' : ''}`}
+        className={`sidebar-overlay ${!isDesktop && isMobileMenuOpen ? 'visible' : ''}`}
         onClick={() => setIsMobileMenuOpen(false)}
         aria-hidden="true"
       />
 
       {/* Sidebar de Navegación VetClinic (Off-canvas en Móvil / Fija en Desktop) */}
       <aside 
+        id="main-sidebar"
+        aria-label="Menú lateral"
+        aria-hidden={!sidebarVisible}
+        inert={!sidebarVisible}
         className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}
         style={{
           background: 'var(--bg-surface)',
@@ -380,12 +405,16 @@ function MainLayout() {
         >
           <div className="topbar-left">
             <button 
-              className="mobile-menu-btn"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Abrir menú de navegación"
+              ref={sidebarToggle}
+              type="button"
+              className="sidebar-toggle-btn"
+              onClick={() => { if (isDesktop) setIsSidebarCollapsed(value => !value); else setIsMobileMenuOpen(value => !value); }}
+              aria-label={sidebarVisible ? 'Ocultar menú de navegación' : 'Mostrar menú de navegación'}
+              aria-expanded={sidebarVisible}
+              aria-controls="main-sidebar"
               style={{ color: 'var(--gray-700)', background: 'var(--bg-surface)', border: '1px solid var(--gray-300)' }}
             >
-              <Menu size={20} />
+              {sidebarVisible ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
             
             {/* Banner de Estado Operativo */}

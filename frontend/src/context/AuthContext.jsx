@@ -74,7 +74,18 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const data = await authService.login(email, password);
+    if (data.requiresFacial) return data;
+    return completeSession(data, email);
+  };
+
+  const verifyFacial = async (challenge, descriptor) => {
+    const data = await authService.verifyFacial(challenge, descriptor);
+    return completeSession(data);
+  };
+
+  const completeSession = (data, email = '') => {
     const receivedToken = data.token;
+    if (!receivedToken) throw new Error('El servidor no entregó una sesión válida.');
     localStorage.setItem('vet_token', receivedToken);
     setToken(receivedToken);
 
@@ -123,6 +134,7 @@ export const AuthProvider = ({ children }) => {
       token, 
       loading, 
       login, 
+      verifyFacial,
       register, 
       logout,
       hasRole,

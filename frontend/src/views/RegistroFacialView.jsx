@@ -125,7 +125,7 @@ function RegistroFacialPanel() {
     <section className="facial-module" aria-labelledby="facial-title">
       <div className="facial-heading">
         <ScanFace size={28} aria-hidden="true" />
-        <div><h3 id="facial-title">Registro Facial</h3><p>Asocie un rostro a una cuenta existente. La fotografía se procesa en este dispositivo.</p></div>
+        <div><h3 id="facial-title">Registro Facial</h3></div>
       </div>
       {message && <div className={`facial-notice ${message.error ? 'facial-error' : ''}`} role={message.error ? 'alert' : 'status'}>{message.text}</div>}
       <div className="facial-layout">

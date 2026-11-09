@@ -99,7 +99,7 @@ namespace VeterinariaAPI.Endpoints
             }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
 
             // API para Iniciar Sesión (Login) y obtener JWT Token (Protegido con AuthPolicy)
-            usuarios.MapPost("/login", async (LoginRequest login, IUsuarioRepository repo, AuthService auth, IConfiguration config) =>
+            usuarios.MapPost("/login", async (LoginRequest login, IUsuarioRepository repo, AuthService auth, IConfiguration config, VeterinariodbContext db, FacialLoginChallenges challenges, HttpContext http) =>
             {
                 // Validar credenciales de entrada
                 var errores = login.Validar();
@@ -113,31 +113,17 @@ namespace VeterinariaAPI.Endpoints
                 if (usuario is null || !auth.VerifyPassword(usuario, login.Password))
                     return Results.Unauthorized();
 
-                var claims = new List<Claim>
+                http.Response.Headers.CacheControl = "no-store";
+                var face = await db.ReconocimientosFaciales.AsNoTracking().SingleOrDefaultAsync(x => x.UsuarioId == usuario.Id && x.Activo);
+                if (face != null)
                 {
-                    new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
-                    new Claim(ClaimTypes.Name, usuario.NombreCompleto),
-                    new Claim(ClaimTypes.Email, usuario.Email),
-                    new Claim(ClaimTypes.Role, usuario.Rol?.Nombre ?? "Cliente")
-                };
-
-                var jwtKey = config["Jwt:Key"]!;
-                var jwtIssuer = config["Jwt:Issuer"]!;
-                var jwtAudience = config["Jwt:Audience"]!;
-                var jwtExpireMinutes = config["Jwt:ExpireMinutes"] ?? "60";
-
-                var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
-                var credenciales = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-                var token = new JwtSecurityToken(
-                    issuer: jwtIssuer,
-                    audience: jwtAudience,
-                    claims: claims,
-                    expires: DateTime.UtcNow.AddMinutes(int.Parse(jwtExpireMinutes)),
-                    signingCredentials: credenciales
-                );
-
-                return Results.Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
+                    if (face.ConsentimientoFecha == null)
+                        return Results.Problem(statusCode: 503, detail: "El administrador debe actualizar el consentimiento del registro facial.");
+                    var challenge = challenges.Create(usuario.Id, usuario.PasswordHash, face.DescriptorFacial);
+                    if (challenge == null) return Results.StatusCode(429);
+                    return Results.Ok(new { requiresFacial = true, challenge, expiresIn = 120 });
+                }
+                return LoginFacialApi.Session(usuario, config);
             }).RequireRateLimiting("AuthPolicy");
 
             // API para eliminar usuario por ID

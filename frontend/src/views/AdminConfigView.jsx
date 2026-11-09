@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Award, Shield, UserCheck, Plus, Trash2, Edit2, X, AlertCircle, Filter, RotateCcw } from 'lucide-react';
+import { Award, Shield, UserCheck, Plus, Trash2, Edit2, X, AlertCircle, Filter, RotateCcw, History, FlaskConical, Users } from 'lucide-react';
 import { especialidadSchema, rolSchema } from '../schemas/adminSchema';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { RegistroFacialView } from './RegistroFacialView';
 import { UserCreateForm } from '../components/UserCreateForm';
 import { DatosPruebaView } from './DatosPruebaView';
+import { AuditoriaView } from './AuditoriaView';
+import './AdminConfigView.css';
 
 export const AdminConfigView = () => {
   const [activeTab, setActiveTab] = useState('especialidades');
@@ -231,80 +233,31 @@ export const AdminConfigView = () => {
         <div className="card-header">
           <div>
             <h2 className="card-title">Panel de Control de Administración</h2>
-            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-              Gestión centralizada de Especialidades Clínicas, Roles RBAC y Cuentas de Acceso
-            </p>
-          </div>
+            </div>
         </div>
 
         {/* Pestañas de Navegación */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', borderBottom: '1px solid var(--gray-200)', padding: '0 1.5rem', background: 'var(--gray-50)' }}>
-          <button type="button" className={`btn ${activeTab === 'datos-prueba' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('datos-prueba')} aria-pressed={activeTab === 'datos-prueba'}>
-            Datos de prueba
-          </button>
-          <button type="button" className={`btn ${activeTab === 'facial' ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setActiveTab('facial')} aria-pressed={activeTab === 'facial'}>
-            <UserCheck size={18} /> Registro Facial
-          </button>
-          <button
-            onClick={() => setActiveTab('especialidades')}
-            style={{
-              padding: '0.75rem 1rem',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              color: activeTab === 'especialidades' ? '#0284c7' : 'var(--gray-500)',
-              borderBottom: activeTab === 'especialidades' ? '2px solid #0284c7' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <Award size={18} /> Especialidades Médicas
-          </button>
-          <button
-            onClick={() => setActiveTab('roles')}
-            style={{
-              padding: '0.75rem 1rem',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              color: activeTab === 'roles' ? '#0284c7' : 'var(--gray-500)',
-              borderBottom: activeTab === 'roles' ? '2px solid #0284c7' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <Shield size={18} /> Roles de Seguridad (RBAC)
-          </button>
-          <button
-            onClick={() => setActiveTab('usuarios')}
-            style={{
-              padding: '0.75rem 1rem',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              color: activeTab === 'usuarios' ? '#0284c7' : 'var(--gray-500)',
-              borderBottom: activeTab === 'usuarios' ? '2px solid #0284c7' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <UserCheck size={18} /> Cuentas de Usuarios
-          </button>
-        </div>
-
+        <nav className="admin-sections" aria-label="Secciones de administración">
+          {[
+            ['auditoria', 'Historial de cambios', History],
+            ['datos-prueba', 'Datos de prueba', FlaskConical],
+            ['facial', 'Registro Facial', UserCheck],
+            ['especialidades', 'Especialidades Médicas', Award],
+            ['roles', 'Roles de Seguridad (RBAC)', Shield],
+            ['usuarios', 'Cuentas de Usuarios', Users]
+          ].map(([key, label, Icon]) => (
+            <button type="button" key={key} className={`admin-section${activeTab === key ? ' is-active' : ''}`}
+              onClick={() => setActiveTab(key)} aria-label={label} aria-pressed={activeTab === key}>
+              <Icon size={15} aria-hidden="true" />
+              <span>{label}</span>
+              {key === 'datos-prueba' && <span className="admin-sandbox" title="Datos de demostración en la base de datos configurada">Sandbox</span>}
+              {activeTab === key && <span className="admin-active-badge" aria-hidden="true">Activo</span>}
+            </button>
+          ))}
+        </nav>
         {activeTab === 'facial' && <RegistroFacialView />}
         {activeTab === 'datos-prueba' && <DatosPruebaView />}
+        {activeTab === 'auditoria' && <AuditoriaView />}
         {/* Tab 1: Especialidades */}
         {activeTab === 'especialidades' && (
           <div style={{ padding: '1.5rem' }}>
@@ -475,9 +428,6 @@ export const AdminConfigView = () => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
                 <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Usuarios Registrados</h3>
-                <p style={{ color: 'var(--gray-500)', fontSize: '0.82rem' }}>
-                  Cree cuentas y asigne roles desde este apartado exclusivo para administradores.
-                </p>
               </div>
             </div>
 

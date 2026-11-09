@@ -1,19 +1,25 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using VeterinariaAPI.Services;
 
 namespace VeterinariaAPI.Models;
 
 public partial class VeterinariodbContext : DbContext
 {
+    private readonly DbContextOptions<VeterinariodbContext>? _contextOptions;
+    private readonly AuditOperation _auditOperation = new();
+    public DbSet<Auditoria> Auditorias { get; set; }
     public DbSet<ReconocimientoFacial> ReconocimientosFaciales { get; set; }
     public VeterinariodbContext()
     {
     }
 
-    public VeterinariodbContext(DbContextOptions<VeterinariodbContext> options)
+    public VeterinariodbContext(DbContextOptions<VeterinariodbContext> options, AuditOperation? auditOperation = null)
         : base(options)
     {
+        _contextOptions = options;
+        _auditOperation = auditOperation ?? new AuditOperation();
     }
 
     public virtual DbSet<Cita> Citas { get; set; }
@@ -46,6 +52,14 @@ public partial class VeterinariodbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Auditoria>(entity =>
+        {
+            entity.ToTable("Auditoria", "public");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.ValoresAnteriores).HasColumnType("jsonb");
+            entity.Property(x => x.ValoresNuevos).HasColumnType("jsonb");
+            entity.HasOne<Usuario>().WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.SetNull);
+        });
         modelBuilder.Entity<ReconocimientoFacial>(entity =>
         {
             entity.ToTable("ReconocimientoFacial", "public");

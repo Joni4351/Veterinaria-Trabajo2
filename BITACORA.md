@@ -1,9 +1,10 @@
 # Bitácora de Desarrollo - Sistema Veterinario (VetClinic Pro)
 
 **Proyecto:** VeterinariaAPI & Frontend  
-**Ubicación Frontend:** `C:\Users\joni5.DESKTOP-AF57599\Downloads\VeterinariaAPI-master\frontend`  
-**Ubicación Backend (.NET):** `C:\Users\joni5.DESKTOP-AF57599\Downloads\VeterinariaAPI-master\VeterinariaAPI`  
-**Base de Datos:** SQL Server (`veterinariodb`)  
+**Directorio Frontend:** `frontend/`
+**Directorio Backend (.NET):** `VeterinariaAPI/`
+**Base de datos actual:** PostgreSQL en Supabase. Las sesiones previas conservan las referencias históricas a SQL Server.
+**Última consolidación documental:** 9 de noviembre de 2026.
 
 ---
 
@@ -378,3 +379,141 @@ El usuario solicitó extender la arquitectura visual implementada previamente en
   - Se añadió la prueba de conectividad directa a Supabase `Test_Supabase_Connection` en `VeterinariaAPI.Tests/ApiIntegrationTests.cs`.
   - Pruebas del Backend: **7/7 pruebas superadas exitosamente** (`dotnet test`).
   - Pruebas del Frontend: **22/22 pruebas superadas exitosamente** (`npm test -- --run`).
+
+---
+
+### Sesión 10 - 09/11/2026: Coordinación de los registros de desarrollo y asistencia
+
+**Objetivo técnico:** Establecer un mecanismo de documentación coordinada de
+las modificaciones del proyecto en `AI_LOG.md` y `BITACORA.md`, con redacción
+técnica y académica y sin reproducir literalmente las instrucciones del usuario.
+
+**Implementación realizada:** Se amplió la regla de trabajo en `AGENTS.md` para
+exigir que cada intervención que modifique código, configuración, interfaz,
+pruebas o documentación actualice ambos registros en la misma entrega. Se
+definió que la bitácora de desarrollo describa el objetivo, la implementación,
+los componentes afectados y la validación, mientras que el registro de IA
+documente el requerimiento reformulado y la intervención asistida. Las entradas
+deben mantener coherencia en fecha, alcance y resultados.
+
+**Archivos afectados:** `AGENTS.md`, `AI_LOG.md` y `BITACORA.md`.
+
+**Validación:** Se revisó la correspondencia entre ambas entradas y las
+instrucciones del proyecto, y se verificó el formato con `git diff --check`.
+No se ejecutaron pruebas de software por tratarse de cambios documentales.
+
+**Resultado:** Regla de actualización conjunta incorporada a las instrucciones
+del repositorio y registrada en ambos documentos. Se conserva el historial
+previo; esta sesión no certifica ni actualiza resultados técnicos anteriores.
+
+---
+
+### Sesión 11 - 09/11/2026: Consolidación de auditoría, acceso facial e interfaz
+
+**Objetivo técnico:** Documentar los avances recientes de trazabilidad,
+autenticación, estabilidad de listados, presentación visual y configuración
+reutilizable. Esta sesión consolida implementaciones ya realizadas; su
+redacción no representa una nueva ejecución ni un despliegue del programa.
+
+#### 1. Auditoría administrativa
+
+- Incorporación del modelo y mapeo de `Auditoria`, captura de operaciones
+  `CREAR`, `MODIFICAR` y `ELIMINAR` mediante Entity Framework Core, identificación
+  de responsable y agrupación de eventos por operación.
+- Exclusión de contraseñas, tokens y descriptores faciales mediante selección
+  explícita de campos registrables.
+- Endpoints de consulta restringidos a administradores, con filtros, búsqueda,
+  paginación, resúmenes y comparación de valores anteriores y nuevos.
+- Corrección de `Connection already open` en el contexto auxiliar de auditoría,
+  preservando el uso de la conexión y transacción de la operación de negocio.
+- Historial con tarjetas de resumen, etiquetas diferenciadas, consulta de
+  detalles y eliminación de identificadores con almohadilla en el listado.
+- Exportación CSV de la página visible y preparación de PDF con selección de
+  1 a 100 registros, una consulta paginada, vista previa y salida mediante la
+  impresión del navegador. El límite acota la transferencia; no garantiza por
+  sí solo la capacidad de la base de datos.
+
+**Componentes:** modelos y contexto de auditoría, `AuditOperation.cs`,
+`Endpoints/Auditoria.cs`, `AuditoriaView.jsx`, `AuditoriaView.css` y pruebas
+asociadas. La captura no cubre cambios directos por SQL ni reconstruye eventos
+anteriores. No se verificó la atomicidad en PostgreSQL aislado.
+
+#### 2. Estabilidad y presentación de los listados
+
+- Orden ascendente por identificador en los repositorios para conservar la
+  posición de los registros después de modificarlos.
+- Estilo compartido entre los listados clínicos, comerciales y administrativos,
+  basado en la tabla del historial: encabezados compactos, separadores,
+  etiquetas y controles redondeados, con soporte claro, oscuro y móvil.
+- Rediseño de las secciones de Administración con iconos, indicador activo y
+  etiqueta visual para los datos de demostración. Esta etiqueta no implica
+  que la base conectada sea un entorno aislado.
+- Eliminación de subtítulos descriptivos de los módulos y referencias visibles
+  a rutas de API, conservando instrucciones y mensajes de los formularios.
+- Barra lateral desplegable mediante botón, recuperación del ancho de
+  contenido en escritorio, cierre con Escape y al navegar en móvil, gestión de
+  foco y exclusión de interacción del panel oculto.
+
+**Componentes:** repositorios, vistas de los módulos, `AdminConfigView.css`,
+`App.jsx`, `index.css` y `ListOrderingTests.cs`.
+
+#### 3. Reconocimiento facial en el inicio de sesión
+
+- Validación inicial de correo y contraseña. Las cuentas sin registro facial
+  activo reciben acceso convencional; las cuentas con registro activo deben
+  completar la comprobación facial antes de recibir su JWT.
+- Desafío aleatorio de un solo uso, con vigencia de dos minutos y almacenamiento
+  temporal en memoria. Los cambios de credenciales o registro invalidan la
+  verificación pendiente.
+- Captura mediante cámara, extracción local del descriptor con face-api.js y
+  comparación en el servidor con el descriptor descifrado mediante AES-256-GCM.
+  Se utiliza distancia euclídea y umbral de 0,5.
+- Actualización de `UltimoAcceso` y registro de auditoría atribuido al usuario
+  verificado. La cámara se libera al finalizar, cancelar, vencer o abandonar
+  el paso; la sesión no se guarda mientras la verificación está pendiente.
+
+**Componentes:** `LoginFacial.cs`, `FacialLoginChallenges.cs`,
+`FacialEncryptionService.cs`, `Usuarios.cs`, `FacialLoginStep.jsx`,
+`AuthContext.jsx`, `LoginView.jsx` y servicios y pruebas asociados.
+
+**Limitaciones:** No existe detección de vida; el descriptor generado en el
+cliente no demuestra presencia física. La cámara requiere HTTPS o localhost.
+Los desafíos son locales al proceso y no sobreviven a reinicios. Las pruebas
+no certifican precisión con usuarios y cámaras reales.
+
+#### 4. Configuración y documentación
+
+- Creación de `appsettings.json.example` y
+  `appsettings.Development.json.example` con campos para completar, sin secretos.
+- Adecuación de `.env.example` para Supabase, JWT y cifrado facial. El backend
+  requiere que las variables se proporcionen al proceso y no lee `.env`
+  automáticamente. Se comprobó la sintaxis de las plantillas JSON.
+- Actualización del encabezado de esta bitácora para reflejar Supabase y usar
+  directorios relativos, conservando intactos los registros históricos.
+- Consolidación coordinada de este registro y de la sección 8 de `AI_LOG.md`.
+  La regla vigente documenta cambios efectivos de código; no registra consultas
+  explicativas sin implementación, salvo solicitud documental expresa.
+
+#### 5. Validación observada
+
+| Comprobación | Evidencia |
+| --- | --- |
+| Backend con login facial | 86 pruebas locales aprobadas, excluida la prueba externa de conexión a Supabase. |
+| Login facial tras el ajuste de atribución de auditoría | 6 casos dirigidos aprobados. |
+| Frontend tras la barra desplegable | 65 pruebas aprobadas en 14 archivos. |
+| Suite de navegador previa a la barra desplegable | 9 pruebas aprobadas con API simulada. |
+| Barra lateral desplegable | 1 prueba adicional dirigida aprobada en escritorio y móvil. |
+| Compilación frontend | Correcta; avisos existentes de tamaño de paquetes y compatibilidad de `fs`. |
+
+Los resultados proceden de ejecuciones anteriores observadas en esta
+conversación; no se presentan como una nueva ejecución conjunta de todas las
+pruebas. Las pruebas de API utilizan InMemory. La prueba de registro desde
+fotografía utiliza modelos locales reales y una imagen de prueba, con API
+simulada. Estas verificaciones no modificaron Supabase.
+
+**Validación documental actual:** Contraste con los archivos y resultados
+observados, y revisión de formato con `git diff --check`. No se volvieron a
+ejecutar las suites por tratarse de una actualización documental.
+
+**Estado de entrega:** Modificaciones disponibles en el directorio de trabajo;
+esta intervención no crea commits, sube cambios a GitHub ni realiza despliegues.

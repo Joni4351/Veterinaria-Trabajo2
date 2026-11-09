@@ -3,10 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { loginSchema } from '../schemas/authSchema';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { FacialLoginStep } from '../components/FacialLoginStep';
 import { HeartPulse, Lock, Mail, ShieldAlert, ArrowRight } from 'lucide-react';
 
 export const LoginView = () => {
-  const { login } = useAuth();
+  const { login, verifyFacial } = useAuth();
+  const [facial, setFacial] = useState(null);
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -40,8 +42,10 @@ export const LoginView = () => {
     setLoading(true);
 
     try {
-      await login(email, password);
-      navigate('/dashboard');
+      const result = await login(email, password);
+      setPassword('');
+      if (result?.requiresFacial) setFacial(result);
+      else navigate('/dashboard');
     } catch (err) {
       if (err.response?.status === 401) {
         setGlobalError('Credenciales incorrectas. Verifique su correo y contraseña.');
@@ -134,7 +138,8 @@ export const LoginView = () => {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} noValidate>
+        {facial ? <FacialLoginStep challenge={facial.challenge} expiresIn={facial.expiresIn} onVerify={verifyFacial}
+          onCancel={() => { setFacial(null); setPassword(''); setGlobalError(''); }} onSuccess={() => navigate('/dashboard')} /> : <form onSubmit={handleSubmit} noValidate>
           {/* Campo Email */}
           <div className="form-group">
             <label htmlFor={`${formId}-email`} className="form-label" style={{ color: 'var(--gray-700)' }}>
@@ -211,7 +216,7 @@ export const LoginView = () => {
               </>
             )}
           </button>
-        </form>
+        </form>}
 
 
       </div>

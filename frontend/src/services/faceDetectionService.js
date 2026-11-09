@@ -55,3 +55,17 @@ export async function analyzePhoto(image) {
     canvas.height = 0;
   }
 }
+
+export async function analyzeVideo(video) {
+  if (video.readyState < 2 || !video.videoWidth) throw new Error('Espere a que la cámara esté lista.');
+  const faceapi = await loadModels();
+  const faces = await faceapi.detectAllFaces(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+    .withFaceLandmarks().withFaceDescriptors();
+  if (faces.length !== 1) throw new Error('Debe aparecer exactamente un rostro frente a la cámara.');
+  const { detection, descriptor } = faces[0];
+  if (detection.score < 0.8 || Math.min(detection.box.width, detection.box.height) < 80)
+    throw new Error('Acérquese a la cámara y mejore la iluminación.');
+  const values = Array.from(descriptor);
+  if (values.length !== 128 || !values.every(Number.isFinite)) throw new Error('No se pudo analizar el rostro.');
+  return values;
+}

@@ -14,12 +14,12 @@ namespace VeterinariaAPI.Repositories
 
         public async Task<List<Usuario>> ObtenerTodosAsync()
         {
-            return await _db.Usuarios.Include(u => u.Rol).ToListAsync();
+            return await Query().ToListAsync();
         }
 
         public IQueryable<Usuario> Query()
         {
-            return _db.Usuarios.Include(u => u.Rol).AsQueryable();
+            return _db.Usuarios.Include(u => u.Rol).OrderBy(u => u.Id);
         }
 
         public async Task<Usuario?> ObtenerPorIdAsync(int id)

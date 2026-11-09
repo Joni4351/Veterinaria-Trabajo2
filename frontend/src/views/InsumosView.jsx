@@ -176,10 +176,7 @@ export const InsumosView = () => {
               <Package size={24} color="var(--teal-text)" />
               Gestión de Insumos y Medicamentos
             </h2>
-            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-              Control de inventario, stock y tarifas
-            </p>
-          </div>
+            </div>
           {canCreateOrEdit && (
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
               <Plus size={18} />

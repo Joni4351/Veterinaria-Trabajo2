@@ -180,10 +180,7 @@ export const ClientesView = () => {
               <Users size={24} color="var(--teal-text)" />
               Gestión de Clientes (Dueños de Pacientes)
             </h2>
-            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-              Búsqueda, validación estricta de RUT chileno (Módulo 11) y administración
-            </p>
-          </div>
+            </div>
           {canCreate && (
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
               <Plus size={18} />

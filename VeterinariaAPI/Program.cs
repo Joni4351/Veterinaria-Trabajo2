@@ -141,8 +141,12 @@ builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<FacialEncryptionService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<FacialLoginChallenges>();
 builder.Services.AddScoped<DemoSeederService>();
 builder.Services.AddScoped<DefaultRoleService>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<AuditOperation>();
 
 var rawConn = builder.Configuration.GetConnectionString("miconexion") ?? string.Empty;
 var npgsqlConn = rawConn;
@@ -275,6 +279,8 @@ app.MapConsultasApi();
 app.MapUsuariosApi();
 app.MapRegistroFacialApi();
 app.MapDatosPruebaApi();
+app.MapAuditoriaApi();
+app.MapLoginFacialApi();
 
 app.MapGet("/api/test-error", () =>
 {

@@ -301,6 +301,7 @@ button, input, select, textarea {
   min-width: 0;
   width: 100%;
   background-color: transparent;
+  transition: margin-left .3s cubic-bezier(.4, 0, .2, 1);
 }
 
 .topbar {
@@ -325,7 +326,7 @@ button, input, select, textarea {
   min-width: 0;
 }
 
-.mobile-menu-btn {
+.mobile-menu-btn, .sidebar-toggle-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -341,11 +342,13 @@ button, input, select, textarea {
   transition: all 0.2s;
 }
 
-.mobile-menu-btn:hover {
+.mobile-menu-btn:hover, .sidebar-toggle-btn:hover {
   background: var(--gray-100);
   color: var(--primary);
   border-color: var(--primary-border);
 }
+.sidebar-toggle-btn:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 3px; }
+.sidebar-toggle-btn { flex-shrink: 0; }
 
 .topbar-title {
   font-size: 1.15rem;
@@ -666,25 +669,26 @@ button, input, select, textarea {
   border-collapse: separate;
   border-spacing: 0;
   text-align: left;
+  background: var(--bg-card);
 }
 
 .custom-table th {
   background-color: var(--primary-light);
   color: var(--teal-text);
   font-weight: 700;
-  font-size: 0.78rem;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  padding: 0.85rem 1.15rem;
+  letter-spacing: 0.6px;
+  padding: 13px 20px;
   border-bottom: 1px solid var(--primary-border);
   white-space: nowrap;
 }
 
 .custom-table td {
-  padding: 0.85rem 1.15rem;
-  font-size: 0.92rem;
+  padding: 15px 20px;
+  font-size: 12px;
   color: var(--gray-800);
-  border-bottom: 1px solid var(--gray-100);
+  border-bottom: 1px solid var(--border-color);
   vertical-align: middle;
 }
 
@@ -693,8 +697,43 @@ button, input, select, textarea {
 }
 
 .custom-table tr:hover td {
-  background-color: var(--gray-50);
+  background-color: var(--bg-card-hover);
 }
+
+.custom-table td strong { font-weight: 600; }
+.custom-table .badge {
+  font-size: 10px;
+  line-height: 1.4;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+.custom-table .badge-primary, .custom-table .badge-secondary {
+  background: var(--primary-light);
+  color: var(--teal-text);
+  border: 1px solid var(--primary-border);
+}
+.custom-table .btn-icon {
+  width: 30px;
+  height: 28px;
+  min-width: 30px;
+  min-height: 28px;
+  padding: 5px;
+  border-radius: 999px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-card);
+  color: var(--gray-600);
+  margin-left: 4px;
+}
+.custom-table .btn-icon svg { width: 14px; height: 14px; }
+.custom-table .btn-icon:hover, .custom-table .btn-icon:focus-visible {
+  background: var(--primary-light);
+  color: var(--teal-text);
+  border-color: var(--primary-border);
+}
+.custom-table .btn-icon.danger { color: var(--danger-text); border-color: var(--danger-border); }
+.custom-table .btn-icon.danger:hover { background: var(--danger-light); }
+.custom-table .btn-sm { font-size: 11px; border-radius: 999px; padding: 5px 10px; }
 
 /* ==========================================================================
    TRANSFORMACIÓN EN TARJETAS (MOBILE <= 768px)
@@ -735,7 +774,7 @@ button, input, select, textarea {
     padding: 0.65rem 0;
     border-bottom: 1px dashed var(--border-color);
     text-align: right;
-    font-size: 0.92rem;
+    font-size: 12px;
     gap: 0.75rem;
     min-height: 40px;
   }
@@ -747,6 +786,7 @@ button, input, select, textarea {
     justify-content: flex-end;
     gap: 0.5rem;
   }
+  .custom-table .btn-icon { width: 44px; height: 44px; min-width: 44px; min-height: 44px; }
 }
 
 /* ==========================================================================
@@ -953,6 +993,8 @@ button, input, select, textarea {
   .main-wrapper {
     margin-left: 275px;
   }
+  .sidebar-collapsed .sidebar { transform: translateX(-100%); }
+  .sidebar-collapsed .main-wrapper { margin-left: 0; }
 
   .mobile-menu-btn {
     display: none;
@@ -961,6 +1003,10 @@ button, input, select, textarea {
   .topbar-status {
     display: inline-block;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .main-wrapper { transition: none; }
 }
 
 @media (max-width: 768px) {

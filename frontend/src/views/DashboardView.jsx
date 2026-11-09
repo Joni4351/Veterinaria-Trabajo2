@@ -143,18 +143,6 @@ export const DashboardView = ({ onNavigate }) => {
               ¡Bienvenido al <span style={{ color: '#0d9488' }}>Portal Clínico</span>!
             </h1>
 
-            <p
-              style={{
-                fontSize: '1rem',
-                color: 'var(--gray-600)',
-                lineHeight: 1.6,
-                maxWidth: '560px',
-              }}
-            >
-              Gestiona historias clínicas, agenda consultas y cuida la salud de cada mascota
-              con una plataforma ágil, segura y diseñada para tu equipo.
-            </p>
-
             {/* Botones de Acción Amigables */}
             <div
               style={{
@@ -250,10 +238,7 @@ export const DashboardView = ({ onNavigate }) => {
             <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--gray-900)', letterSpacing: '-0.02em' }}>
               Resumen Clínico y Operativo
             </h2>
-            <p style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>
-              Métricas sincronizadas en tiempo real con la base de datos de la clínica.
-            </p>
-          </div>
+            </div>
         </div>
 
         {/* Grid de Métricas */}

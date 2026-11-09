@@ -398,10 +398,7 @@ export const ConsultasView = () => {
               <Stethoscope size={24} color="#10b981" />
               Historial de Consultas Médicas y Diagnósticos
             </h2>
-            <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-              Filtros directos a `/api/v1/consultas` por paciente, cita, motivo clínico o diagnóstico
-            </p>
-          </div>
+            </div>
           {canCreateOrEdit && (
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
               <Plus size={18} />
