@@ -24,7 +24,7 @@ namespace VeterinariaAPI.Endpoints
                 int? rolId,
                 IUsuarioRepository repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (!string.IsNullOrWhiteSpace(nombre))
                 {
@@ -41,15 +41,13 @@ namespace VeterinariaAPI.Endpoints
                     query = query.Where(u => u.RolId == rolId.Value);
                 }
 
-                var listaUsuarios = await query.ToListAsync();
-
-                var respuesta = listaUsuarios.Select(u => new
+                var respuesta = await query.Select(u => new
                 {
                     u.Id,
                     u.NombreCompleto,
                     u.Email,
                     Rol = u.Rol != null ? u.Rol.Nombre : "Sin Rol"
-                });
+                }).ToListAsync();
 
                 return Results.Ok(respuesta);
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));

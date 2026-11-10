@@ -1,3 +1,7 @@
+import { normalizeFieldErrors } from '../services/apiErrors';
+import { AccessibleDialog } from "../components/AccessibleDialog";
+import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { notifySuccess } from '../services/notifications';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -135,14 +139,15 @@ export const ClientesView = () => {
       } else {
         await api.post('/api/v1/clientes', formData);
       }
+      notifySuccess(editingId ? 'Cliente actualizado correctamente.' : 'Cliente registrado correctamente.');
       setIsModalOpen(false);
       fetchClientes();
     } catch (err) {
       if (err.response?.data?.errors) {
-        setFieldErrors(err.response.data.errors);
+        setFieldErrors(normalizeFieldErrors(err.response.data.errors));
         setError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setError(err.response?.data?.message || 'Error al guardar los datos del cliente en el servidor.');
+        setError(err.userMessage || err.response?.data?.message || 'Error al guardar los datos del cliente en el servidor.');
       }
     } finally {
       setSubmitting(false);
@@ -163,10 +168,11 @@ export const ClientesView = () => {
     setDeleteConfirm((prev) => ({ ...prev, loading: true }));
     try {
       await api.delete(`/api/v1/clientes/${deleteConfirm.id}`);
+      notifySuccess('Cliente eliminado correctamente.');
       setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false });
       fetchClientes();
     } catch (err) {
-      alert(err.response?.data?.message || 'Error al eliminar cliente. Verifique que no tenga mascotas o facturas registradas.');
+      alert(err.userMessage || err.response?.data?.message || 'Error al eliminar cliente. Verifique que no tenga mascotas o facturas registradas.');
       setDeleteConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
@@ -196,8 +202,8 @@ export const ClientesView = () => {
           </div>
           <div className="filter-grid">
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>RUT / Documento</label>
-              <input
+              <label htmlFor="clientes-field-0" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>RUT / Documento</label>
+              <input id="clientes-field-0"
                 type="text"
                 className="form-input"
                 placeholder="Filtrar por RUT..."
@@ -206,8 +212,8 @@ export const ClientesView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Nombre Completo</label>
-              <input
+              <label htmlFor="clientes-field-1" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Nombre Completo</label>
+              <input id="clientes-field-1"
                 type="text"
                 className="form-input"
                 placeholder="Filtrar por nombre..."
@@ -216,8 +222,8 @@ export const ClientesView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Correo Electrónico</label>
-              <input
+              <label htmlFor="clientes-field-2" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Correo Electrónico</label>
+              <input id="clientes-field-2"
                 type="text"
                 className="form-input"
                 placeholder="Filtrar por email..."
@@ -226,8 +232,8 @@ export const ClientesView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Teléfono</label>
-              <input
+              <label htmlFor="clientes-field-3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Teléfono</label>
+              <input id="clientes-field-3"
                 type="text"
                 className="form-input"
                 placeholder="Filtrar por teléfono..."
@@ -308,12 +314,12 @@ export const ClientesView = () => {
 
       {/* Modal de Creación / Edición con Validación (Estructura de Tarjetas Visuales) */}
       {isModalOpen && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-cliente-title">
+        <AccessibleDialog className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-cliente-title" aria-label="Cliente" onClose={submitting ? undefined : () => setIsModalOpen(false)}>
           <div className="modal-content" style={{ maxWidth: '580px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera */}
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : 'var(--success-text)', flexShrink: 0 }}>
                   <Users size={22} />
                 </div>
                 <div>
@@ -330,7 +336,7 @@ export const ClientesView = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate>
+            <AccessibleForm onSubmit={handleSubmit} noValidate>
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {error && (
                   <div className="alert alert-danger" role="alert">
@@ -341,7 +347,7 @@ export const ClientesView = () => {
 
                 <div className="form-group">
                   <label htmlFor="cliente-documento" className="form-label">
-                    RUT Chileno (con dígito verificador) <span style={{ color: '#ef4444' }}>*</span>
+                    RUT Chileno (con dígito verificador) <RequiredIndicator />
                   </label>
                   <input
                     id="cliente-documento"
@@ -353,10 +359,10 @@ export const ClientesView = () => {
                     onChange={handleRutChange}
                     onBlur={handleRutBlur}
                     aria-invalid={!!fieldErrors.documentoIdentidad}
-                    aria-describedby={fieldErrors.documentoIdentidad ? 'error-documentoIdentidad' : 'hint-rut'}
+                    aria-describedby={fieldErrors.documentoIdentidad ? 'error-documentoIdentidad' : 'hint-rut'} required
                   />
                   {fieldErrors.documentoIdentidad ? (
-                    <span id="error-documentoIdentidad" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id="error-documentoIdentidad" className="form-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                       {Array.isArray(fieldErrors.documentoIdentidad) ? fieldErrors.documentoIdentidad[0] : fieldErrors.documentoIdentidad}
                     </span>
                   ) : (
@@ -368,7 +374,7 @@ export const ClientesView = () => {
 
                 <div className="form-group">
                   <label htmlFor="cliente-nombre" className="form-label">
-                    Nombre Completo <span style={{ color: '#ef4444' }}>*</span>
+                    Nombre Completo <RequiredIndicator />
                   </label>
                   <input
                     id="cliente-nombre"
@@ -382,10 +388,10 @@ export const ClientesView = () => {
                       if (fieldErrors.nombreCompleto) setFieldErrors({ ...fieldErrors, nombreCompleto: null });
                     }}
                     aria-invalid={!!fieldErrors.nombreCompleto}
-                    aria-describedby={fieldErrors.nombreCompleto ? 'error-nombreCompleto' : undefined}
+                    aria-describedby={fieldErrors.nombreCompleto ? 'error-nombreCompleto' : undefined} required
                   />
                   {fieldErrors.nombreCompleto && (
-                    <span id="error-nombreCompleto" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id="error-nombreCompleto" className="form-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                       {Array.isArray(fieldErrors.nombreCompleto) ? fieldErrors.nombreCompleto[0] : fieldErrors.nombreCompleto}
                     </span>
                   )}
@@ -394,7 +400,7 @@ export const ClientesView = () => {
                 <div className="form-grid">
                   <div className="form-group">
                     <label htmlFor="cliente-telefono" className="form-label">
-                      Teléfono de Contacto <span style={{ color: '#ef4444' }}>*</span>
+                      Teléfono de Contacto <RequiredIndicator />
                     </label>
                     <input
                       id="cliente-telefono"
@@ -407,10 +413,10 @@ export const ClientesView = () => {
                         if (fieldErrors.telefono) setFieldErrors({ ...fieldErrors, telefono: null });
                       }}
                       aria-invalid={!!fieldErrors.telefono}
-                      aria-describedby={fieldErrors.telefono ? 'error-telefono' : undefined}
+                      aria-describedby={fieldErrors.telefono ? 'error-telefono' : undefined} required
                     />
                     {fieldErrors.telefono && (
-                      <span id="error-telefono" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id="error-telefono" className="form-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                         {Array.isArray(fieldErrors.telefono) ? fieldErrors.telefono[0] : fieldErrors.telefono}
                       </span>
                     )}
@@ -418,7 +424,7 @@ export const ClientesView = () => {
 
                   <div className="form-group">
                     <label htmlFor="cliente-email" className="form-label">
-                      Correo Electrónico <span style={{ color: '#ef4444' }}>*</span>
+                      Correo Electrónico <RequiredIndicator />
                     </label>
                     <input
                       id="cliente-email"
@@ -431,10 +437,10 @@ export const ClientesView = () => {
                         if (fieldErrors.email) setFieldErrors({ ...fieldErrors, email: null });
                       }}
                       aria-invalid={!!fieldErrors.email}
-                      aria-describedby={fieldErrors.email ? 'error-email' : undefined}
+                      aria-describedby={fieldErrors.email ? 'error-email' : undefined} required
                     />
                     {fieldErrors.email && (
-                      <span id="error-email" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id="error-email" className="form-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                         {Array.isArray(fieldErrors.email) ? fieldErrors.email[0] : fieldErrors.email}
                       </span>
                     )}
@@ -451,9 +457,9 @@ export const ClientesView = () => {
                   {submitting ? 'Guardando...' : (editingId ? 'Guardar Cambios' : 'Registrar Cliente')}
                 </button>
               </div>
-            </form>
+            </AccessibleForm>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Modal de confirmación accesible para eliminar cliente */}

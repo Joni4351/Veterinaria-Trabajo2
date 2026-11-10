@@ -33,55 +33,31 @@ export const DashboardView = ({ onNavigate }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
+    const controller = new AbortController();
+    fetchDashboardData(controller.signal);
+    return () => controller.abort();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = async (signal) => {
     try {
-      const [pacRes, cliRes, citRes, facRes, insRes, conRes] = await Promise.allSettled([
-        api.get('/api/v1/pacientes'),
-        api.get('/api/v1/clientes'),
-        api.get('/api/v1/citas'),
-        api.get('/api/v1/facturas'),
-        api.get('/api/v1/insumos'),
-        api.get('/api/v1/consultas')
-      ]);
-
-      const pacientes = pacRes.status === 'fulfilled' ? pacRes.value.data : [];
-      const clientes = cliRes.status === 'fulfilled' ? cliRes.value.data : [];
-      const citas = citRes.status === 'fulfilled' ? citRes.value.data : [];
-      const facturas = facRes.status === 'fulfilled' ? facRes.value.data : [];
-      const insumos = insRes.status === 'fulfilled' ? insRes.value.data : [];
-      const consultas = conRes.status === 'fulfilled' ? conRes.value.data : [];
-
-      setStats({
-        pacientes: Array.isArray(pacientes) ? pacientes.length : 0,
-        clientes: Array.isArray(clientes) ? clientes.length : 0,
-        citas: Array.isArray(citas) ? citas.length : 0,
-        facturas: Array.isArray(facturas) ? facturas.length : 0,
-        insumos: Array.isArray(insumos) ? insumos.length : 0,
-        consultas: Array.isArray(consultas) ? consultas.length : 0
-      });
-
-      if (Array.isArray(citas)) {
-        setCitasRecientes(citas.slice(0, 5));
-      }
-      if (Array.isArray(insumos)) {
-        setInsumosBajoStock(insumos.filter(i => (i.stockActual || 0) <= 10).slice(0, 5));
-      }
+      const { data } = await api.get('/api/v1/dashboard', { signal });
+      if (signal?.aborted) return;
+      setStats(data.estadisticas || { pacientes: 0, clientes: 0, citas: 0, facturas: 0, insumos: 0, consultas: 0 });
+      setCitasRecientes(data.citasRecientes || []);
+      setInsumosBajoStock(data.insumosBajoStock || []);
     } catch (err) {
-      console.error("Error cargando dashboard:", err);
+      if (!signal?.aborted) console.error("Error cargando dashboard:", err);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
   };
 
   const statCards = [
-    { label: 'Pacientes Registrados', val: stats.pacientes, icon: Dog, color: '#0d9488', bg: 'var(--primary-light)', border: 'var(--primary-border)', nav: 'pacientes' },
-    { label: 'Clientes / Dueños', val: stats.clientes, icon: Users, color: '#0284c7', bg: 'var(--secondary-light)', border: 'var(--secondary-light)', nav: 'clientes' },
-    { label: 'Citas Médicas', val: stats.citas, icon: Calendar, color: '#7c3aed', bg: '#f5f3ff', border: '#ede9fe', nav: 'citas' },
-    { label: 'Consultas Realizadas', val: stats.consultas, icon: Stethoscope, color: '#059669', bg: 'var(--success-light)', border: 'var(--success-light)', nav: 'consultas' },
-    { label: 'Facturas Emitidas', val: stats.facturas, icon: DollarSign, color: '#d97706', bg: 'var(--warning-light)', border: 'var(--warning-light)', nav: 'facturas' },
+    { label: 'Pacientes Registrados', val: stats.pacientes, icon: Dog, color: 'var(--teal-text)', bg: 'var(--primary-light)', border: 'var(--primary-border)', nav: 'pacientes' },
+    { label: 'Clientes / Dueños', val: stats.clientes, icon: Users, color: 'var(--blue-text)', bg: 'var(--secondary-light)', border: 'var(--secondary-light)', nav: 'clientes' },
+    { label: 'Citas Médicas', val: stats.citas, icon: Calendar, color: 'var(--violet-text)', bg: '#f5f3ff', border: '#ede9fe', nav: 'citas' },
+    { label: 'Consultas Realizadas', val: stats.consultas, icon: Stethoscope, color: 'var(--success-text)', bg: 'var(--success-light)', border: 'var(--success-light)', nav: 'consultas' },
+    { label: 'Facturas Emitidas', val: stats.facturas, icon: DollarSign, color: 'var(--warning-text)', bg: 'var(--warning-light)', border: 'var(--warning-light)', nav: 'facturas' },
     { label: 'Insumos en Inventario', val: stats.insumos, icon: Package, color: '#db2777', bg: '#fdf2f8', border: '#fce7f3', nav: 'insumos' }
   ];
 
@@ -104,7 +80,7 @@ export const DashboardView = ({ onNavigate }) => {
         <div
           style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
             gap: '2.5rem',
             alignItems: 'center',
           }}
@@ -127,7 +103,7 @@ export const DashboardView = ({ onNavigate }) => {
                 alignSelf: 'flex-start',
               }}
             >
-              <Heart size={14} fill="#0d9488" color="#0d9488" />
+              <Heart size={14} fill="#0d9488" color="var(--teal-text)" />
               <span>SISTEMA CLÍNICO VETERINARIO PROFESIONAL</span>
             </div>
 
@@ -140,7 +116,7 @@ export const DashboardView = ({ onNavigate }) => {
                 letterSpacing: '-0.02em',
               }}
             >
-              ¡Bienvenido al <span style={{ color: '#0d9488' }}>Portal Clínico</span>!
+              ¡Bienvenido al <span style={{ color: 'var(--teal-text)' }}>Portal Clínico</span>!
             </h1>
 
             {/* Botones de Acción Amigables */}
@@ -183,7 +159,7 @@ export const DashboardView = ({ onNavigate }) => {
                   borderRadius: '999px',
                 }}
               >
-                <Calendar size={18} color="#0d9488" />
+                <Calendar size={18} color="var(--teal-text)" />
                 <span>Agenda de Citas</span>
                 <ChevronRight size={16} />
               </button>
@@ -205,7 +181,7 @@ export const DashboardView = ({ onNavigate }) => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <CheckCircle2 size={16} color="#0d9488" />
+                <CheckCircle2 size={16} color="var(--teal-text)" />
                 <span>Base de Datos SQL Server Activa</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -252,7 +228,7 @@ export const DashboardView = ({ onNavigate }) => {
                 onClick={() => handleNav(c.nav)}
                 role="button"
                 tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleNav(c.nav); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleNav(c.nav); } }}
                 style={{
                   cursor: 'pointer',
                   background: 'var(--bg-surface)',
@@ -288,7 +264,7 @@ export const DashboardView = ({ onNavigate }) => {
       <div 
         style={{ 
           display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))',
           gap: '1.5rem' 
         }}
       >
@@ -296,7 +272,7 @@ export const DashboardView = ({ onNavigate }) => {
         <div className="card">
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: 'var(--gray-900)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Clock size={18} color="#0d9488" />
+              <Clock size={18} color="var(--teal-text)" />
               Próximas Citas Médicas
             </h3>
             <button 
@@ -310,7 +286,7 @@ export const DashboardView = ({ onNavigate }) => {
 
           {citasRecientes.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--gray-400)' }}>
-              <Calendar size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: '#0d9488' }} />
+              <Calendar size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: 'var(--teal-text)' }} />
               <p style={{ fontSize: '0.9rem' }}>No hay citas agendadas actualmente en el sistema.</p>
             </div>
           ) : (
@@ -338,7 +314,7 @@ export const DashboardView = ({ onNavigate }) => {
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      color: '#0d9488'
+                      color: 'var(--teal-text)'
                     }}>
                       <Dog size={18} />
                     </div>
@@ -380,7 +356,7 @@ export const DashboardView = ({ onNavigate }) => {
 
           {insumosBajoStock.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--gray-400)' }}>
-              <Package size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: '#0d9488' }} />
+              <Package size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: 'var(--teal-text)' }} />
               <p style={{ fontSize: '0.9rem' }}>Todos los medicamentos y suministros tienen stock suficiente.</p>
             </div>
           ) : (

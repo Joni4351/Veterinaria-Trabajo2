@@ -1,3 +1,7 @@
+import { normalizeFieldErrors } from '../services/apiErrors';
+import { AccessibleDialog } from "../components/AccessibleDialog";
+import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { notifySuccess } from '../services/notifications';
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -415,14 +419,16 @@ export const FacturasView = () => {
       } else {
         await api.post('/api/v1/facturas', payload);
       }
+      notifySuccess(editingId ? 'Factura actualizada correctamente.' : 'Factura registrada correctamente.');
       setIsModalOpen(false);
       fetchFacturas();
       fetchAuxiliares(); // Refresca stock de inventario descontado
     } catch (err) {
       if (err.response?.data?.errors) {
+        setFieldErrors(normalizeFieldErrors(err.response.data.errors));
         setError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setError(err.response?.data?.message || 'Error al procesar la factura.');
+        setError(err.userMessage || err.response?.data?.message || 'Error al procesar la factura.');
       }
     }
   };
@@ -435,11 +441,12 @@ export const FacturasView = () => {
     setDeleteConfirm(prev => ({ ...prev, loading: true }));
     try {
       await api.delete(`/api/v1/facturas/${deleteConfirm.id}`);
+      notifySuccess('Factura eliminada correctamente.');
       setDeleteConfirm({ isOpen: false, id: null, loading: false });
       fetchFacturas();
     } catch (err) {
       setDeleteConfirm(prev => ({ ...prev, loading: false }));
-      alert(err.response?.data?.message || 'Error al eliminar factura.');
+      alert(err.userMessage || err.response?.data?.message || 'Error al eliminar factura.');
     }
   };
 
@@ -489,13 +496,15 @@ export const FacturasView = () => {
       };
 
       await api.post('/api/v1/detallefac', payload);
+      notifySuccess('Detalle de factura registrado correctamente.');
       const res = await api.get('/api/v1/detallefac', { params: { facturaId: selectedFactura.id } });
       setDetalles(res.data || []);
     } catch (err) {
       if (err.response?.data?.errors) {
+        setDetalleFieldErrors(normalizeFieldErrors(err.response.data.errors));
         setDetalleError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setDetalleError(err.response?.data?.message || 'Error al agregar ítem a la factura.');
+        setDetalleError(err.userMessage || err.response?.data?.message || 'Error al agregar ítem a la factura.');
       }
     }
   };
@@ -508,6 +517,7 @@ export const FacturasView = () => {
     setDeleteDetalleConfirm(prev => ({ ...prev, loading: true }));
     try {
       await api.delete(`/api/v1/detallefac/${deleteDetalleConfirm.id}`);
+      notifySuccess('Detalle de factura eliminado correctamente.');
       const res = await api.get('/api/v1/detallefac', { params: { facturaId: selectedFactura.id } });
       setDetalles(res.data || []);
       setDeleteDetalleConfirm({ isOpen: false, id: null, loading: false });
@@ -546,8 +556,8 @@ export const FacturasView = () => {
           </div>
           <div className="filter-grid">
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Dueño / Cliente (Buscar por RUT o Nombre)</label>
-              <input
+              <label htmlFor="facturas-field-0" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Dueño / Cliente (Buscar por RUT o Nombre)</label>
+              <input id="facturas-field-0"
                 type="text"
                 className="form-input"
                 placeholder="RUT o Nombre del cliente..."
@@ -557,8 +567,8 @@ export const FacturasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Cliente</label>
-              <select
+              <label htmlFor="facturas-field-1" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Cliente</label>
+              <select id="facturas-field-1"
                 className="form-select"
                 value={filters.clienteId}
                 onChange={(e) => setFilters({ ...filters, clienteId: e.target.value })}
@@ -571,8 +581,8 @@ export const FacturasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Desde Fecha</label>
-              <input
+              <label htmlFor="facturas-field-2" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Desde Fecha</label>
+              <input id="facturas-field-2"
                 type="date"
                 className="form-input"
                 value={filters.fechaDesde}
@@ -581,8 +591,8 @@ export const FacturasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Hasta Fecha</label>
-              <input
+              <label htmlFor="facturas-field-3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Hasta Fecha</label>
+              <input id="facturas-field-3"
                 type="date"
                 className="form-input"
                 value={filters.fechaHasta}
@@ -591,8 +601,8 @@ export const FacturasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Monto Min ($)</label>
-              <input
+              <label htmlFor="facturas-field-4" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Monto Min ($)</label>
+              <input id="facturas-field-4"
                 type="number"
                 className="form-input"
                 placeholder="0"
@@ -602,8 +612,8 @@ export const FacturasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Monto Max ($)</label>
-              <input
+              <label htmlFor="facturas-field-5" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Monto Max ($)</label>
+              <input id="facturas-field-5"
                 type="number"
                 className="form-input"
                 placeholder="Sin límite"
@@ -673,7 +683,7 @@ export const FacturasView = () => {
                         <td data-label="Fecha Emisión">{typeof f.fechaEmision === 'string' ? f.fechaEmision : (f.fechaEmision ? String(f.fechaEmision) : '—')}</td>
                         <td data-label="Impuestos">${Number(f.montoImpuestos || 0).toFixed(2)}</td>
                         <td data-label="Total">
-                          <strong style={{ color: '#16a34a', fontSize: '1rem' }}>
+                          <strong style={{ color: 'var(--success-text)', fontSize: '1rem' }}>
                             ${Number(f.montoTotal || 0).toFixed(2)}
                           </strong>
                         </td>
@@ -717,12 +727,12 @@ export const FacturasView = () => {
         const selectedInsumo = insumos.find(i => i.id === Number(selectedInsumoId));
 
         return (
-          <div className="modal-overlay">
+          <AccessibleDialog className="modal-overlay" aria-label="Factura" onClose={() => setIsModalOpen(false)}>
             <div className="modal-content" style={{ maxWidth: '840px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
               {/* Tarjeta Visual Cabecera */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                  <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : 'var(--success-text)', flexShrink: 0 }}>
                     <DollarSign size={24} />
                   </div>
                   <div>
@@ -739,7 +749,7 @@ export const FacturasView = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} noValidate>
+              <AccessibleForm onSubmit={handleSubmit} noValidate>
                 <div className="modal-body" style={{ maxHeight: '78vh', overflowY: 'auto', padding: 0 }}>
                   {error && (
                     <div className="alert alert-danger" role="alert" style={{ marginBottom: '0.85rem' }}>
@@ -758,7 +768,7 @@ export const FacturasView = () => {
                   {/* 1. Datos Generales de la Factura (Tarjeta Visual) */}
                   <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                      <FileText size={18} color="#0d9488" />
+                      <FileText size={18} color="var(--teal-text)" />
                       <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                         1. Información Principal del Cliente y Fecha
                       </h4>
@@ -767,8 +777,7 @@ export const FacturasView = () => {
                     <div className="form-grid">
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label className="form-label" htmlFor="factura-cliente" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
-                          Cliente Facturado *
-                        </label>
+                          Cliente Facturado <RequiredIndicator /></label>
                         <select
                           id="factura-cliente"
                           className={`form-select ${fieldErrors.clienteId ? 'border-red-500' : ''}`}
@@ -778,7 +787,7 @@ export const FacturasView = () => {
                             if (fieldErrors.clienteId) setFieldErrors(prev => ({ ...prev, clienteId: null }));
                           }}
                           aria-invalid={!!fieldErrors.clienteId}
-                          aria-describedby={fieldErrors.clienteId ? 'factura-cliente-error' : undefined}
+                          aria-describedby={fieldErrors.clienteId ? 'factura-cliente-error' : undefined} required
                         >
                           <option value="">Seleccione cliente...</option>
                           {clientes.map(c => (
@@ -788,7 +797,7 @@ export const FacturasView = () => {
                           ))}
                         </select>
                         {fieldErrors.clienteId && (
-                          <span id="factura-cliente-error" role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                          <span id="factura-cliente-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                             {fieldErrors.clienteId}
                           </span>
                         )}
@@ -796,8 +805,7 @@ export const FacturasView = () => {
 
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label className="form-label" htmlFor="factura-fecha" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
-                          Fecha de Emisión *
-                        </label>
+                          Fecha de Emisión <RequiredIndicator /></label>
                         <input
                           id="factura-fecha"
                           type="date"
@@ -808,10 +816,10 @@ export const FacturasView = () => {
                             if (fieldErrors.fechaEmision) setFieldErrors(prev => ({ ...prev, fechaEmision: null }));
                           }}
                           aria-invalid={!!fieldErrors.fechaEmision}
-                          aria-describedby={fieldErrors.fechaEmision ? 'factura-fecha-error' : undefined}
+                          aria-describedby={fieldErrors.fechaEmision ? 'factura-fecha-error' : undefined} required
                         />
                         {fieldErrors.fechaEmision && (
-                          <span id="factura-fecha-error" role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                          <span id="factura-fecha-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                             {fieldErrors.fechaEmision}
                           </span>
                         )}
@@ -822,7 +830,7 @@ export const FacturasView = () => {
                   {/* 2. Sección: Selección de Cita Médica de la Agenda (Tarjeta Visual) */}
                   <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--info-border)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
-                      <Calendar size={18} color="#0284c7" />
+                      <Calendar size={18} color="var(--blue-text)" />
                       <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                         2. Selección de Cita Médica Registrada (Agenda de Citas)
                       </h4>
@@ -833,7 +841,7 @@ export const FacturasView = () => {
 
                     <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                       <select
-                        id="select-tipo-cita"
+                        id="select-tipo-cita" aria-label="Cita médica para agregar a la factura"
                         className="form-select"
                         value={selectedCitaId}
                         disabled={tieneCitaSeleccionada}
@@ -875,7 +883,7 @@ export const FacturasView = () => {
                     </div>
 
                     {tieneCitaSeleccionada && (
-                      <div style={{ marginTop: '0.6rem', padding: '0.5rem 0.75rem', background: 'var(--secondary-light)', border: '1px solid #bfdbfe', borderRadius: '0.375rem', fontSize: '0.8rem', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                      <div style={{ marginTop: '0.6rem', padding: '0.5rem 0.75rem', background: 'var(--secondary-light)', border: '1px solid #bfdbfe', borderRadius: '0.375rem', fontSize: '0.8rem', color: 'var(--blue-text)', display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
                         <AlertCircle size={15} />
                         <span>
                           Ya se ha seleccionado una cita médica para esta factura. Para seleccionar una cita diferente, quítela primero de la tabla de detalle.
@@ -898,7 +906,7 @@ export const FacturasView = () => {
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 130px auto', gap: '0.75rem', alignItems: 'end' }}>
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
+                        <label htmlFor="select-insumo" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
                           Insumo disponible
                         </label>
                         <select
@@ -921,10 +929,10 @@ export const FacturasView = () => {
                       </div>
 
                       <div>
-                        <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
+                        <label htmlFor="facturas-field-6" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
                           Cantidad {selectedInsumo ? `(Máx: ${selectedInsumo.stockActual})` : ''}
                         </label>
-                        <input
+                        <input id="facturas-field-6"
                           type="number"
                           min="1"
                           max={selectedInsumo?.stockActual || 999}
@@ -950,7 +958,7 @@ export const FacturasView = () => {
                     </div>
 
                     {selectedInsumo && insumoCantidad > selectedInsumo.stockActual && (
-                      <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.4rem', display: 'block', fontWeight: 600 }}>
+                      <span role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.4rem', display: 'block', fontWeight: 600 }}>
                         Stock insuficiente. Solo quedan {selectedInsumo.stockActual} unidades disponibles en inventario.
                       </span>
                     )}
@@ -966,7 +974,7 @@ export const FacturasView = () => {
                         </h4>
                       </div>
                       {itemsFactura.length > 0 && (
-                        <span style={{ fontSize: '0.82rem', color: '#0d9488', fontWeight: 700, background: 'var(--primary-light)', border: '1px solid var(--primary-border)', padding: '0.25rem 0.65rem', borderRadius: '9999px' }}>
+                        <span style={{ fontSize: '0.82rem', color: 'var(--teal-text)', fontWeight: 700, background: 'var(--primary-light)', border: '1px solid var(--primary-border)', padding: '0.25rem 0.65rem', borderRadius: '9999px' }}>
                           Subtotal Neto: ${Number(subtotalNeto).toLocaleString('es-CL')} CLP
                         </span>
                       )}
@@ -998,7 +1006,7 @@ export const FacturasView = () => {
                                       Cita Médica
                                     </span>
                                   ) : (
-                                    <span style={{ background: 'var(--success-light)', color: '#15803d', padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                                    <span style={{ background: 'var(--success-light)', color: 'var(--success-text)', padding: '0.2rem 0.55rem', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
                                       Insumo / Fármaco
                                     </span>
                                   )}
@@ -1100,7 +1108,7 @@ export const FacturasView = () => {
                       </div>
 
                       <div style={{ background: 'var(--success-light)', border: '1px solid #bbf7d0', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: '#15803d', display: 'block', fontWeight: 600 }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--success-text)', display: 'block', fontWeight: 600 }}>
                           TOTAL FINAL A COBRAR
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
@@ -1110,12 +1118,12 @@ export const FacturasView = () => {
                             className={`form-input ${fieldErrors.montoTotal ? 'border-red-500' : ''}`}
                             value={formData.montoTotal}
                             readOnly
-                            style={{ backgroundColor: 'var(--bg-surface)', cursor: 'not-allowed', color: '#15803d', fontWeight: 800, fontSize: '1.05rem', maxWidth: '160px', border: '1px solid #86efac' }}
+                            style={{ backgroundColor: 'var(--bg-surface)', cursor: 'not-allowed', color: 'var(--success-text)', fontWeight: 800, fontSize: '1.05rem', maxWidth: '160px', border: '1px solid #86efac' }}
                             title="Total = Subtotal Neto + IVA (19%)"
                           />
                         </div>
                         {fieldErrors.montoTotal && (
-                          <span role="alert" style={{ color: '#ef4444', fontSize: '0.75rem', marginTop: '0.2rem', display: 'block' }}>
+                          <span role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.75rem', marginTop: '0.2rem', display: 'block' }}>
                             {fieldErrors.montoTotal}
                           </span>
                         )}
@@ -1142,20 +1150,20 @@ export const FacturasView = () => {
                     {editingId ? 'Actualizar Factura' : 'Confirmar y Emitir Factura'}
                   </button>
                 </div>
-              </form>
+              </AccessibleForm>
             </div>
-          </div>
+          </AccessibleDialog>
         );
       })()}
 
       {/* Modal Detalles de Factura */}
       {isDetalleModalOpen && selectedFactura && (
-        <div className="modal-overlay">
+        <AccessibleDialog className="modal-overlay" aria-label="Detalles de la factura" onClose={() => setIsDetalleModalOpen(false)}>
           <div className="modal-content" style={{ maxWidth: '780px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera de Detalles */}
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '10px', background: 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--success-text)', flexShrink: 0 }}>
                   <FileText size={24} />
                 </div>
                 <div>
@@ -1183,15 +1191,15 @@ export const FacturasView = () => {
               {/* Tarjeta Visual: Añadir Ítem / Concepto al Detalle */}
               <div style={{ background: 'var(--bg-surface)', padding: '1.1rem 1.35rem', borderRadius: '0.85rem', marginBottom: '0.85rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  <Plus size={18} color="#0d9488" />
+                  <Plus size={18} color="var(--teal-text)" />
                   <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                     Añadir Ítem / Concepto al Detalle
                   </h4>
                 </div>
 
-                <form onSubmit={handleAgregarDetalle} noValidate style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem', alignItems: 'end' }}>
+                <AccessibleForm onSubmit={handleAgregarDetalle} noValidate style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem', alignItems: 'end' }}>
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="detalle-tipo" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Tipo</label>
+                    <label className="form-label" htmlFor="detalle-tipo" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Tipo <RequiredIndicator /></label>
                     <select
                       id="detalle-tipo"
                       className="form-select"
@@ -1199,7 +1207,7 @@ export const FacturasView = () => {
                       onChange={(e) => {
                         setNuevoItem({ ...nuevoItem, tipo: e.target.value });
                         setDetalleFieldErrors({});
-                      }}
+                      }} required
                     >
                       <option value="insumo">Insumo/Medicamento</option>
                       <option value="consulta">Consulta Médica</option>
@@ -1207,7 +1215,7 @@ export const FacturasView = () => {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="detalle-concepto" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Concepto</label>
+                    <label className="form-label" htmlFor="detalle-concepto" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Concepto <RequiredIndicator /> <RequiredIndicator /></label>
                     {nuevoItem.tipo === 'insumo' ? (
                       <select
                         id="detalle-concepto"
@@ -1221,7 +1229,7 @@ export const FacturasView = () => {
                             subtotal: ins ? ins.precioUnitario : nuevoItem.subtotal
                           });
                           setDetalleFieldErrors({});
-                        }}
+                        }} required
                       >
                         <option value="">Seleccione insumo...</option>
                         {insumos.map(i => (
@@ -1236,7 +1244,7 @@ export const FacturasView = () => {
                         onChange={(e) => {
                           setNuevoItem({ ...nuevoItem, consultaId: e.target.value });
                           setDetalleFieldErrors({});
-                        }}
+                        }} required
                       >
                         <option value="">Seleccione consulta...</option>
                         {consultas.map(c => (
@@ -1247,7 +1255,7 @@ export const FacturasView = () => {
                   </div>
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
-                    <label className="form-label" htmlFor="detalle-subtotal" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Subtotal ($)</label>
+                    <label className="form-label" htmlFor="detalle-subtotal" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Subtotal ($) <RequiredIndicator /></label>
                     <input
                       id="detalle-subtotal"
                       type="number"
@@ -1257,7 +1265,7 @@ export const FacturasView = () => {
                       onChange={(e) => {
                         setNuevoItem({ ...nuevoItem, subtotal: e.target.value });
                         if (detalleFieldErrors.subtotal) setDetalleFieldErrors(prev => ({ ...prev, subtotal: null }));
-                      }}
+                      }} required
                     />
                   </div>
 
@@ -1266,14 +1274,14 @@ export const FacturasView = () => {
                       <Plus size={16} /> Agregar
                     </button>
                   </div>
-                </form>
+                </AccessibleForm>
                 {detalleFieldErrors.tipo && (
-                  <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.4rem', display: 'block' }}>
+                  <span role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.4rem', display: 'block' }}>
                     {detalleFieldErrors.tipo}
                   </span>
                 )}
                 {detalleFieldErrors.subtotal && (
-                  <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.4rem', display: 'block' }}>
+                  <span role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.4rem', display: 'block' }}>
                     {detalleFieldErrors.subtotal}
                   </span>
                 )}
@@ -1338,7 +1346,7 @@ export const FacturasView = () => {
               </button>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* ConfirmModal para eliminar factura */}

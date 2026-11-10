@@ -1,3 +1,4 @@
+import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
 import React, { useState, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -50,7 +51,7 @@ export const LoginView = () => {
       if (err.response?.status === 401) {
         setGlobalError('Credenciales incorrectas. Verifique su correo y contraseña.');
       } else if (err.response?.status === 429) {
-        setGlobalError('Límite de solicitudes alcanzado (Rate Limiting). Espere 1 minuto antes de reintentar.');
+        setGlobalError('Ha realizado demasiados intentos. Espere un minuto antes de volver a intentarlo.');
       } else {
         setGlobalError(err.message || 'Error de conexión con el servidor veterinario.');
       }
@@ -96,7 +97,7 @@ export const LoginView = () => {
               borderRadius: '16px',
               background: 'var(--primary-light)',
               border: '1px solid var(--primary-border)',
-              color: '#0d9488',
+              color: 'var(--teal-text)',
               marginBottom: '1rem',
               boxShadow: '0 4px 14px rgba(13, 148, 136, 0.15)',
             }}
@@ -130,7 +131,7 @@ export const LoginView = () => {
               background: 'var(--danger-light)',
               border: '1px solid var(--danger-border)',
               borderRadius: '12px',
-              color: '#dc2626',
+              color: 'var(--danger-text)',
             }}
           >
             <ShieldAlert size={18} style={{ flexShrink: 0 }} aria-hidden="true" />
@@ -139,11 +140,11 @@ export const LoginView = () => {
         )}
 
         {facial ? <FacialLoginStep challenge={facial.challenge} expiresIn={facial.expiresIn} onVerify={verifyFacial}
-          onCancel={() => { setFacial(null); setPassword(''); setGlobalError(''); }} onSuccess={() => navigate('/dashboard')} /> : <form onSubmit={handleSubmit} noValidate>
+          onCancel={() => { setFacial(null); setPassword(''); setGlobalError(''); }} onSuccess={() => navigate('/dashboard')} /> : <AccessibleForm onSubmit={handleSubmit} noValidate>
           {/* Campo Email */}
           <div className="form-group">
             <label htmlFor={`${formId}-email`} className="form-label" style={{ color: 'var(--gray-700)' }}>
-              Correo Electrónico <span style={{ color: '#dc2626' }}>*</span>
+              Correo Electrónico <RequiredIndicator />
             </label>
             <div style={{ position: 'relative' }}>
               <Mail size={18} style={{ position: 'absolute', left: '12px', top: '13px', color: 'var(--gray-400)' }} aria-hidden="true" />
@@ -161,7 +162,7 @@ export const LoginView = () => {
               />
             </div>
             {fieldErrors.email && (
-              <span id={`${formId}-email-error`} role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+              <span id={`${formId}-email-error`} role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                 {fieldErrors.email}
               </span>
             )}
@@ -170,7 +171,7 @@ export const LoginView = () => {
           {/* Campo Contraseña */}
           <div className="form-group" style={{ marginBottom: '1.75rem' }}>
             <label htmlFor={`${formId}-password`} className="form-label" style={{ color: 'var(--gray-700)' }}>
-              Contraseña <span style={{ color: '#dc2626' }}>*</span>
+              Contraseña <RequiredIndicator />
             </label>
             <div style={{ position: 'relative' }}>
               <Lock size={18} style={{ position: 'absolute', left: '12px', top: '13px', color: 'var(--gray-400)' }} aria-hidden="true" />
@@ -188,7 +189,7 @@ export const LoginView = () => {
               />
             </div>
             {fieldErrors.password && (
-              <span id={`${formId}-password-error`} role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+              <span id={`${formId}-password-error`} role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                 {fieldErrors.password}
               </span>
             )}
@@ -216,7 +217,7 @@ export const LoginView = () => {
               </>
             )}
           </button>
-        </form>}
+        </AccessibleForm>}
 
 
       </div>

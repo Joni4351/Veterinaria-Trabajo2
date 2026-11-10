@@ -1,3 +1,7 @@
+import { normalizeFieldErrors } from '../services/apiErrors';
+import { AccessibleDialog } from "../components/AccessibleDialog";
+import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { notifySuccess } from '../services/notifications';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -131,14 +135,15 @@ export const InsumosView = () => {
       } else {
         await api.post('/api/v1/insumos', payload);
       }
+      notifySuccess(editingId ? 'Insumo actualizado correctamente.' : 'Insumo registrado correctamente.');
       setIsModalOpen(false);
       fetchInsumos();
     } catch (err) {
       if (err.response?.data?.errors) {
-        setFieldErrors(err.response.data.errors);
+        setFieldErrors(normalizeFieldErrors(err.response.data.errors));
         setError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setError(err.response?.data?.message || 'Error al guardar insumo o producto.');
+        setError(err.userMessage || err.response?.data?.message || 'Error al guardar insumo o producto.');
       }
     } finally {
       setSubmitting(false);
@@ -159,10 +164,11 @@ export const InsumosView = () => {
     setDeleteConfirm((prev) => ({ ...prev, loading: true }));
     try {
       await api.delete(`/api/v1/insumos/${deleteConfirm.id}`);
+      notifySuccess('Insumo eliminado correctamente.');
       setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false });
       fetchInsumos();
     } catch (err) {
-      alert(err.response?.data?.message || 'No se pudo eliminar el insumo. Verifique si está asociado a recetas o atenciones clínicas.');
+      alert(err.userMessage || err.response?.data?.message || 'No se pudo eliminar el insumo. Verifique si está asociado a recetas o atenciones clínicas.');
       setDeleteConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
@@ -192,8 +198,8 @@ export const InsumosView = () => {
           </div>
           <div className="filter-grid">
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Producto</label>
-              <input
+              <label htmlFor="insumos-field-0" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Producto</label>
+              <input id="insumos-field-0"
                 type="text"
                 className="form-input"
                 placeholder="Nombre del insumo..."
@@ -202,8 +208,8 @@ export const InsumosView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Tipo / Categoría</label>
-              <select
+              <label htmlFor="insumos-field-1" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Tipo / Categoría</label>
+              <select id="insumos-field-1"
                 className="form-select"
                 value={filters.tipo}
                 onChange={(e) => setFilters({ ...filters, tipo: e.target.value })}
@@ -218,8 +224,8 @@ export const InsumosView = () => {
               </select>
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Stock Mínimo</label>
-              <input
+              <label htmlFor="insumos-field-2" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Stock Mínimo</label>
+              <input id="insumos-field-2"
                 type="number"
                 className="form-input"
                 placeholder="Ej. 5"
@@ -228,8 +234,8 @@ export const InsumosView = () => {
               />
             </div>
             <div>
-              <label style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Precio Máximo</label>
-              <input
+              <label htmlFor="insumos-field-3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Precio Máximo</label>
+              <input id="insumos-field-3"
                 type="number"
                 className="form-input"
                 placeholder="Ej. 10000"
@@ -275,7 +281,7 @@ export const InsumosView = () => {
                     <td data-label="Stock">
                       <span style={{ 
                         fontWeight: 700, 
-                        color: i.stockActual < 5 ? '#ef4444' : '#10b981',
+                        color: i.stockActual < 5 ? 'var(--danger-text)' : 'var(--success-text)',
                         backgroundColor: i.stockActual < 5 ? 'var(--danger-light)' : 'var(--success-light)',
                         padding: '3px 8px',
                         borderRadius: '6px'
@@ -312,12 +318,12 @@ export const InsumosView = () => {
 
       {/* Modal Insumo (Estructura de Tarjetas Visuales) */}
       {isModalOpen && (
-        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-insumo-title">
+        <AccessibleDialog className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-insumo-title" aria-label="Insumo" onClose={() => setIsModalOpen(false)}>
           <div className="modal-content" style={{ maxWidth: '580px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera Insumo */}
             <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : 'var(--success-text)', flexShrink: 0 }}>
                   <Package size={22} />
                 </div>
                 <div>
@@ -334,7 +340,7 @@ export const InsumosView = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate>
+            <AccessibleForm onSubmit={handleSubmit} noValidate>
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {error && (
                   <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
@@ -345,7 +351,7 @@ export const InsumosView = () => {
 
                 <div className="form-group">
                   <label htmlFor="insumo-nombre" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
-                    Nombre del Producto o Medicamento <span style={{ color: '#ef4444' }}>*</span>
+                    Nombre del Producto o Medicamento <RequiredIndicator />
                   </label>
                   <input
                     id="insumo-nombre"
@@ -358,10 +364,10 @@ export const InsumosView = () => {
                       if (fieldErrors.nombreProducto) setFieldErrors({ ...fieldErrors, nombreProducto: null });
                     }}
                     aria-invalid={!!fieldErrors.nombreProducto}
-                    aria-describedby={fieldErrors.nombreProducto ? 'error-nombreProducto' : undefined}
+                    aria-describedby={fieldErrors.nombreProducto ? 'error-nombreProducto' : undefined} required
                   />
                   {fieldErrors.nombreProducto && (
-                    <span id="error-nombreProducto" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id="error-nombreProducto" className="form-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                       {Array.isArray(fieldErrors.nombreProducto) ? fieldErrors.nombreProducto[0] : fieldErrors.nombreProducto}
                     </span>
                   )}
@@ -369,13 +375,13 @@ export const InsumosView = () => {
 
                 <div className="form-group">
                   <label htmlFor="insumo-tipo" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
-                    Tipo / Categoría <span style={{ color: '#ef4444' }}>*</span>
+                    Tipo / Categoría <RequiredIndicator />
                   </label>
                   <select
                     id="insumo-tipo"
                     className="form-select"
                     value={formData.tipo}
-                    onChange={(e) => setFormData({ ...formData, tipo: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, tipo: e.target.value })} required
                   >
                     <option value="Medicamento">Medicamento</option>
                     <option value="Vacuna">Vacuna</option>
@@ -389,7 +395,7 @@ export const InsumosView = () => {
                 <div className="form-grid">
                   <div className="form-group">
                     <label htmlFor="insumo-stock" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
-                      Stock Actual <span style={{ color: '#ef4444' }}>*</span>
+                      Stock Actual <RequiredIndicator />
                     </label>
                     <input
                       id="insumo-stock"
@@ -402,10 +408,10 @@ export const InsumosView = () => {
                         if (fieldErrors.stockActual) setFieldErrors({ ...fieldErrors, stockActual: null });
                       }}
                       aria-invalid={!!fieldErrors.stockActual}
-                      aria-describedby={fieldErrors.stockActual ? 'error-stockActual' : undefined}
+                      aria-describedby={fieldErrors.stockActual ? 'error-stockActual' : undefined} required
                     />
                     {fieldErrors.stockActual && (
-                      <span id="error-stockActual" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id="error-stockActual" className="form-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                         {Array.isArray(fieldErrors.stockActual) ? fieldErrors.stockActual[0] : fieldErrors.stockActual}
                       </span>
                     )}
@@ -413,7 +419,7 @@ export const InsumosView = () => {
 
                   <div className="form-group">
                     <label htmlFor="insumo-precio" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
-                      Precio Unitario ($) <span style={{ color: '#ef4444' }}>*</span>
+                      Precio Unitario ($) <RequiredIndicator />
                     </label>
                     <input
                       id="insumo-precio"
@@ -427,10 +433,10 @@ export const InsumosView = () => {
                         if (fieldErrors.precioUnitario) setFieldErrors({ ...fieldErrors, precioUnitario: null });
                       }}
                       aria-invalid={!!fieldErrors.precioUnitario}
-                      aria-describedby={fieldErrors.precioUnitario ? 'error-precioUnitario' : undefined}
+                      aria-describedby={fieldErrors.precioUnitario ? 'error-precioUnitario' : undefined} required
                     />
                     {fieldErrors.precioUnitario && (
-                      <span id="error-precioUnitario" className="form-error" role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id="error-precioUnitario" className="form-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                         {Array.isArray(fieldErrors.precioUnitario) ? fieldErrors.precioUnitario[0] : fieldErrors.precioUnitario}
                       </span>
                     )}
@@ -447,9 +453,9 @@ export const InsumosView = () => {
                   {submitting ? 'Guardando...' : (editingId ? 'Actualizar Insumo' : 'Guardar Insumo')}
                 </button>
               </div>
-            </form>
+            </AccessibleForm>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* ConfirmModal para eliminar insumo */}

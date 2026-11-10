@@ -280,6 +280,7 @@ app.MapUsuariosApi();
 app.MapRegistroFacialApi();
 app.MapDatosPruebaApi();
 app.MapAuditoriaApi();
+app.MapDashboardApi();
 app.MapLoginFacialApi();
 
 app.MapGet("/api/test-error", () =>

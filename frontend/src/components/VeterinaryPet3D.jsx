@@ -428,7 +428,7 @@ export default function VeterinaryPet3D() {
             position: 'absolute',
             left: `${heart.x}%`,
             top: '40%',
-            color: '#ef4444',
+            color: 'var(--danger-text)',
             animation: 'floatUp 1.2s ease-out forwards',
             pointerEvents: 'none',
             zIndex: 20,
@@ -498,7 +498,7 @@ export default function VeterinaryPet3D() {
             transition: 'all 0.2s',
           }}
         >
-          <Heart size={14} fill="#ef4444" color="#ef4444" />
+          <Heart size={14} fill="#ef4444" color="var(--danger-text)" />
           <span>Acariciar</span>
         </button>
 
@@ -546,7 +546,7 @@ export default function VeterinaryPet3D() {
             transition: 'all 0.2s',
           }}
         >
-          <Stethoscope size={14} color="#0d9488" />
+          <Stethoscope size={14} color="var(--teal-text)" />
           <span>Chequeo Clínico</span>
         </button>
       </div>

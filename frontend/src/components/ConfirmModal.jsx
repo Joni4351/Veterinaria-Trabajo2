@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useRef } from 'react';
+import { AccessibleDialog } from './AccessibleDialog';
 import { AlertTriangle, X } from 'lucide-react';
 
 /**
@@ -17,38 +18,22 @@ export const ConfirmModal = ({
 }) => {
   const cancelButtonRef = useRef(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      // Poner foco en el botón de cancelar por seguridad
-      cancelButtonRef.current?.focus();
-
-      // Cerrar al presionar la tecla Escape
-      const handleKeyDown = (e) => {
-        if (e.key === 'Escape' && !loading) {
-          onCancel();
-        }
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isOpen, loading, onCancel]);
-
   if (!isOpen) return null;
 
   return (
-    <div
+    <AccessibleDialog
       className="modal-overlay"
-      role="presentation"
+      aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-desc" initialFocus={cancelButtonRef} onClose={loading ? undefined : onCancel}
       onClick={(e) => {
         if (e.target === e.currentTarget && !loading) onCancel();
       }}
     >
       <div
         className="modal-content"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-modal-title"
-        aria-describedby="confirm-modal-desc"
+
+
+
+
         style={{ maxWidth: '420px', padding: '1.5rem', background: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--gray-200)', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
@@ -58,7 +43,7 @@ export const ConfirmModal = ({
               height: '42px',
               borderRadius: '50%',
               backgroundColor: danger ? 'var(--danger-light)' : 'var(--secondary-light)',
-              color: danger ? '#ef4444' : '#0284c7',
+              color: danger ? 'var(--danger-text)' : '#0284c7',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -104,7 +89,7 @@ export const ConfirmModal = ({
           </button>
         </div>
       </div>
-    </div>
+    </AccessibleDialog>
   );
 };
 

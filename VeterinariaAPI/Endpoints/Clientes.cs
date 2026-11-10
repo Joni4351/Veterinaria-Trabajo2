@@ -20,7 +20,7 @@ namespace VeterinariaAPI.Endpoints
                 string? telefono,
                 IRepository<Cliente> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (!string.IsNullOrWhiteSpace(documento))
                 {
@@ -57,9 +57,8 @@ namespace VeterinariaAPI.Endpoints
 
                 // Normalización de RUT para validación de unicidad
                 var rutClean = dto.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper();
-                var clientesActuales = await repo.ObtenerTodosAsync();
 
-                var rutDuplicado = clientesActuales.Any(c => 
+                var rutDuplicado = await repo.Query().AnyAsync(c =>
                     c.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper() == rutClean);
 
                 if (rutDuplicado)
@@ -73,8 +72,8 @@ namespace VeterinariaAPI.Endpoints
                 if (!string.IsNullOrWhiteSpace(dto.Email))
                 {
                     var emailNormalizado = dto.Email.Trim().ToLower();
-                    var emailDuplicado = clientesActuales.Any(c => 
-                        !string.IsNullOrWhiteSpace(c.Email) && c.Email.Trim().ToLower() == emailNormalizado);
+                    var emailDuplicado = await repo.Query().AnyAsync(c =>
+                        c.Email != null && c.Email.Trim().ToLower() == emailNormalizado);
 
                     if (emailDuplicado)
                     {
@@ -112,9 +111,8 @@ namespace VeterinariaAPI.Endpoints
                 if (clienteExistente is null) return Results.NotFound();
 
                 var rutClean = dto.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper();
-                var clientesActuales = await repo.ObtenerTodosAsync();
 
-                var rutDuplicado = clientesActuales.Any(c => 
+                var rutDuplicado = await repo.Query().AnyAsync(c =>
                     c.Id != id && c.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper() == rutClean);
 
                 if (rutDuplicado)
@@ -128,8 +126,8 @@ namespace VeterinariaAPI.Endpoints
                 if (!string.IsNullOrWhiteSpace(dto.Email))
                 {
                     var emailNormalizado = dto.Email.Trim().ToLower();
-                    var emailDuplicado = clientesActuales.Any(c => 
-                        c.Id != id && !string.IsNullOrWhiteSpace(c.Email) && c.Email.Trim().ToLower() == emailNormalizado);
+                    var emailDuplicado = await repo.Query().AnyAsync(c =>
+                        c.Id != id && c.Email != null && c.Email.Trim().ToLower() == emailNormalizado);
 
                     if (emailDuplicado)
                     {

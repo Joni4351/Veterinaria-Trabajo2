@@ -19,7 +19,7 @@ namespace VeterinariaAPI.Endpoints
                 int? insumoId,
                 IRepository<DetallesFactura> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (facturaId.HasValue)
                 {

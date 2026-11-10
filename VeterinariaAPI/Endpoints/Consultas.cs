@@ -19,7 +19,7 @@ namespace VeterinariaAPI.Endpoints
                 string? diagnostico,
                 IRepository<Consulta> repo) =>
             {
-                var query = repo.Query()
+                var query = repo.Query().AsNoTracking()
                     .Include(c => c.Paciente)
                         .ThenInclude(p => p.Cliente)
                     .AsQueryable();

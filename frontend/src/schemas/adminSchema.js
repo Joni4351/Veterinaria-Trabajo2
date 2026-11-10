@@ -7,13 +7,12 @@ export const especialidadSchema = z.object({
     .min(3, 'El nombre debe tener al menos 3 caracteres')
     .max(100, 'El nombre no puede exceder 100 caracteres'),
 
-  costoBase: z.coerce
+  costoBase: z.preprocess(value => value === '' || value == null ? NaN : value, z.coerce
     .number({
-      required_error: 'El costo base es obligatorio',
-      invalid_type_error: 'El costo base debe ser un número válido'
+      error: 'El costo base es obligatorio y debe ser un número válido'
     })
     .min(0, 'El costo base debe ser mayor o igual a 0')
-    .max(10000000, 'El costo no puede superar 10.000.000')
+    .max(10000000, 'El costo no puede superar 10.000.000'))
 });
 
 export const rolSchema = z.object({

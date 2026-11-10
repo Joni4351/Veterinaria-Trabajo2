@@ -16,7 +16,7 @@ export const ProtectedRoute = ({ children, allowedRoles = [] }) => {
   if (loading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '50vh' }}>
-        <p style={{ color: '#0284c7', fontWeight: 600 }}>Verificando sesión y permisos...</p>
+        <p style={{ color: 'var(--blue-text)', fontWeight: 600 }}>Verificando sesión y permisos...</p>
       </div>
     );
   }

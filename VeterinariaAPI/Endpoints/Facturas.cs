@@ -21,7 +21,7 @@ namespace VeterinariaAPI.Endpoints
                 decimal? montoMax,
                 IRepository<Factura> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (clienteId.HasValue)
                 {

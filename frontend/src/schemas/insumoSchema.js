@@ -15,12 +15,11 @@ export const insumoSchema = z.object({
     .min(2, 'El tipo de insumo es obligatorio')
     .max(50, 'Máximo 50 caracteres'),
 
-  stockActual: z.coerce.number({
-    required_error: 'El stock actual es obligatorio',
-    invalid_type_error: 'El stock debe ser un número entero'
+  stockActual: z.preprocess(value => value === '' || value == null ? NaN : value, z.coerce.number({
+    error: 'El stock actual es obligatorio y debe ser un número entero'
   })
     .int('El stock debe ser un número entero')
-    .min(0, 'El stock no puede ser negativo'),
+    .min(0, 'El stock no puede ser negativo')),
 
   precioUnitario: z.coerce.number({
     required_error: 'El precio unitario es obligatorio',

@@ -1,3 +1,4 @@
+import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
 import React, { useEffect, useRef, useState } from 'react';
 import { FileText, Search, X, RefreshCw, Download, Eye, Pencil, Plus, Trash2, Archive } from 'lucide-react';
 import './AuditoriaView.css';
@@ -45,7 +46,7 @@ function AuditPanel() {
       api.get('/api/v1/admin/auditoria', { params, signal: controller.signal }).then(r => {
         if (!controller.signal.aborted) { setRows(r.data.registros); setTotal(r.data.total); setSummary(r.data.resumen || []); }
       }).catch(err => {
-        if (!controller.signal.aborted) { setError(err.response?.data?.message || 'No se pudo consultar el historial.'); setRows([]); setTotal(0); setSummary([]); }
+        if (!controller.signal.aborted) { setError(err.userMessage || err.response?.data?.message || 'No se pudo consultar el historial.'); setRows([]); setTotal(0); setSummary([]); }
       }).finally(() => { if (!controller.signal.aborted) setLoading(false); });
     }, 250);
     return () => { clearTimeout(timer); controller.abort(); };
@@ -87,7 +88,7 @@ function AuditPanel() {
       const response = await api.get('/api/v1/admin/auditoria', { params, signal: controller.signal });
       if (!controller.signal.aborted) setPdfRows(response.data.registros.slice(0, count));
     } catch (err) {
-      if (!controller.signal.aborted) setPdfError(err.response?.data?.message || 'No se pudo preparar el PDF. Intente nuevamente.');
+      if (!controller.signal.aborted) setPdfError(err.userMessage || err.response?.data?.message || 'No se pudo preparar el PDF. Intente nuevamente.');
     } finally { if (!controller.signal.aborted) setPdfLoading(false); }
   };
   return <section className={`audit-panel${pdfOpen && pdfRows ? ' audit-print-ready' : ''}`} aria-labelledby="audit-title">
@@ -118,14 +119,14 @@ function AuditPanel() {
     {pdfOpen && <dialog ref={pdfDialog} className="audit-pdf-dialog" aria-labelledby="audit-pdf-title" onCancel={e => { e.preventDefault(); closePdf(); }}>
       <div className="audit-pdf-content">
         <div className="audit-pdf-heading"><h3 id="audit-pdf-title">Exportar registro de auditoría a PDF</h3><button autoFocus className="audit-button" aria-label="Cerrar exportación PDF" onClick={closePdf}><X size={18} /></button></div>
-        <form className="audit-pdf-controls" onSubmit={preparePdf}>
+        <AccessibleForm className="audit-pdf-controls" onSubmit={preparePdf}>
           <p>Incluya de 1 a 100 registros, empezando por los más recientes que coincidan con los filtros actuales.</p>
-          <label htmlFor="audit-pdf-count">Cantidad de registros</label>
+          <label htmlFor="audit-pdf-count">Cantidad de registros <RequiredIndicator /></label>
           <input id="audit-pdf-count" className="form-input" type="number" min="1" max="100" step="1" required value={pdfCount} disabled={pdfLoading} onChange={e => { setPdfCount(e.target.value); setPdfRows(null); setPdfError(''); }} />
           <small>Máximo 100 por PDF. Se realiza una sola consulta limitada; no se modifican datos.</small>
           <button className="audit-button audit-export-button" disabled={pdfLoading} type="submit">{pdfLoading ? 'Preparando…' : 'Preparar PDF'}</button>
           {pdfError && <p role="alert">{pdfError}</p>}
-        </form>
+        </AccessibleForm>
         {pdfRows && <><div className="audit-pdf-result"><p>{pdfRows.length} registros incluidos de {pdfCount} solicitados.</p><button className="audit-button audit-export-button" disabled={!pdfRows.length} onClick={() => window.print()}>Imprimir / Guardar PDF</button></div>
           <div className="audit-pdf-sheet"><h2>Registro de Auditoría</h2><p>{pdfRows.length} registros · Fechas en hora de Chile</p><table><thead><tr><th>Fecha y hora</th><th>Responsable</th><th>Acción</th><th>Módulo</th><th>Origen</th></tr></thead><tbody>{pdfRows.map(row => <tr key={row.id}><td>{formatDate(row.fechaHora)}</td><td>{row.usuarioNombre || 'Sistema'}</td><td>{row.accion}</td><td>{row.entidad}</td><td>{row.origen}</td></tr>)}</tbody></table>{!pdfRows.length && <p>No hay registros para los filtros seleccionados.</p>}</div>
         </>}

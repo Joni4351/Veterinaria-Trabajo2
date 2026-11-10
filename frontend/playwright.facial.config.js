@@ -4,7 +4,7 @@ const port = Number(process.env.PLAYWRIGHT_PORT || 5173);
 
 export default defineConfig({
   testDir: './e2e',
-  testMatch: 'registro-facial.spec.js',
+  testMatch: ['registro-facial.spec.js', 'accesibilidad.spec.js'],
   timeout: 120000,
   workers: 1,
   use: { baseURL: `http://localhost:${port}`, browserName: 'chromium', channel: 'msedge' },

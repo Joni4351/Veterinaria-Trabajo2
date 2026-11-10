@@ -11,6 +11,8 @@ import { InsumosView } from './views/InsumosView';
 import { FacturasView } from './views/FacturasView';
 import { AdminConfigView } from './views/AdminConfigView';
 import { ThemeToggle } from './components/ThemeToggle';
+import { SuccessNotification } from './components/SuccessNotification';
+import { ErrorNotification } from './components/ErrorNotification';
 import { AccessDeniedView } from './views/AccessDeniedView';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
@@ -132,6 +134,9 @@ function MainLayout() {
   return (
     <div className={`app-container${isSidebarCollapsed ? ' sidebar-collapsed' : ''}`} style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent' }}>
       
+      <SuccessNotification />
+      <ErrorNotification />
+      <a className="skip-link" href="#main-content" onClick={() => document.getElementById('main-content')?.focus()}>Saltar al contenido principal</a>
       {/* Toast flotante de error 403 Forbidden interceptado desde la API */}
       {forbiddenToast && (
         <div 

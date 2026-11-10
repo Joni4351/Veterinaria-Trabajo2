@@ -42,7 +42,7 @@ export const AccessDeniedView = ({ requiredRoles = [], onGoBack }) => {
           height: '76px',
           borderRadius: '50%',
           backgroundColor: 'var(--danger-light)',
-          color: '#ef4444',
+          color: 'var(--danger-text)',
           marginBottom: '1.25rem',
           boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)'
         }}>
@@ -93,14 +93,14 @@ export const AccessDeniedView = ({ requiredRoles = [], onGoBack }) => {
           fontSize: '0.88rem'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--gray-700)' }}>
-            <UserCheck size={16} color="#0284c7" />
+            <UserCheck size={16} color="var(--blue-text)" />
             <span>Tu Rol Actual:</span>
-            <strong style={{ color: '#0284c7' }}>{user?.role || 'Sin Rol'}</strong>
+            <strong style={{ color: 'var(--blue-text)' }}>{user?.role || 'Sin Rol'}</strong>
           </div>
 
           {requiredRoles.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--gray-500)' }}>
-              <Lock size={16} color="#ef4444" />
+              <Lock size={16} color="var(--danger-text)" />
               <span>Roles Autorizados:</span>
               <strong style={{ color: 'var(--gray-900)' }}>{requiredRoles.join(', ')}</strong>
             </div>

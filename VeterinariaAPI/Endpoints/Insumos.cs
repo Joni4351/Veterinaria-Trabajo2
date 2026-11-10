@@ -22,7 +22,7 @@ namespace VeterinariaAPI.Endpoints
                 decimal? precioMax,
                 IRepository<Insumo> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (!string.IsNullOrWhiteSpace(nombre))
                 {

@@ -21,7 +21,7 @@ namespace VeterinariaAPI.Endpoints
                 DateTime? fechaHasta,
                 IRepository<Cita> repo) =>
             {
-                var query = repo.Query()
+                var query = repo.Query().AsNoTracking()
                     .Include(c => c.Paciente)
                         .ThenInclude(p => p.Cliente)
                     .Include(c => c.Usuario)
@@ -53,7 +53,19 @@ namespace VeterinariaAPI.Endpoints
                     query = query.Where(c => c.FechaHora <= fechaHasta.Value);
                 }
 
-                var listarCitas = await query.ToListAsync();
+                var listarCitas = await query.Select(c => new
+                {
+                    c.Id, c.PacienteId, c.UsuarioId, c.EspecialidadId, c.FechaHora, c.Estado,
+                    Paciente = new
+                    {
+                        c.Paciente.Id, c.Paciente.ClienteId, c.Paciente.Nombre, c.Paciente.Especie,
+                        c.Paciente.Raza, c.Paciente.Peso, c.Paciente.Alergias,
+                        Cliente = new { c.Paciente.Cliente.Id, c.Paciente.Cliente.DocumentoIdentidad,
+                            c.Paciente.Cliente.NombreCompleto, c.Paciente.Cliente.Telefono, c.Paciente.Cliente.Email }
+                    },
+                    Usuario = new { c.Usuario.Id, c.Usuario.RolId, c.Usuario.NombreCompleto, c.Usuario.Email },
+                    Especialidad = new { c.Especialidad.Id, c.Especialidad.Nombre, c.Especialidad.CostoBase }
+                }).ToListAsync();
                 return Results.Ok(listarCitas);
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 

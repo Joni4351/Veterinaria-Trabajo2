@@ -1,6 +1,78 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 
+test('dashboard usa el resumen y no descarga los seis listados completos', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('vet_token', ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Date.now() / 1000 + 3600 })), 'signature'].join('.'));
+    localStorage.setItem('vet_user', JSON.stringify({ id: 1, name: 'Administrador', role: 'Administrador' }));
+  });
+  const paths = [];
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname; paths.push(path);
+    return route.fulfill({ json: path === '/api/v1/dashboard' ? {
+      estadisticas: { pacientes: 120, clientes: 50, citas: 30, facturas: 10, insumos: 45, consultas: 25 },
+      citasRecientes: [{ id: 1, estado: 'Confirmada', paciente: { nombre: 'Luna', cliente: { nombreCompleto: 'Dueño de prueba', documentoIdentidad: '12.345.678-5' } } }],
+      insumosBajoStock: [{ id: 1, nombreProducto: 'Insumo de prueba', stockActual: 2 }]
+    } : [] });
+  });
+  await page.goto('/dashboard');
+  await expect(page.getByText('Luna', { exact: true })).toBeVisible();
+  await expect(page.getByText('Insumo de prueba', { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: /120 Pacientes Registrados/ })).toBeVisible();
+  expect(paths.length).toBeGreaterThan(0);
+  expect(paths.every(path => path === '/api/v1/dashboard')).toBeTruthy();
+});
+
+test('clientes confirma registro, modificación y eliminación sin anunciar éxito ante errores', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('vet_token', ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Date.now() / 1000 + 3600 })), 'signature'].join('.'));
+    localStorage.setItem('vet_user', JSON.stringify({ id: 1, name: 'Administrador', role: 'Administrador' }));
+  });
+  let clients = [], reject = false;
+  await page.route('**/api/**', route => {
+    const request = route.request();
+    const path = new URL(request.url()).pathname;
+    if (path.includes('/clientes')) {
+      if (request.method() === 'POST') {
+        if (reject) return route.fulfill({ status: 400, json: { message: 'No se pudo registrar el cliente de prueba.' } });
+        clients = [{ id: 1, ...request.postDataJSON() }];
+        return route.fulfill({ status: 201, json: clients[0] });
+      }
+      if (request.method() === 'PUT') { clients = [{ id: 1, ...request.postDataJSON() }]; return route.fulfill({ json: clients[0] }); }
+      if (request.method() === 'DELETE') { clients = []; return route.fulfill({ status: 204 }); }
+      return route.fulfill({ json: clients });
+    }
+    return route.fulfill({ json: [] });
+  });
+  await page.goto('/clientes');
+  const fillClient = async () => {
+    const dialog = page.getByRole('dialog');
+    await dialog.getByLabel(/RUT Chileno/).fill('12.345.678-5');
+    await dialog.getByLabel(/Nombre Completo/).fill('Cliente de prueba');
+    await dialog.getByLabel(/Teléfono de Contacto/).fill('+56912345678');
+    await dialog.getByLabel(/Correo Electrónico/).fill('prueba@example.com');
+  };
+  await page.getByRole('button', { name: 'Nuevo Cliente' }).click();
+  await fillClient();
+  await page.getByRole('button', { name: /Registrar Cliente|Guardar Cliente/ }).click();
+  await expect(page.getByRole('status')).toContainText('Cliente registrado correctamente.');
+  await page.getByRole('button', { name: 'Cerrar confirmación' }).click();
+  await page.getByRole('button', { name: 'Editar cliente Cliente de prueba' }).click();
+  await page.getByRole('button', { name: 'Guardar Cambios' }).click();
+  await expect(page.getByRole('status')).toContainText('Cliente actualizado correctamente.');
+  await page.getByRole('button', { name: 'Cerrar confirmación' }).click();
+  await page.getByRole('button', { name: 'Eliminar cliente Cliente de prueba' }).click();
+  await page.getByRole('button', { name: 'Eliminar Cliente', exact: true }).click();
+  await expect(page.getByRole('status')).toContainText('Cliente eliminado correctamente.');
+  await page.getByRole('button', { name: 'Cerrar confirmación' }).click();
+  reject = true;
+  await page.getByRole('button', { name: 'Nuevo Cliente' }).click();
+  await fillClient();
+  await page.getByRole('button', { name: /Registrar Cliente|Guardar Cliente/ }).click();
+  await expect(page.getByRole('alert')).toContainText('No se pudo registrar el cliente de prueba.');
+  await expect(page.getByRole('status')).toHaveCount(0);
+});
+
 test('el botón lateral alterna el espacio del contenido y el menú móvil se cierra al navegar', async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('vet_token', ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Date.now() / 1000 + 3600 })), 'signature'].join('.'));
@@ -228,8 +300,8 @@ test('administrador crea cuentas desde Administración sin cambiar su sesión', 
   await page.goto('/admin');
   await page.getByRole('button', { name: 'Cuentas de Usuarios' }).click();
   await page.getByRole('button', { name: 'Nuevo usuario' }).click();
-  await page.getByLabel('Nombre completo', { exact: true }).fill('Nuevo Veterinario');
-  await page.getByLabel('Correo electrónico', { exact: true }).fill('nuevo@example.com');
+  await page.getByRole('textbox', { name: 'Nombre completo', exact: true }).fill('Nuevo Veterinario');
+  await page.getByRole('textbox', { name: 'Correo electrónico', exact: true }).fill('nuevo@example.com');
   await page.getByLabel('Contraseña inicial').fill('Password123!');
   await page.getByLabel('Rol del usuario').selectOption('7');
   await page.getByRole('button', { name: 'Crear usuario', exact: true }).click();

@@ -20,7 +20,7 @@ namespace VeterinariaAPI.Endpoints
                 bool? vigentes,
                 IRepository<Receta> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (consultaId.HasValue)
                 {

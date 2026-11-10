@@ -529,3 +529,267 @@ efectuaron despliegues o subidas a GitHub de los cambios aquí consolidados.
 **Validación de esta actualización documental:** Revisión de correspondencia
 con el código y los resultados observados, y comprobación de formato mediante
 `git diff --check`. No se ejecutaron nuevamente las suites de software.
+
+## 9. Confirmación uniforme de operaciones de escritura RF-51
+
+**Fecha:** 9 de noviembre de 2026.
+
+**Requerimiento reformulado:** Completar la retroalimentación posterior a las
+operaciones de registro, modificación y eliminación para que el usuario reciba
+una confirmación explícita del resultado satisfactorio, independiente del cierre
+del formulario o de la actualización del listado.
+
+**Intervención realizada:** Se incorporó el servicio `notifications.js` y el
+componente compartido `SuccessNotification`, montado en el contenedor principal
+autenticado. Los formularios que carecían de confirmación explícita emiten el
+aviso únicamente después de que la solicitud de escritura finaliza con éxito.
+Se cubrieron clientes, pacientes, citas, consultas, insumos, facturas, detalles
+de factura, especialidades, roles y eliminación de usuarios. Se conservaron
+los mensajes existentes en creación de usuarios, recetas, registro facial y
+generación de datos de prueba, sin duplicar sus avisos.
+
+La notificación identifica la entidad y la acción, permanece visible al cerrar
+el formulario o cambiar de módulo y puede cerrarse manualmente. Incluye una
+región de anuncio accesible, estilos compatibles con ambos temas y adaptación
+móvil. Su retirada automática se programa a los ocho segundos y se suspende
+mientras el usuario mantiene el puntero o el foco en ella. No se emiten avisos
+de éxito por consultas de lectura, cancelaciones, validaciones rechazadas o
+errores de escritura. La emisión se ubica en los manejadores de operaciones,
+en lugar de un interceptor HTTP general, para evitar confirmaciones prematuras
+de solicitudes intermedias o de autenticación.
+
+**Archivos afectados:** `App.jsx`, `services/notifications.js`,
+`components/SuccessNotification.jsx`, `components/SuccessNotification.css`,
+las vistas de clientes, pacientes, citas, consultas, insumos, facturas y
+Administración, `SuccessNotification.test.jsx`,
+`e2e/registro-facial.spec.js` y ambas bitácoras.
+
+**Validación:** Se aprobaron 69 pruebas de frontend distribuidas en 15 archivos,
+incluidas cuatro nuevas comprobaciones de visualización, cierre, temporización,
+interacción y eventos no válidos. La suite de navegador aprobó 11 pruebas con
+API simulada; el nuevo caso verifica creación, edición y eliminación de un
+cliente y ausencia de confirmación ante un error del servidor. Una ejecución
+inicial del nuevo caso falló por un selector que no consideraba el indicador
+obligatorio de la etiqueta; se corrigieron los selectores para usar las
+etiquetas y botones reales y la ejecución posterior fue satisfactoria. La
+compilación de producción fue correcta y se comprobó el formato con
+`git diff --check`.
+
+**Alcance y limitaciones:** El aviso confirma la respuesta satisfactoria de la
+operación de escritura; no certifica la actualización posterior del listado ni
+añade garantías transaccionales al backend. Las confirmaciones ya existentes
+conservan su presentación contextual. No se modificó el backend, no se
+ejecutaron sus pruebas ni se alteró Supabase. Persisten los avisos de compilación
+preexistentes relativos al tamaño de paquetes y la compatibilidad de `fs`.
+
+## 10. Prueba inicial de concurrencia con pacientes
+
+**Fecha:** 9 de noviembre de 2026.
+
+**Requerimiento reformulado:** Evaluar el comportamiento concurrente de las
+operaciones de pacientes mediante veinte sesiones autenticadas y obtener
+evidencia cuantitativa inicial para los objetivos de rendimiento, sin modificar
+la base de datos operativa.
+
+**Intervención realizada:** Se incorporó `ConcurrentPatientsTests.cs` con una
+prueba de integración que utiliza ASP.NET Core TestServer y Entity Framework
+Core InMemory. Se preparan veinte cuentas veterinarias distintas y un cliente
+de prueba en el almacén aislado. Las sesiones reciben JWT firmados por la
+configuración de pruebas; la emisión mediante login no forma parte de la carga.
+Una barrera de inicio libera simultáneamente las veinte solicitudes de cada
+fase: creación, consulta, modificación, comprobación de modificaciones y
+eliminación. Los veinte pacientes creados se identifican por sus claves
+generadas y se eliminan mediante la API.
+
+Se comprueba el estado HTTP de cada operación, la unicidad de los identificadores,
+la persistencia de los nuevos valores, la recuperación del número inicial de
+pacientes y sesenta eventos de auditoría atribuidos a sus respectivos usuarios.
+La limpieza incluye las cuentas y el cliente artificiales; el almacén completo
+es temporal. Se genera un informe JSON con media, percentil 95, máximo,
+solicitudes pendientes simultáneas y errores por fase.
+
+**Validación:** La prueba dirigida fue aprobada. En la ejecución final se
+alcanzaron veinte solicitudes en vuelo en cada fase, con cien solicitudes
+concurrentes distribuidas en cinco ráfagas y cero errores. Además se realizaron
+una consulta de calentamiento y veinte consultas secuenciales de referencia.
+
+| Fase | Solicitudes | Errores | Máximo observado |
+| --- | --- | --- | --- |
+| Crear pacientes | 20 | 0 | 59,99 ms |
+| Consultar pacientes | 20 | 0 | 17,22 ms |
+| Actualizar pacientes | 20 | 0 | 19,38 ms |
+| Comprobar actualizaciones | 20 | 0 | 21,68 ms |
+| Eliminar pacientes | 20 | 0 | 18,35 ms |
+
+Se crearon y eliminaron veinte pacientes de prueba; permanecieron los seis
+pacientes iniciales del fixture y ningún paciente del lote. Los máximos de
+esta ejecución quedaron por debajo de tres segundos para lectura y cinco
+segundos para escritura. El informe reproducible se guarda en
+`VeterinariaAPI.Tests/TestResults/concurrencia-pacientes-20.json`, directorio
+excluido del control de versiones. Se revisó el formato con `git diff --check`.
+
+**Alcance y limitaciones:** Es una prueba inicial de concurrencia de API con
+datos en memoria, no un ensayo de producción ni una prueba sostenida. Las
+solicitudes en vuelo no representan veinte conexiones físicas a PostgreSQL.
+No incluye la carga de vistas, veinte logins simultáneos, la red real, Supabase,
+contenedores ni mediciones de infraestructura. Los resultados no acreditan por
+sí solos RNF-01, RNF-02, RNF-03 o RNF-05 en el entorno final. No se optimizaron
+consultas, alteraron límites de autenticación ni modificaron datos de Supabase.
+
+**Archivos afectados:** `ConcurrentPatientsTests.cs`, `AI_LOG.md` y
+`BITACORA.md`. El JSON es un resultado generado de la prueba, no una
+configuración ni un archivo con credenciales.
+
+## 11. Optimización de consultas y lecturas RNF-04
+
+**Fecha:** 9 de noviembre de 2026.
+
+**Requerimiento reformulado:** Reducir la materialización de registros, el
+seguimiento innecesario de entidades y las consultas repetidas en los flujos
+de consulta, manteniendo los datos visibles, el orden estable y las reglas de
+escritura y autorización del sistema.
+
+**Intervención realizada:**
+
+- Se aplicó `AsNoTracking` exclusivamente a las consultas de listado de doce
+  endpoints. Los flujos de edición conservan sus entidades rastreadas para que
+  las actualizaciones y la auditoría sigan funcionando.
+- Las comprobaciones de duplicados de RUT y correo en clientes utilizan
+  `AnyAsync`, traducible a comprobaciones de existencia en la base de datos,
+  en lugar de descargar todos los clientes y evaluarlos en memoria. Se mantiene
+  la comparación normalizada y la exclusión del propio registro al editar.
+- Los listados de usuarios y citas proyectan sus campos antes de ejecutar la
+  consulta. Se evita recuperar entidades completas de usuario y sus hashes de
+  contraseña para construir las respuestas visibles.
+- Se añadió `GET /api/v1/dashboard`, protegido para los tres roles. En
+  PostgreSQL, un comando SQL agrupa seis conteos escalares y otras dos consultas
+  proyectadas limitan a cinco citas y cinco insumos con stock bajo. El frontend
+  sustituyó seis solicitudes de listados completos por una solicitud de resumen.
+  Los conteos conservan el total real, no el tamaño de las vistas previas.
+- En el historial de auditoría se obtiene el total a partir de la agrupación
+  por acción ya utilizada en las tarjetas; se elimina el `CountAsync` adicional.
+- La vista de consultas deja de recargar todas las recetas cada vez que se
+  consultan o filtran atenciones. Se mantiene su carga inicial y su actualización
+  después de las operaciones que modifican las recetas.
+
+**Componentes afectados:** endpoints de listados, auditoría y dashboard,
+`Program.cs`, `DashboardView.jsx`, `ConsultasView.jsx`,
+`QueryOptimizationTests.cs`, `DashboardQueries.test.jsx`, pruebas de navegador
+y ambas bitácoras. No se modificaron índices ni el esquema de Supabase.
+
+**Validación ejecutada:** Se aprobaron 93 pruebas locales de backend,
+excluyendo la conexión externa y separando el escenario de concurrencia. Se
+aprobaron además la prueba dirigida de veinte usuarios, 71 pruebas de frontend
+en 16 archivos y 12 pruebas de navegador con API simulada. Las siete nuevas
+comprobaciones de backend cubren los totales, límites de vistas previas,
+autorización, construcción de SQL PostgreSQL, proyecciones sin hashes y
+normalización de duplicados. Las pruebas nuevas de frontend comprueban la
+solicitud única al dashboard y su cancelación al abandonar la vista. Las
+compilaciones de backend y frontend fueron correctas; persisten los avisos
+preexistentes de paquetes del frontend. Se revisó el formato con
+`git diff --check`.
+
+**Evidencia y limitaciones:** Las mejoras estructurales se verificaron mediante
+pruebas funcionales y revisión de consultas. La generación del SQL PostgreSQL
+se comprobó sin abrir una conexión; los datos de integración utilizan InMemory.
+No se ejecutaron las consultas nuevas contra Supabase ni se midieron planes
+`EXPLAIN ANALYZE`, índices utilizados o una mejora porcentual de latencia. Los
+listados generales conservan su contrato de respuesta y todavía no tienen
+paginación obligatoria en todos los módulos. RNF-04 recibe optimizaciones
+concretas, pero su evaluación de rendimiento en el entorno final continúa
+pendiente. No se modificaron los permisos ni las operaciones de escritura.
+
+## 12. Usabilidad y accesibilidad RNF-15, RNF-17 y RNF-18
+
+**Fecha:** 9 de noviembre de 2026.
+
+**Requerimiento reformulado:** Mejorar la comprensión de los errores de
+operación, uniformar la identificación de campos obligatorios y reforzar la
+interacción accesible de formularios, diálogos y controles, tomando como
+referencia WCAG 2.2 de nivel AA.
+
+**Intervención realizada:**
+
+- **RNF-15:** Se incorporó un formateador común de errores HTTP, conexión y
+  tiempo de espera. Se distinguen sesión inválida, falta de permisos, registros
+  inexistentes, conflictos, archivos excesivos, límite de solicitudes y fallos
+  del servicio. Se ofrecen acciones de recuperación sin mostrar detalles
+  internos de errores de servidor. Las consultas fallidas por conexión o error
+  del servidor generan un aviso global accesible; las cancelaciones intencionales
+  no se anuncian como fallos. Se normalizan los nombres de campos de errores del
+  backend para asociarlos a las validaciones de los formularios.
+- **RNF-17:** Se incorporaron componentes compartidos de formulario e indicador
+  obligatorio, atributos nativos `required`, leyendas explicativas y asociaciones
+  entre etiquetas y controles. Se completaron referencias a mensajes mediante
+  `aria-describedby` en los campos revisados y se mejoró la validación por campo
+  en creación de usuarios. Después de una validación fallida, el foco se dirige
+  al primer control inválido o al mensaje general. El costo base y el stock
+  distinguen una entrada vacía de un cero explícito, conservando la admisión de
+  cero cuando corresponde.
+- **RNF-18:** Se incorporó un diálogo compartido con navegación de foco
+  contenida, cierre mediante Escape cuando se permite y retorno al control de
+  apertura. Los diálogos bloqueados no propagan Escape al menú del fondo.
+  Se añadió un enlace para saltar al contenido principal y activación mediante
+  Espacio de las tarjetas interactivas del dashboard. Se ajustaron contrastes de
+  texto, estados, botones y errores en ambos temas; límites visuales de campos,
+  foco visible, tamaños de controles y tratamiento del movimiento reducido.
+  Se corrigió el nombre accesible del selector de citas de facturación y se
+  flexibilizaron las columnas del dashboard para facilitar su adaptación.
+
+Se añadió `@axe-core/playwright` como dependencia de desarrollo para realizar
+comprobaciones automáticas. La referencia empleada fue la documentación oficial
+de [WCAG 2.2](https://www.w3.org/TR/WCAG22/) y su explicación de
+[contraste mínimo](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html).
+
+**Validación ejecutada:** Se aprobaron 88 pruebas de frontend en 19 archivos y
+17 pruebas de navegador con API simulada. Las comprobaciones axe no reportaron
+infracciones de las reglas seleccionadas en 30 estados de listados y formularios
+de clientes, pacientes, citas, consultas, insumos, facturas y Administración,
+repartidos entre modo claro y oscuro. Se comprobó además el login con errores
+en ambos temas, la contención y restauración del foco, el primer error de
+formulario, el aviso seguro ante HTTP 503, el salto de navegación y una vista
+móvil con texto ampliado al 200 %.
+
+Las ejecuciones iniciales detectaron contrastes insuficientes en estados de
+citas, stock, importes y una leyenda de formulario sobre fondo translúcido,
+además de un selector sin nombre accesible. Se corrigieron esas incidencias.
+También se ajustaron selectores de pruebas para distinguir filtros y formularios
+ahora etiquetados, y se esperó la carga de la interfaz antes de comprobar el
+primer foco. La suite posterior finalizó correctamente. La compilación de
+producción fue satisfactoria y se revisó el formato con `git diff --check`.
+
+**Componentes afectados:** nuevos componentes `AccessibleForm`,
+`AccessibleDialog` y `ErrorNotification`; `apiErrors.js`, el interceptor API,
+`accessibility.css`, `App.jsx`, `main.jsx`, formularios de los módulos,
+`ConfirmModal`, `UserCreateForm`, esquemas de costo y stock, pruebas unitarias,
+`accesibilidad.spec.js`, configuración de Playwright y dependencias de desarrollo.
+Los ajustes de color se extendieron a componentes que utilizaban esos tonos.
+
+**Alcance y limitaciones:** La comprobación automática utiliza reglas
+seleccionadas de WCAG A/AA y estados concretos de interfaz en Edge. No equivale
+a una certificación completa de conformidad WCAG 2.2 AA ni a una evaluación de
+todos los estados, navegadores, tecnologías de asistencia o usuarios con
+discapacidad. La ampliación de texto se verificó en la vista de clientes y no
+constituye una evaluación de reflujo de toda la aplicación. Se conservan los
+avisos de compilación preexistentes de paquetes del frontend. No se modificó el
+backend ni Supabase en esta intervención; sus pruebas no se volvieron a ejecutar.
+
+## 13. Simplificación de la información auxiliar de formularios
+
+**Fecha:** 09/11/2026.
+
+**Requerimiento reformulado:** Suprimir la leyenda general sobre obligatoriedad de campos en los formularios de la aplicación, conservando sus indicadores y mecanismos de validación.
+
+**Intervención y decisiones técnicas:** Se retiró el párrafo compartido de `frontend/src/components/AccessibleForm.jsx` y la regla de estilo asociada en `frontend/src/accessibility.css`. La modificación se aplica a todos los formularios que utilizan este componente. Se mantienen los asteriscos, los atributos de obligatoriedad, los mensajes de error y la gestión del foco.
+
+**Validación:** Las tres pruebas de `AccessibleControls.test.jsx` finalizaron correctamente. La búsqueda en `frontend/src` no encontró referencias a la leyenda ni a su clase de estilo. No se realizó una nueva revisión visual ni se ejecutó la suite completa para este ajuste.
+
+## 14. Uniformidad visual de la navegación administrativa
+
+**Fecha:** 09/11/2026.
+
+**Requerimiento reformulado:** Homogeneizar el contorno redondeado de las seis opciones de navegación del módulo de administración.
+
+**Intervención y decisiones técnicas:** En `frontend/src/views/AdminConfigView.css` se incorporó el borde temático a la regla general `.admin-section` y se eliminó la restricción que lo aplicaba únicamente a las tres primeras opciones. Especialidades, roles y cuentas de usuario comparten ahora el mismo contorno; se conservan los estilos del estado activo y de los temas claro y oscuro. Se actualizaron ambos registros de desarrollo.
+
+**Validación:** La compilación de producción del frontend finalizó correctamente. Persisten los avisos previos relativos a `fs` en face-api.js y al tamaño de los paquetes. No se realizó una comprobación visual en navegador para este ajuste de estilos.

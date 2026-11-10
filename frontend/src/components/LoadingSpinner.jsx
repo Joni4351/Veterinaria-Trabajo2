@@ -13,7 +13,7 @@ export const LoadingSpinner = ({ message = 'Cargando datos...', size = 28 }) => 
         justifyContent: 'center',
         padding: '3rem 1rem',
         gap: '0.75rem',
-        color: '#0284c7'
+        color: 'var(--blue-text)'
       }}
     >
       <Loader2

@@ -62,8 +62,8 @@ public static class AuditoriaApi
                 var end = StartOfDay(hasta.Value.AddDays(1), zone);
                 query = query.Where(x => x.FechaHora < end);
             }
-            var total = await query.CountAsync();
             var resumen = await query.GroupBy(x => x.Accion).Select(g => new { accion = g.Key, cantidad = g.Count() }).ToListAsync();
+            var total = resumen.Sum(x => x.cantidad);
             var registros = await query.OrderByDescending(x => x.FechaHora).ThenByDescending(x => x.Id)
                 .Skip((pagina - 1) * tamano).Take(tamano).Select(x => new
                 { x.Id, x.FechaHora, x.UsuarioId, x.UsuarioNombre, x.Accion, x.Entidad, x.RegistroId, x.Origen, x.OperacionId }).ToListAsync();

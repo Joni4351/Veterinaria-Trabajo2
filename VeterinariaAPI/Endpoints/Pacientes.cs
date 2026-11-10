@@ -21,7 +21,7 @@ namespace VeterinariaAPI.Endpoints
                 string? raza,
                 IRepository<Paciente> repo) =>
             {
-                var query = repo.Query().Include(p => p.Cliente).AsQueryable();
+                var query = repo.Query().AsNoTracking().Include(p => p.Cliente).AsQueryable();
 
                 if (clienteId.HasValue)
                 {
