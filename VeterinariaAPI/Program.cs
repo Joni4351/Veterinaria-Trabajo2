@@ -234,6 +234,13 @@ builder.Services.AddRateLimiter(options =>
 // =========================================================
 var app = builder.Build();
 
+// Container liveness is independent of PostgreSQL; readiness verifies connectivity.
+app.MapGet("/health/live", () => Results.Ok(new { status = "alive" })).AllowAnonymous();
+app.MapGet("/health/ready", async (VeterinariodbContext db, CancellationToken cancellationToken) =>
+    await db.Database.CanConnectAsync(cancellationToken)
+        ? Results.Ok(new { status = "ready" })
+        : Results.StatusCode(StatusCodes.Status503ServiceUnavailable)).AllowAnonymous();
+
 // =========================================================
 // CONFIGURACIÓN DEL PIPELINE HTTP
 // =========================================================

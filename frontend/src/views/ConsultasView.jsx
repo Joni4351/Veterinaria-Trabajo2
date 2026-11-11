@@ -1,7 +1,8 @@
+import { NumericInput } from '../components/NumericInput';
 import { todayInChile } from '../schemas/dateValidation';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
-import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
 import { notifySuccess } from '../services/notifications';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
@@ -748,9 +749,9 @@ export const ConsultasView = () => {
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary">
+                <SubmitButton type="submit" className="btn btn-primary">
                   {editingId ? 'Actualizar Ficha' : 'Guardar Consulta'}
-                </button>
+                </SubmitButton>
               </div>
             </AccessibleForm>
           </div>
@@ -930,7 +931,7 @@ export const ConsultasView = () => {
 
                   <div className="form-group">
                     <label className="form-label" htmlFor="receta-duracion">Duración (Días) <RequiredIndicator /></label>
-                    <input
+                    <NumericInput
                       id="receta-duracion"
                       type="number"
                       className={`form-input ${recetaFieldErrors.duracionDias ? 'border-red-500' : ''}`}
@@ -972,9 +973,9 @@ export const ConsultasView = () => {
                   <button type="button" className="btn btn-secondary" onClick={() => setIsRecetaModalOpen(false)} disabled={recetaLoading}>
                     Cancelar
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={recetaLoading}>
+                  <SubmitButton type="submit" className="btn btn-primary" disabled={recetaLoading}>
                     {recetaLoading ? 'Guardando...' : (existingReceta ? 'Actualizar Receta' : 'Generar Receta')}
-                  </button>
+                  </SubmitButton>
                 </div>
               </div>
             </AccessibleForm>

@@ -2,6 +2,73 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { writeFile } from 'node:fs/promises';
 
+test('los campos numéricos rechazan exponentes y símbolos al escribir o pegar y conservan los decimales permitidos', async ({ page }) => {
+  page.setDefaultTimeout(10000);
+  await prepare(page);
+  await page.goto('/insumos');
+  await page.getByRole('button', { name: 'Nuevo Insumo', exact: true }).click();
+  const dialog = page.getByRole('dialog');
+  const stock = dialog.locator('#insumo-stock');
+  await stock.fill('12');
+  await stock.press('End');
+  await stock.pressSequentially('eE+-*/^.,');
+  await expect(stock).toHaveValue('12');
+  await stock.fill('1e3');
+  await expect(stock).toHaveValue('12');
+  const acceptedPaste = await stock.evaluate(input => {
+    const data = new DataTransfer(); data.setData('text/plain', '1e3');
+    return input.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+  });
+  expect(acceptedPaste).toBe(false);
+  await stock.press('Control+A'); await stock.press('Backspace');
+  await expect(stock).toHaveValue('');
+  const price = dialog.locator('#insumo-precio');
+  await price.fill(''); await price.pressSequentially('12.50');
+  expect(Number(await price.inputValue())).toBe(12.5);
+  await price.press('End'); await price.pressSequentially('eE+-*/^');
+  expect(Number(await price.inputValue())).toBe(12.5);
+  await page.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  const priceFilter = page.locator('#insumos-field-3');
+  await priceFilter.fill('15.5'); await priceFilter.press('End'); await priceFilter.press('e');
+  await expect(priceFilter).toHaveValue('15.5');
+});
+
+test('el registro bloquea clics y envíos repetidos mientras espera y permite reintentar tras un error', async ({ page }) => {
+  page.setDefaultTimeout(10000);
+  await prepare(page);
+  let release;
+  const gate = new Promise(resolve => { release = resolve; });
+  let requests = 0;
+  await page.route('**/api/v1/especialidades', async route => {
+    if (route.request().method() !== 'POST') return route.fallback();
+    requests++;
+    if (requests === 1) {
+      await gate;
+      return route.fulfill({ status: 503, json: { message: 'No disponible' } });
+    }
+    return route.fulfill({ status: 201, json: { id: 9, nombre: 'Especialidad de prueba', costoBase: 1000 } });
+  });
+  await page.goto('/admin');
+  await page.getByRole('button', { name: 'Especialidades Médicas', exact: true }).click();
+  await page.getByRole('button', { name: 'Nueva Especialidad' }).click();
+  const dialog = page.getByRole('dialog', { name: 'Especialidad veterinaria' });
+  await dialog.getByLabel(/Nombre de la Especialidad/).fill('Especialidad de prueba');
+  await dialog.getByLabel(/Costo Base/).fill('1000');
+  await dialog.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await expect(dialog.getByRole('button', { name: 'Procesando…', exact: true })).toBeDisabled();
+  await dialog.locator('form').evaluate(form => {
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+  });
+  await expect.poll(() => requests).toBe(1);
+  release();
+  await expect(dialog.getByRole('alert')).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Guardar', exact: true })).toBeEnabled();
+  await dialog.getByRole('button', { name: 'Guardar', exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  expect(requests).toBe(2);
+});
+
 test('facturación se ajusta al viewport y mantiene sus acciones visibles al 100 por ciento', async ({ page }, testInfo) => {
   await prepare(page);
   await page.emulateMedia({ reducedMotion: 'reduce' });

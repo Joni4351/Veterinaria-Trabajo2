@@ -1,8 +1,9 @@
+import { NumericInput } from '../components/NumericInput';
 import { todayInChile } from '../schemas/dateValidation';
 import './FacturasView.css';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
-import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
 import { notifySuccess } from '../services/notifications';
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
@@ -248,6 +249,11 @@ export const FacturasView = () => {
 
     const cita = citasDisponibles.find(c => c.id === Number(selectedCitaId));
     if (!cita) return;
+    const consulta = consultas.find(c => Number(c.citaId) === Number(cita.id));
+    if (!consulta) {
+      setItemError('Esta cita no tiene una consulta médica registrada. Registre la consulta antes de agregar la atención a la factura.');
+      return;
+    }
 
     const precioCita = Number(cita.especialidad?.costoBase || 0);
     const nombrePaciente = cita.paciente?.nombre || 'Paciente';
@@ -262,7 +268,7 @@ export const FacturasView = () => {
       tipo: 'cita',
       citaId: cita.id,
       especialidadId: cita.especialidadId || null,
-      consultaId: cita.consulta?.[0]?.id || null,
+      consultaId: consulta.id,
       nombre: nombreItem,
       precioUnitario: precioCita,
       cantidad: 1,
@@ -343,7 +349,7 @@ export const FacturasView = () => {
   const handleModificarCantidad = (itemId, nuevaCantidad) => {
     setItemError('');
     const cant = Number(nuevaCantidad);
-    if (isNaN(cant) || cant <= 0) return;
+    if (!Number.isInteger(cant) || cant <= 0) return;
 
     const item = itemsFactura.find(it => it.id === itemId);
     if (!item) return;
@@ -390,7 +396,8 @@ export const FacturasView = () => {
 
     const validation = facturaSchema.safeParse(formData);
     const missingItems = !editingId && itemsFactura.length === 0;
-    if (!validation.success || missingItems) {
+    const pendingSelection = selectedCitaId || selectedInsumoId;
+    if (!validation.success || missingItems || pendingSelection) {
       const errors = {};
       validation.error?.issues.forEach((err) => {
         if (err.path[0]) errors[err.path[0]] = err.message;
@@ -398,6 +405,7 @@ export const FacturasView = () => {
       setFieldErrors(errors);
       setError('Complete o corrija los datos indicados antes de guardar la factura.');
       if (missingItems) setItemError('Debe agregar al menos una cita médica o un insumo al detalle. Seleccionarlo no basta: pulse «Agregar Cita» o «Agregar Insumo».');
+      if (pendingSelection) setItemError('Tiene una cita o un insumo seleccionado sin agregar al detalle. Pulse «Agregar Cita» o «Agregar Insumo», o quite la selección antes de emitir.');
       return;
     }
 
@@ -607,7 +615,7 @@ export const FacturasView = () => {
 
             <div>
               <label htmlFor="facturas-field-4" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Monto Min ($)</label>
-              <input id="facturas-field-4"
+              <NumericInput id="facturas-field-4" allowDecimal
                 type="number"
                 className="form-input"
                 placeholder="0"
@@ -618,7 +626,7 @@ export const FacturasView = () => {
 
             <div>
               <label htmlFor="facturas-field-5" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Monto Max ($)</label>
-              <input id="facturas-field-5"
+              <NumericInput id="facturas-field-5" allowDecimal
                 type="number"
                 className="form-input"
                 placeholder="Sin límite"
@@ -882,7 +890,7 @@ export const FacturasView = () => {
                           const fecha = c.fechaHora ? new Date(c.fechaHora).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
                           return (
                             <option key={c.id} value={c.id}>
-                              Cita #{c.id}: {pac} — {dueno}{rut} — {esp} (${costo}) — {fecha} [{c.estado}]
+                              Cita #{c.id}: {pac} — {dueno}{rut} — {esp} (${costo}) — {fecha} [{c.estado}]{!consultas.some(con => Number(con.citaId) === Number(c.id)) ? ' — Sin consulta registrada' : ''}
                             </option>
                           );
                         })}
@@ -949,7 +957,7 @@ export const FacturasView = () => {
                         <label htmlFor="facturas-field-6" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, display: 'block', marginBottom: '0.25rem' }}>
                           Cantidad {selectedInsumo ? `(Máx: ${selectedInsumo.stockActual})` : ''}
                         </label>
-                        <input id="facturas-field-6"
+                        <NumericInput id="facturas-field-6"
                           type="number"
                           min="1"
                           max={selectedInsumo?.stockActual || 999}
@@ -1046,7 +1054,7 @@ export const FacturasView = () => {
                                       >
                                         <Minus size={12} />
                                       </button>
-                                      <input
+                                      <NumericInput
                                         type="number"
                                         min="1"
                                         max={it.stockMax}
@@ -1113,8 +1121,8 @@ export const FacturasView = () => {
                           IVA (19% AUTOMÁTICO)
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
-                          <input
-                            id="factura-impuestos"
+                          <NumericInput
+                            id="factura-impuestos" allowDecimal
                             type="number"
                             className="form-input"
                             value={formData.montoImpuestos}
@@ -1131,8 +1139,8 @@ export const FacturasView = () => {
                           TOTAL FINAL A COBRAR
                         </span>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
-                          <input
-                            id="factura-total"
+                          <NumericInput
+                            id="factura-total" allowDecimal
                             type="number"
                             className={`form-input ${fieldErrors.montoTotal ? 'border-red-500' : ''}`}
                             value={formData.montoTotal}
@@ -1167,9 +1175,9 @@ export const FacturasView = () => {
                   <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                     Cancelar
                   </button>
-                  <button type="submit" className="btn btn-primary">
+                  <SubmitButton type="submit" className="btn btn-primary">
                     {editingId ? 'Actualizar Factura' : 'Confirmar y Emitir Factura'}
-                  </button>
+                  </SubmitButton>
                 </div>
               </AccessibleForm>
             </div>
@@ -1277,7 +1285,7 @@ export const FacturasView = () => {
 
                   <div className="form-group" style={{ marginBottom: 0 }}>
                     <label className="form-label" htmlFor="detalle-subtotal" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Subtotal ($) <RequiredIndicator /></label>
-                    <input
+                    <NumericInput
                       id="detalle-subtotal"
                       type="number"
                       step="0.01"
@@ -1291,9 +1299,9 @@ export const FacturasView = () => {
                   </div>
 
                   <div>
-                    <button type="submit" className="btn btn-primary" style={{ width: '100%' }}>
+                    <SubmitButton type="submit" className="btn btn-primary" style={{ width: '100%' }}>
                       <Plus size={16} /> Agregar
-                    </button>
+                    </SubmitButton>
                   </div>
                 </AccessibleForm>
                 {detalleFieldErrors.tipo && (

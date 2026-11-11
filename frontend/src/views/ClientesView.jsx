@@ -1,6 +1,6 @@
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
-import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
 import { notifySuccess } from '../services/notifications';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
@@ -453,9 +453,9 @@ export const ClientesView = () => {
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <SubmitButton type="submit" className="btn btn-primary" disabled={submitting}>
                   {submitting ? 'Guardando...' : (editingId ? 'Guardar Cambios' : 'Registrar Cliente')}
-                </button>
+                </SubmitButton>
               </div>
             </AccessibleForm>
           </div>

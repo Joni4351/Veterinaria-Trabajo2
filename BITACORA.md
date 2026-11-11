@@ -817,3 +817,51 @@ pruebas nuevas de backend, commits o despliegues en esta intervención.
 **Validación:** Dos pruebas unitarias de facturación aprobadas, compilación correcta con avisos previos y una prueba de navegador aprobada en tres resoluciones: 1366x768, 1920x1080 y 390x844. Se verificaron límites de pantalla, controles visibles, ausencia de desbordamiento horizontal y ausencia de desplazamiento vertical en el estado inicial de escritorio. Capturas de escritorio y móvil inspeccionadas tras corregir interferencias de capas.
 
 **Resultado y límites:** El formulario inicial cabe completo en las resoluciones de escritorio comprobadas; en pantallas pequeñas o con contenido extenso se desplaza únicamente el cuerpo, conservando las acciones visibles. Validación de navegador con datos simulados en Edge, sin cambios en backend o Supabase.
+
+## Sesión 28 — 11/11/2026 — Ejecución reproducible con Docker Compose
+
+**Objetivo:** Contenerizar la interfaz y API de VetClinic y verificar su funcionamiento mediante PostgreSQL local sin afectar Supabase.
+
+**Implementación:** Se crearon VeterinariaAPI/Dockerfile, frontend/Dockerfile y sus .dockerignore, compose.yaml, compose.sandbox.yaml y frontend/docker/nginx.conf. La interfaz compilada utiliza Nginx con proxy de mismo origen y resolución de rutas SPA; ambos servicios finales ejecutan usuarios no root. Se añadieron comprobaciones HTTP de vida y disponibilidad de base, dependencia de servicios saludables, plantilla .env.docker.example y script Start-DockerSandbox.ps1 con claves aleatorias persistidas en archivo privado ignorado. El sandbox inicializa exclusivamente su volumen PostgreSQL vacío con el SQL de la migración inicial. Se incorporaron pruebas de salud del backend y una prueba de navegador Docker independiente. Se actualizaron frontend/package.json, .gitignore, README.md, AI_LOG.md y esta bitácora.
+
+**Validación:** Configuración Compose válida, imágenes construidas, tres servicios saludables y sintaxis Nginx correcta. Prueba real sobre PostgreSQL: login, listados, dashboard y creación, modificación y eliminación de un cliente temporal. Una prueba de navegador aprobada sin API simulada cubrió proxy, rechazo anónimo, manifiesto facial, autenticación y recarga de ruta con sesión. Suite backend: 97 aprobadas, con conexión externa y concurrencia separada excluidas. Readiness respondió 503 con la base local detenida y 200 tras recuperarla. Se comprobó ausencia de archivos privados de configuración en las imágenes finales, ejecución sin root y reutilización de configuración y volumen al repetir el arranque. Persisten avisos de compilación preexistentes.
+
+**Resultado y límites:** Sandbox local disponible en http://localhost:15173, sin conexión a Supabase y con sus propios registros. El SQL inicial fue ejecutado en PostgreSQL local; quedan pendientes equivalencia de esquema remoto, pruebas completas de todos los módulos y aplicación posterior mediante EF CLI. No se implementaron TLS, despliegue público o pipeline. Para usar Supabase se requiere completar la configuración privada y considerar las escrituras del sembrado existente. Sin commits, push ni publicación de imágenes en esta intervención.
+
+## Sesión 29 — 11/11/2026 — Asociación clínica de los detalles de factura
+
+**Objetivo:** Conservar el identificador de la consulta al facturar una atención y evitar que una cita seleccionada quede fuera del detalle sin advertencia.
+
+**Implementación:** FacturasView.jsx utiliza el catálogo de consultas para resolver la atención mediante CitaId, envía ConsultaId y exige incorporar la selección al detalle antes de emitir. Se informa cuando una cita aún no tiene consulta. BusinessValidationFilter completa y valida la referencia clínica en creación y edición y rechaza atenciones sin consulta. Las líneas de producto conservan únicamente InsumoId. Se ampliaron FacturaCliente.test.jsx y BusinessValidationTests.cs, y se prepararon consultas reales en dos pruebas antiguas de ApiIntegrationTests.cs. README, AI_LOG y esta bitácora se actualizaron conjuntamente.
+
+**Validación:** 95 pruebas frontend y 99 backend aprobadas; se excluyeron prueba externa de Supabase y concurrencia separada. Compilación y reconstrucción de Docker correctas. En PostgreSQL local se verificaron referencias separadas en factura mixta, permanencia de ConsultaId al editar y rechazo de cita sin consulta. La comprobación HTTP requirió corregir la preparación de identificadores escalares; los registros temporales se retiraron. Persisten avisos previos de compilación.
+
+**Resultado y límites:** El sandbox funciona con el ajuste. Una fila de insumo mantiene ConsultaId nulo por diseño; la atención corresponde a otra fila con su referencia clínica. No se alteraron datos de Supabase, facturas históricas ni estructura de tablas. La aplicación ejecutada fuera de Docker requiere recargar el backend para incorporar el cambio.
+
+## Sesión 30 — 11/11/2026 — Prevención de envíos repetidos en formularios
+
+**Objetivo:** Bloquear temporalmente las acciones de registro y actualización para impedir solicitudes consecutivas mientras la operación anterior no finaliza.
+
+**Implementación:** Se añadió useAsyncActionLock.js con una referencia de exclusión inmediata y estado de procesamiento. AccessibleForm y SubmitButton centralizan el bloqueo, texto de espera y aria-busy. Trece controles de envío en diez componentes utilizan el comportamiento compartido. ConfirmModal incorpora el mismo mecanismo para confirmaciones de registro facial, generación de datos y otras acciones, bloqueando además su cancelación pendiente. Se actualizaron componentes de formularios, pruebas, README.md, AI_LOG.md y esta bitácora.
+
+**Validación:** 98 pruebas frontend y 19 pruebas de navegador aprobadas. Se comprobaron eventos repetidos, una sola solicitud durante la espera, recuperación después de un error y un nuevo envío permitido tras finalizar, además de la preservación de restricciones y foco. Se ajustaron la sincronización de un caso previo y el nombre del diálogo del nuevo caso de navegador antes de la ejecución final. Compilación frontend y reconstrucción de su imagen Docker satisfactorias, con avisos previos.
+
+**Resultado y límites:** Protección por instancia en la interfaz, sin idempotencia general del servidor ni modificación de duplicados anteriores. Backend y Supabase sin cambios en esta intervención. API y base Docker estaban detenidas al finalizar la comprobación; se dejó también detenido el frontend actualizado, con su imagen lista para el próximo inicio. Sin nuevas pruebas backend, commits o push.
+
+## Sesión 31 — 11/11/2026 — Entrada numérica sin exponentes ni expresiones
+
+**Objetivo:** Evitar caracteres y notaciones no admitidas en campos numéricos, conservando enteros o decimales según la magnitud del negocio.
+
+**Implementación:** NumericInput.jsx centraliza las restricciones de teclado, pegado, arrastre y cambio de valor. Se aplicó a diecisiete controles de seis vistas, incluidos filtros. Los enteros se reservan para existencias, cantidades, días y registros; peso e importes permiten punto decimal. numberValidation.js refuerza cinco esquemas de validación para rechazar notación científica y expresiones antes de convertir valores. La edición de cantidades de facturación exige enteros. Se añadieron pruebas de componente y navegador, y se actualizaron README, AI_LOG y esta bitácora. Teléfonos y RUT conservan su formato específico.
+
+**Validación:** Suite frontend: 101 aprobadas; comprobación final focalizada: siete aprobadas. Suite de navegador: veinte aprobadas, con pruebas de símbolos, pegado, exponentes, borrado y decimales válidos. La prueba real permitió corregir un rechazo del estado parcial del punto decimal antes de la ejecución satisfactoria. Compilación e imagen Docker reconstruidas correctamente, con avisos previos; sin incidencias en las comprobaciones de accesibilidad seleccionadas existentes.
+
+**Resultado y límites:** Restricción aplicada a la interfaz y sus esquemas; backend sin cambios en esta intervención y sin pruebas nuevas. No se modificó Supabase ni se iniciaron contenedores que estaban detenidos. La imagen está lista para el próximo arranque. Sin commits o push.
+
+## Sesión 32 — 11/11/2026 — Configuración explícita de la prueba externa
+
+**Objetivo:** Retirar configuración sensible de un archivo de pruebas antes de publicar los cambios de la rama.
+
+**Implementación:** Tras el rechazo inicial del push por revisión automática, Test_Supabase_Connection se cambió a una conexión recibida mediante VETCLINIC_TEST_POSTGRES_CONNECTION y consulta SELECT 1. Se añadió ExternalDatabaseFactAttribute para omitir la prueba sin configuración explícita. Se actualizaron README.md, AI_LOG.md y esta bitácora. No se registraron valores de credenciales.
+
+**Validación y alcance:** 99 pruebas backend aprobadas y una externa omitida, excluyendo concurrencia separada. No se detectaron patrones de conexión con credenciales literales en el archivo corregido; git diff --check correcto. No se conectó a Supabase. La corrección no elimina datos del historial ni cambia contraseñas del proveedor.

@@ -10,6 +10,7 @@
   },
   "scripts": {
     "test:facial:e2e": "playwright test --config playwright.facial.config.js",
+    "test:docker:e2e": "playwright test --config playwright.docker.config.js",
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",

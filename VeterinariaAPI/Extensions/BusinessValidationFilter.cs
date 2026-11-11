@@ -111,9 +111,11 @@ public class BusinessValidationFilter(VeterinariodbContext db) : IEndpointFilter
                     if (dto.Items.Where(x => x != null && x.Tipo == "insumo").GroupBy(x => x.InsumoId).Any(x => x.Count() > 1))
                         Error("items", "Agrupe cada insumo en una sola línea e indique la cantidad total.");
                     decimal net = 0;
+                    var resolvedItems = new List<FacturasApi.FacturaItemDto>();
                     foreach (var item in dto.Items)
                     {
                         if (item == null) { Error("items", "La factura contiene una línea vacía."); continue; }
+                        resolvedItems.Add(item);
                         if (item.Tipo == "insumo")
                         {
                             if (item.Cantidad <= 0 || item.Cantidad > 1000000) Error("items", "La cantidad debe ser un entero entre 1 y 1.000.000.");
@@ -126,12 +128,20 @@ public class BusinessValidationFilter(VeterinariodbContext db) : IEndpointFilter
                         {
                             if (item.InsumoId.HasValue || item.Cantidad != 1 || (!item.CitaId.HasValue && !item.EspecialidadId.HasValue))
                                 Error("items", "La atención debe indicar una cita o una especialidad, cantidad 1 y ningún insumo.");
+                            if (!item.CitaId.HasValue && !item.ConsultaId.HasValue)
+                                Error("items", "La atención facturada debe estar vinculada a una consulta médica registrada.");
                             if (item.CitaId.HasValue)
                             {
                                 var appointment = await db.Citas.AsNoTracking().Include(x => x.Paciente).Include(x => x.Especialidad).FirstOrDefaultAsync(x => x.Id == item.CitaId);
                                 if (appointment == null) Error("items", "La cita facturada no existe.");
                                 else
                                 {
+                                    var consultationId = await db.Consultas.AsNoTracking()
+                                        .Where(x => x.CitaId == item.CitaId).Select(x => (int?)x.Id).FirstOrDefaultAsync();
+                                    if (!consultationId.HasValue)
+                                        Error("items", "La cita no tiene una consulta médica registrada. Registre la consulta antes de facturar la atención.");
+                                    else
+                                        resolvedItems[^1] = item with { ConsultaId = consultationId.Value };
                                     if (appointment.Paciente.ClienteId != dto.ClienteId) Error("items", "La cita facturada debe corresponder a una mascota del cliente.");
                                     if (appointment.Estado == "Cancelada") Error("items", "No puede facturar una cita cancelada.");
                                     if (item.EspecialidadId.HasValue && item.EspecialidadId != appointment.EspecialidadId)
@@ -157,6 +167,7 @@ public class BusinessValidationFilter(VeterinariodbContext db) : IEndpointFilter
                     }
                     if (net <= 0 || net + Math.Round(net * 0.19m, 0, MidpointRounding.AwayFromZero) > 10000000m)
                         Error("montoTotal", "El total calculado debe ser mayor a cero y no superar 10.000.000.");
+                    context.Arguments[argumentIndex] = dto with { Items = resolvedItems };
                     break;
 
                 case DetalleFacturasAPI.DetalleFacturaCreateDto dto:

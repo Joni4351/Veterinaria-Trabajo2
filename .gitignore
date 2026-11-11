@@ -378,6 +378,7 @@ dist-ssr/
 .env
 .env.*
 !.env.example
+!.env.docker.example
 
 # Documentos personales
 GUIA_EXPOSICION.md

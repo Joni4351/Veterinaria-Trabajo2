@@ -1,4 +1,5 @@
-import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { NumericInput } from '../components/NumericInput';
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
 import React, { useEffect, useRef, useState } from 'react';
 import { FileText, Search, X, RefreshCw, Download, Eye, Pencil, Plus, Trash2, Archive } from 'lucide-react';
 import './AuditoriaView.css';
@@ -122,9 +123,9 @@ function AuditPanel() {
         <AccessibleForm className="audit-pdf-controls" onSubmit={preparePdf}>
           <p>Incluya de 1 a 100 registros, empezando por los más recientes que coincidan con los filtros actuales.</p>
           <label htmlFor="audit-pdf-count">Cantidad de registros <RequiredIndicator /></label>
-          <input id="audit-pdf-count" className="form-input" type="number" min="1" max="100" step="1" required value={pdfCount} disabled={pdfLoading} onChange={e => { setPdfCount(e.target.value); setPdfRows(null); setPdfError(''); }} />
+          <NumericInput id="audit-pdf-count" className="form-input" type="number" min="1" max="100" step="1" required value={pdfCount} disabled={pdfLoading} onChange={e => { setPdfCount(e.target.value); setPdfRows(null); setPdfError(''); }} />
           <small>Máximo 100 por PDF. Se realiza una sola consulta limitada; no se modifican datos.</small>
-          <button className="audit-button audit-export-button" disabled={pdfLoading} type="submit">{pdfLoading ? 'Preparando…' : 'Preparar PDF'}</button>
+          <SubmitButton className="audit-button audit-export-button" disabled={pdfLoading} type="submit">{pdfLoading ? 'Preparando…' : 'Preparar PDF'}</SubmitButton>
           {pdfError && <p role="alert">{pdfError}</p>}
         </AccessibleForm>
         {pdfRows && <><div className="audit-pdf-result"><p>{pdfRows.length} registros incluidos de {pdfCount} solicitados.</p><button className="audit-button audit-export-button" disabled={!pdfRows.length} onClick={() => window.print()}>Imprimir / Guardar PDF</button></div>

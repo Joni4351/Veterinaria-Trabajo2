@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { plainNumberInput } from './numberValidation';
 
 export const pacienteSchema = z.object({
   clienteId: z.coerce.number({
@@ -12,8 +13,8 @@ export const pacienteSchema = z.object({
     required_error: 'La especie es obligatoria'
   }).trim().min(2, 'La especie es requerida').max(50, 'Máximo 50 caracteres'),
   raza: z.string().trim().max(50, 'La raza no puede exceder 50 caracteres').optional().or(z.literal('')),
-  peso: z.coerce.number({
+  peso: z.preprocess(plainNumberInput, z.coerce.number({
     invalid_type_error: 'El peso debe ser un número válido'
-  }).positive('El peso debe ser un valor positivo').max(300, 'El peso no puede exceder los 300 kg'),
+  }).positive('El peso debe ser un valor positivo').max(300, 'El peso no puede exceder los 300 kg')),
   alergias: z.string().trim().max(500, 'Las notas de alergias no pueden exceder 500 caracteres').optional().or(z.literal(''))
 });

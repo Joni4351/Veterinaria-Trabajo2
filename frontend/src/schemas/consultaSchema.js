@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { plainNumberInput } from './numberValidation';
 import { calendarDateSchema, emissionDateSchema } from './dateValidation';
 
 export const consultaSchema = z.object({
@@ -51,14 +52,14 @@ export const recetaMedicaSchema = z.object({
     .min(2, 'La dosis debe tener al menos 2 caracteres')
     .max(100, 'La dosis no puede exceder 100 caracteres'),
 
-  duracionDias: z.coerce
+  duracionDias: z.preprocess(value => plainNumberInput(value, false), z.coerce
     .number({
       required_error: 'La duración en días es obligatoria',
       invalid_type_error: 'La duración debe ser un número entero'
     })
     .int('La duración debe ser en días enteros')
     .min(1, 'La duración mínima es de 1 día')
-    .max(365, 'La duración no puede superar 365 días')
+    .max(365, 'La duración no puede superar 365 días'))
 }).refine(
   (data) => new Date(data.validaHasta) >= new Date(data.fechaEmision),
   {

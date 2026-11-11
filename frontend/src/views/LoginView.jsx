@@ -1,4 +1,4 @@
-import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
 import React, { useState, useId } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -195,7 +195,7 @@ export const LoginView = () => {
             )}
           </div>
 
-          <button
+          <SubmitButton
             type="submit"
             className="btn btn-primary"
             style={{ 
@@ -216,7 +216,7 @@ export const LoginView = () => {
                 <ArrowRight size={18} aria-hidden="true" />
               </>
             )}
-          </button>
+          </SubmitButton>
         </AccessibleForm>}
 
 

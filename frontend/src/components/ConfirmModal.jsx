@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { AccessibleDialog } from './AccessibleDialog';
 import { AlertTriangle, X } from 'lucide-react';
+import { useAsyncActionLock } from '../hooks/useAsyncActionLock';
 
 /**
  * Modal accesible de confirmación para acciones destructivas (WCAG 2.2 AA).
@@ -17,15 +18,17 @@ export const ConfirmModal = ({
   danger = true
 }) => {
   const cancelButtonRef = useRef(null);
+  const { pending, run } = useAsyncActionLock();
+  const busy = loading || pending;
 
   if (!isOpen) return null;
 
   return (
     <AccessibleDialog
       className="modal-overlay"
-      aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-desc" initialFocus={cancelButtonRef} onClose={loading ? undefined : onCancel}
+      aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-desc" aria-busy={busy} initialFocus={cancelButtonRef} onClose={busy ? undefined : onCancel}
       onClick={(e) => {
-        if (e.target === e.currentTarget && !loading) onCancel();
+        if (e.target === e.currentTarget && !busy) onCancel();
       }}
     >
       <div
@@ -73,7 +76,7 @@ export const ConfirmModal = ({
             type="button"
             className="btn btn-secondary"
             onClick={onCancel}
-            disabled={loading}
+            disabled={busy}
             style={{ minHeight: '44px', minWidth: '44px' }}
           >
             {cancelText}
@@ -81,11 +84,11 @@ export const ConfirmModal = ({
           <button
             type="button"
             className={danger ? 'btn btn-danger' : 'btn btn-primary'}
-            onClick={onConfirm}
-            disabled={loading}
+            onClick={() => { if (!loading) return run(onConfirm); }}
+            disabled={busy}
             style={{ minHeight: '44px', minWidth: '44px' }}
           >
-            {loading ? 'Procesando...' : confirmText}
+            {busy ? 'Procesando...' : confirmText}
           </button>
         </div>
       </div>

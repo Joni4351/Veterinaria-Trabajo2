@@ -1,0 +1,26 @@
+# Optional isolated PostgreSQL environment. Never connects to Supabase.
+services:
+  api:
+    environment:
+      ConnectionStrings__miconexion: "Host=database;Port=5432;Database=vetclinic;Username=vetclinic;Password=${SANDBOX_DB_PASSWORD:?Complete SANDBOX_DB_PASSWORD};SSL Mode=Disable"
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: vetclinic
+      POSTGRES_USER: vetclinic
+      POSTGRES_PASSWORD: ${SANDBOX_DB_PASSWORD:?Complete SANDBOX_DB_PASSWORD}
+    volumes:
+      - sandbox-data:/var/lib/postgresql/data
+      - ./database/migraciones/InicialPostgreSQL.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vetclinic -d vetclinic"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  sandbox-data:

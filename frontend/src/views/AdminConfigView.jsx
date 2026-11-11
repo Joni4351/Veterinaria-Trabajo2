@@ -1,6 +1,7 @@
+import { NumericInput } from '../components/NumericInput';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
-import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Award, Shield, UserCheck, Plus, Trash2, Edit2, X, AlertCircle, Filter, RotateCcw, History, FlaskConical, Users } from 'lucide-react';
@@ -296,7 +297,7 @@ export const AdminConfigView = () => {
                 </div>
                 <div>
                   <label htmlFor="adminconfig-field-1" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Costo Mínimo ($)</label>
-                  <input id="adminconfig-field-1"
+                  <NumericInput id="adminconfig-field-1" allowDecimal
                     type="number"
                     className="form-input"
                     placeholder="0"
@@ -306,7 +307,7 @@ export const AdminConfigView = () => {
                 </div>
                 <div>
                   <label htmlFor="adminconfig-field-2" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Costo Máximo ($)</label>
-                  <input id="adminconfig-field-2"
+                  <NumericInput id="adminconfig-field-2" allowDecimal
                     type="number"
                     className="form-input"
                     placeholder="Sin límite"
@@ -575,7 +576,7 @@ export const AdminConfigView = () => {
                 </div>
                 <div className="form-group">
                   <label className="form-label" htmlFor="esp-costo" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Costo Base ($) <RequiredIndicator /></label>
-                  <input
+                  <NumericInput
                     id="esp-costo"
                     type="number"
                     step="0.01"
@@ -597,7 +598,7 @@ export const AdminConfigView = () => {
               {/* Pie de Acciones (Tarjeta Visual) */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setModalType(null)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary">Guardar</button>
+                <SubmitButton type="submit" className="btn btn-primary">Guardar</SubmitButton>
               </div>
             </AccessibleForm>
           </div>
@@ -671,7 +672,7 @@ export const AdminConfigView = () => {
               {/* Pie de Acciones (Tarjeta Visual) */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setModalType(null)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary">Guardar</button>
+                <SubmitButton type="submit" className="btn btn-primary">Guardar</SubmitButton>
               </div>
             </AccessibleForm>
           </div>

@@ -1,6 +1,7 @@
+import { NumericInput } from '../components/NumericInput';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
-import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
 import { notifySuccess } from '../services/notifications';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
@@ -225,7 +226,7 @@ export const InsumosView = () => {
             </div>
             <div>
               <label htmlFor="insumos-field-2" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Stock Mínimo</label>
-              <input id="insumos-field-2"
+              <NumericInput id="insumos-field-2"
                 type="number"
                 className="form-input"
                 placeholder="Ej. 5"
@@ -235,7 +236,7 @@ export const InsumosView = () => {
             </div>
             <div>
               <label htmlFor="insumos-field-3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Precio Máximo</label>
-              <input id="insumos-field-3"
+              <NumericInput id="insumos-field-3" allowDecimal
                 type="number"
                 className="form-input"
                 placeholder="Ej. 10000"
@@ -398,7 +399,7 @@ export const InsumosView = () => {
                     <label htmlFor="insumo-stock" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                       Stock Actual <RequiredIndicator />
                     </label>
-                    <input
+                    <NumericInput
                       id="insumo-stock"
                       type="number"
                       min="0"
@@ -422,7 +423,7 @@ export const InsumosView = () => {
                     <label htmlFor="insumo-precio" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                       Precio Unitario ($) <RequiredIndicator />
                     </label>
-                    <input
+                    <NumericInput
                       id="insumo-precio"
                       type="number"
                       step="0.01"
@@ -450,9 +451,9 @@ export const InsumosView = () => {
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
+                <SubmitButton type="submit" className="btn btn-primary" disabled={submitting}>
                   {submitting ? 'Guardando...' : (editingId ? 'Actualizar Insumo' : 'Guardar Insumo')}
-                </button>
+                </SubmitButton>
               </div>
             </AccessibleForm>
           </div>

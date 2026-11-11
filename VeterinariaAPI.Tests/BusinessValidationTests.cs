@@ -9,6 +9,57 @@ namespace VeterinariaAPI.Tests;
 public class BusinessValidationTests(FacialFactory factory) : IClassFixture<FacialFactory>
 {
     private static int sequence = 20000;
+    [Fact]
+    public async Task InvoiceClinicalLineStoresConsultationOnCreateAndUpdateSeparatelyFromSupply()
+    {
+        var data = await Seed(); using var client = factory.Client();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VeterinariodbContext>();
+        var consultation = new Consulta { PacienteId = data.patient, CitaId = data.appointment, Motivo = "Control de prueba", Diagnostico = "Sin hallazgos" };
+        db.Consultas.Add(consultation); await db.SaveChangesAsync();
+        var payload = new {
+            clienteId = 1, fechaEmision = Today, montoTotal = 0, montoImpuestos = 0,
+            items = new object[] {
+                new { tipo = "cita", citaId = data.appointment, cantidad = 1 },
+                new { tipo = "insumo", insumoId = data.supply, cantidad = 1 }
+            }
+        };
+        var created = await client.PostAsJsonAsync("/api/v1/facturas", payload);
+        Assert.Equal(HttpStatusCode.Created, created.StatusCode);
+        var invoice = (await created.Content.ReadFromJsonAsync<Factura>())!;
+        async Task CheckDetails()
+        {
+            var lines = await db.DetallesFacturas.AsNoTracking().Where(x => x.FacturaId == invoice.Id).ToListAsync();
+            Assert.Equal(2, lines.Count);
+            Assert.Equal(consultation.Id, Assert.Single(lines, x => x.InsumoId == null).ConsultaId);
+            Assert.Null(Assert.Single(lines, x => x.InsumoId == data.supply).ConsultaId);
+        }
+        await CheckDetails();
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/v1/facturas/{invoice.Id}", payload)).StatusCode);
+        await CheckDetails();
+    }
+
+    [Fact]
+    public async Task InvoiceRejectsClinicalLineWithoutConsultationBeforeCreatingRowsOrChangingStock()
+    {
+        var data = await Seed(); using var client = factory.Client();
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VeterinariodbContext>();
+        var count = await db.Facturas.CountAsync();
+        var details = await db.DetallesFacturas.CountAsync();
+        var response = await client.PostAsJsonAsync("/api/v1/facturas", new {
+            clienteId = 1, fechaEmision = Today, montoTotal = 0, montoImpuestos = 0,
+            items = new object[] {
+                new { tipo = "cita", citaId = data.appointment, cantidad = 1 },
+                new { tipo = "insumo", insumoId = data.supply, cantidad = 1 }
+            }
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Contains("consulta m", await response.Content.ReadAsStringAsync());
+        Assert.Equal(count, await db.Facturas.CountAsync());
+        Assert.Equal(details, await db.DetallesFacturas.CountAsync());
+        Assert.Equal(3, await db.Insumos.AsNoTracking().Where(x => x.Id == data.supply).Select(x => x.StockActual).SingleAsync());
+    }
     [Theory]
     [InlineData(-1)]
     [InlineData(1)]

@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { plainNumberInput } from './numberValidation';
 
 export const especialidadSchema = z.object({
   nombre: z
@@ -7,7 +8,7 @@ export const especialidadSchema = z.object({
     .min(3, 'El nombre debe tener al menos 3 caracteres')
     .max(100, 'El nombre no puede exceder 100 caracteres'),
 
-  costoBase: z.preprocess(value => value === '' || value == null ? NaN : value, z.coerce
+  costoBase: z.preprocess(plainNumberInput, z.coerce
     .number({
       error: 'El costo base es obligatorio y debe ser un número válido'
     })

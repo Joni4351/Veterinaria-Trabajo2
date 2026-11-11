@@ -7,7 +7,7 @@
 
 Plataforma de gestión veterinaria con **ASP.NET Core 8**, **React 19 y Vite 8**, y **PostgreSQL en Supabase**. Incluye gestión clínica, inventario, facturación, autenticación JWT, autorización por roles, registro facial administrativo, generación de datos de demostración y temas claro/oscuro. Las validaciones y pruebas se describen con su alcance y limitaciones; no se afirma una certificación integral de accesibilidad o seguridad.
 
-Actualización de implementación y evidencias: **7 de noviembre de 2026**. La intervención asistida por IA y las decisiones solicitadas por el usuario se registran en [AI_LOG.md](AI_LOG.md).
+Actualización de implementación y evidencias: **11 de noviembre de 2026**. La intervención asistida por IA y las decisiones solicitadas por el usuario se registran en [AI_LOG.md](AI_LOG.md).
 
 ---
 
@@ -21,7 +21,7 @@ Veterinaria-Trabajo2/
 │   ├── Models/ y Repositories/  # Entidades y capa de persistencia EF Core
 │   ├── Services/               # Autenticación, cifrado facial, roles y datos de demostración
 │   ├── Program.cs               # Configuración de CORS, JWT y Rate Limiting
-│   └── .env.example             # Referencia de variables; conexión SQL Server obsoleta
+│   └── .env.example             # Plantilla de variables privadas del backend
 ├── VeterinariaAPI.Tests/        # Suite de pruebas unitarias/integración (.NET xUnit)
 ├── frontend/                    # Cliente web en React 19 + Vite + React Router
 │   ├── src/
@@ -44,7 +44,73 @@ Veterinaria-Trabajo2/
 
 ---
 
-## 🚀 Requisitos previos
+## 🐳 Ejecución con Docker Compose
+
+Docker Desktop debe estar iniciado con el motor de contenedores Linux y Compose disponible. Esta alternativa no requiere instalar .NET o Node en el equipo: sus imágenes realizan la compilación. El frontend se compila con Vite y se sirve mediante Nginx; la API utiliza ASP.NET Core 8. Ambos contenedores se ejecutan sin privilegios de administrador. El navegador accede a `/api` en el mismo origen y Nginx reenvía esas solicitudes a `api:8080`.
+
+### Demostración aislada con PostgreSQL local
+
+Desde la raíz, en PowerShell:
+
+```powershell
+.\scripts\Start-DockerSandbox.ps1
+```
+
+El script crea `.env.sandbox` con claves aleatorias privadas la primera vez y arranca el proyecto Compose `vetclinic-sandbox`. En ejecuciones posteriores conserva esas claves y el puerto. La aplicación queda en **http://localhost:15173**. Para elegir otro puerto en la primera ejecución: `Start-DockerSandbox.ps1 -Port 15174`; si el archivo ya existe, modifica `FRONTEND_PORT` en él.
+
+Esta modalidad **no utiliza Supabase**. `compose.sandbox.yaml` fuerza la conexión a su servicio `database`, sin publicar PostgreSQL al equipo. Inicializa una base nueva mediante `database/migraciones/InicialPostgreSQL.sql` y luego ejecuta el sembrado inicial habitual de la API. No replica las cuentas o datos de Supabase. El volumen `vetclinic-sandbox_sandbox-data` conserva los registros al detener los contenedores; el script inicial SQL solo se ejecuta cuando ese volumen está vacío. Su inicialización no actualiza automáticamente una base local preexistente si cambia el modelo.
+
+Estado, registros y detención conservando el volumen:
+
+```powershell
+docker compose --env-file .env.sandbox -p vetclinic-sandbox -f compose.yaml -f compose.sandbox.yaml ps
+docker compose --env-file .env.sandbox -p vetclinic-sandbox -f compose.yaml -f compose.sandbox.yaml logs --tail 100
+docker compose --env-file .env.sandbox -p vetclinic-sandbox -f compose.yaml -f compose.sandbox.yaml down
+```
+
+### Ejecución conectada a Supabase
+
+```powershell
+Copy-Item .env.docker.example .env.docker
+```
+
+Completa `.env.docker` con tu conexión Npgsql, clave JWT y clave biométrica. Utiliza las **mismas claves y parámetros de tu servidor actual** para mantener la compatibilidad con tokens y descriptores existentes. Las claves biométricas corresponden a 32 bytes en Base64; no deben regenerarse si se quiere leer los rostros ya almacenados. Escribe conexiones y claves entre comillas simples, como muestra la plantilla, para conservar caracteres literales como `$`. No subas el archivo completado a Git.
+
+```powershell
+docker compose --env-file .env.docker config --quiet
+docker compose --env-file .env.docker up --build -d --wait
+```
+
+La aplicación estará en **http://localhost:5173**, o en el puerto que indique `FRONTEND_PORT`. La API permanece en la red interna. `compose.yaml` no aplica migraciones ni crea tablas en Supabase; el arranque conserva la reconciliación automática de roles y el sembrado de tablas vacías implementados en `Program.cs`, que sí pueden escribir en la base configurada. Las operaciones de la web también se guardan allí. Esta conexión remota no se utilizó para las pruebas de dockerización.
+
+```powershell
+docker compose --env-file .env.docker ps
+docker compose --env-file .env.docker logs --tail 100
+docker compose --env-file .env.docker down
+```
+
+### Comprobaciones y alcance
+
+En facturación, una atención seleccionada debe añadirse con **Agregar Cita** y tener una consulta médica registrada. El formulario utiliza la relación `Consulta.CitaId` y envía el identificador de la consulta; la API también lo resuelve y valida al crear o editar. Una selección pendiente de agregar bloquea la emisión con un aviso. Los detalles son líneas independientes: la atención guarda `ConsultaId` y el producto guarda `InsumoId`, con la otra referencia vacía. No se generan consultas clínicas automáticamente para facturar citas sin atención registrada, ni se reparan asociaciones de facturas históricas sin revisión.
+
+- `/health`: disponibilidad de Nginx. `/health/api`: conexión de la API a PostgreSQL. La disponibilidad de la API controla el orden de arranque de Compose; no acredita por sí sola la integridad completa del esquema.
+- La API dispone internamente de `/health/live` y `/health/ready`, sin exponer configuraciones. Swagger permanece deshabilitado en el entorno `Production` de Compose.
+- Las rutas de React admiten recarga directa; los modelos locales de face-api.js se incluyen en la imagen. La cámara puede utilizarse desde `localhost`. El acceso remoto con cámara requiere un contexto seguro; esta configuración local no incorpora publicación pública ni TLS.
+- Los archivos `.dockerignore` excluyen configuraciones privadas, archivos `.env`, dependencias locales y artefactos de pruebas. El ejemplo `.env.docker.example` sí se versiona. Evita publicar la salida completa de `docker compose config` o inspecciones del entorno de contenedores, que pueden contener secretos; usa `config --quiet` para validar.
+- La verificación inicial construyó las dos imágenes, arrancó tres servicios saludables con PostgreSQL 16 local, comprobó autenticación y CRUD de clientes, y ejecutó una prueba de navegador sin simular la API. El registro temporal fue eliminado.
+
+Para repetir la prueba de navegador contra el sandbox iniciado en el puerto 15173, configura en la terminal `DOCKER_TEST_EMAIL` y `DOCKER_TEST_PASSWORD` con una cuenta de esa base local; después:
+
+```powershell
+cd frontend
+npm run test:docker:e2e
+```
+
+La configuración de estas variables no debe guardarse en archivos versionados. La prueba Docker tiene una configuración independiente y no modifica las pruebas existentes que simulan la API.
+
+Referencias: [servicios de Compose](https://docs.docker.com/reference/compose-file/services/) y [orden de arranque y salud](https://docs.docker.com/compose/how-tos/startup-order/).
+
+## 🚀 Requisitos previos para ejecución sin Docker
 
 - **.NET SDK 8.0** (`dotnet --version`).
 - **Node.js 22.12 o superior** y npm (`node -v` y `npm -v`). Vite 8 también admite Node 20 desde 20.19; Node 18 no es compatible.
@@ -58,7 +124,7 @@ Los comandos siguientes usan **PowerShell** y parten de la raíz del repositorio
 
 El backend usa Npgsql y lee **`ConnectionStrings:miconexion`**. El archivo `veterinariodb.sql` es un script histórico para SQL Server y no puede ejecutarse directamente en PostgreSQL.
 
-El repositorio incluye la migración inicial `InicialPostgreSQL` y su SQL en `database/migraciones/InicialPostgreSQL.sql`, generados desde el modelo de EF Core. No se han aplicado ni validado contra un servidor PostgreSQL. La API no ejecuta `EnsureCreated` ni `Migrate` automáticamente. La migración describe la creación del esquema completo y no debe aplicarse directamente a una base Supabase que ya tenga esas tablas: su adopción requiere comparar los esquemas y preparar una línea base.
+El repositorio incluye la migración inicial `InicialPostgreSQL` y su SQL en `database/migraciones/InicialPostgreSQL.sql`, generados desde el modelo de EF Core. El SQL se ejecutó correctamente para inicializar PostgreSQL 16 en el sandbox Docker y se verificaron arranque, autenticación y CRUD de clientes. No se ha aplicado a Supabase ni se ha ensayado `dotnet ef database update` contra PostgreSQL en esta intervención. La API no ejecuta `EnsureCreated` ni `Migrate` automáticamente. La migración describe la creación del esquema completo y no debe aplicarse directamente a una base Supabase que ya tenga esas tablas: su adopción requiere comparar los esquemas y preparar una línea base.
 
 Para generar archivos sin conectarse a Supabase, desde la raíz del repositorio:
 
@@ -68,7 +134,7 @@ dotnet ef migrations add NombreDelCambio --project VeterinariaAPI --context Vete
 dotnet ef migrations script --project VeterinariaAPI --context VeterinariodbContext --configuration Release --output cambio.sql
 ```
 
-La fábrica de diseño `VeterinariodbContextFactory` evita iniciar la API y utiliza una conexión local inoperante sin secretos. No lee la conexión de producción; los comandos que necesiten una base real requieren una conexión explícita. Crear migraciones o generar SQL no los ejecuta. `Factura.FechaEmision` utiliza ahora `CURRENT_DATE`, compatible con PostgreSQL. La validación del esquema real y de su creación en una base desechable permanece pendiente.
+La fábrica de diseño `VeterinariodbContextFactory` evita iniciar la API y utiliza una conexión local inoperante sin secretos. No lee la conexión de producción; los comandos que necesiten una base real requieren una conexión explícita. Crear migraciones o generar SQL no los ejecuta. `Factura.FechaEmision` utiliza ahora `CURRENT_DATE`, compatible con PostgreSQL. La creación mediante SQL se comprobó en el sandbox; la comparación con Supabase y la evaluación integral de todas las restricciones y migraciones posteriores permanecen pendientes.
 
 Para Supabase, usa los datos del pooler de tu propio proyecto. Se recomienda una cadena Npgsql `Host=...;Port=...;...`: el código reescribe algunas URL `postgresql://` hacia un pooler de región fija.
 
@@ -226,6 +292,8 @@ El generador web no crea tablas, no elimina registros ni actúa como respaldo. L
 4. **Validación de Formularios con Zod**:
    - Esquemas tipados y robustos para Login, Pacientes y Clientes.
    - Mensajes de error en tiempo real vinculados semánticamente a los inputs mediante `aria-describedby` y `role="alert"`.
+   - Los formularios de registro y actualización bloquean el envío mientras su operación está pendiente y muestran «Procesando…». El bloqueo síncrono impide envíos repetidos por clic o teclado antes de la actualización visual y se libera al terminar o fallar. Las confirmaciones comparten esta protección. El alcance es la instancia de formulario o confirmación; no constituye idempotencia global del backend entre pestañas o clientes diferentes.
+   - Los campos numéricos de formularios y filtros bloquean letras, notación científica (`e`, `E`), signos y expresiones al escribir, pegar o arrastrar texto. Stock, cantidades, días y número de registros utilizan enteros; peso e importes admiten punto decimal. Los esquemas también rechazan cadenas como `1e3`, sin convertirlas en otro valor. Se mantienen las reglas de formato propias del teléfono y RUT, que no son magnitudes numéricas.
 5. **Controles de accesibilidad**:
    - Etiquetas, mensajes de error, foco visible (`:focus-visible`) y atributos ARIA en los componentes correspondientes.
    - El diálogo de confirmación permite cancelar con `Escape` cuando no hay una operación en curso y coloca el foco inicial en cancelar.
@@ -282,9 +350,11 @@ npm run test:facial:e2e
 
 Playwright levanta Vite y simula las respuestas de la API; no genera registros en Supabase. Si se requiere otro navegador, adapta `playwright.facial.config.js` y su instalación.
 
+La prueba `Test_Supabase_Connection` no contiene credenciales incrustadas y se omite automáticamente cuando no se configura `VETCLINIC_TEST_POSTGRES_CONNECTION`. Esa variable debe contener una conexión privada de pruebas para habilitar explícitamente el acceso externo. No se debe versionar su valor. Retirar una credencial del código actual no la elimina de commits históricos; si sigue vigente, corresponde rotarla en el proveedor.
+
 ### Límites y cambios expresamente pendientes
 
-- La migración inicial PostgreSQL está generada localmente; su aplicación, validación en servidor y línea base para adoptar la base existente siguen pendientes. El script facial adapta una tabla existente.
+- El SQL de la migración inicial se utilizó para crear PostgreSQL en el sandbox Docker y se verificaron operaciones básicas. Su adopción en Supabase, la aplicación mediante EF CLI y la evaluación integral de restricciones y migraciones posteriores siguen pendientes. El script facial adapta una tabla existente.
 - El usuario solicitó aplicar únicamente la corrección de restauración de sesión. Se conserva `localStorage`; no se implementaron cookies HttpOnly, refresh tokens, revocación de sesiones ni eliminación del fallback heredado de contraseñas en texto plano.
 - Las comprobaciones previas de agenda no garantizan exclusión entre peticiones concurrentes ni detectan intervalos completos, porque el modelo no tiene duración de atención.
 - La cantidad y el precio histórico todavía no se almacenan por separado en cada detalle de factura. Esa mejora sigue siendo necesaria para una reconstrucción fiable del inventario cuando cambian los precios.

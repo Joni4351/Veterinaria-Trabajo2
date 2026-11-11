@@ -1,4 +1,4 @@
-import { AccessibleForm, RequiredIndicator } from "./AccessibleForm";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "./AccessibleForm";
 import React, { useState } from 'react';
 import { registerSchema } from '../schemas/authSchema';
 import authService from '../services/authService';
@@ -50,7 +50,7 @@ export function UserCreateForm({ roles, onCreated }) {
           </select>{fieldError('rolId', 'new-user-role')}</div>
       </div>
       <div style={{ display: 'flex', gap: '.75rem', flexWrap: 'wrap' }}>
-        <button className="btn btn-primary" type="submit" disabled={saving || !roles.length}>{saving ? 'Creando…' : 'Crear usuario'}</button>
+        <SubmitButton className="btn btn-primary" type="submit" disabled={saving || !roles.length}>{saving ? 'Creando…' : 'Crear usuario'}</SubmitButton>
         <button className="btn btn-secondary" type="button" disabled={saving} onClick={() => { setOpen(false); setForm({ nombreCompleto: '', email: '', password: '', rolId: '' }); setError(''); setFieldErrors({}); }}>Cancelar</button>
       </div>
     </AccessibleForm>}

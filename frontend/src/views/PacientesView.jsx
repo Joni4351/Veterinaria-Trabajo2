@@ -1,5 +1,6 @@
+import { NumericInput } from '../components/NumericInput';
 import { AccessibleDialog } from "../components/AccessibleDialog";
-import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
 import { notifySuccess } from '../services/notifications';
 import React, { useState, useEffect, useId } from 'react';
 import pacientesService from '../services/pacientesService';
@@ -743,7 +744,7 @@ export const PacientesView = () => {
                   {/* Campo Peso */}
                   <div className="form-group">
                     <label htmlFor={`${formId}-peso`} className="form-label">Peso (kg) <RequiredIndicator /></label>
-                    <input
+                    <NumericInput
                       id={`${formId}-peso`}
                       type="number"
                       step="0.1"
@@ -795,14 +796,14 @@ export const PacientesView = () => {
                 >
                   Cancelar
                 </button>
-                <button
+                <SubmitButton
                   type="submit"
                   className="btn btn-primary"
                   disabled={submitting}
                   style={{ minHeight: '44px', minWidth: '44px' }}
                 >
                   {submitting ? 'Guardando...' : (editingId ? 'Guardar Cambios' : 'Registrar Paciente')}
-                </button>
+                </SubmitButton>
               </div>
             </AccessibleForm>
           </div>
