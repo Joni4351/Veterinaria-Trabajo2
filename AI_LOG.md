@@ -793,3 +793,111 @@ backend ni Supabase en esta intervención; sus pruebas no se volvieron a ejecuta
 **Intervención y decisiones técnicas:** En `frontend/src/views/AdminConfigView.css` se incorporó el borde temático a la regla general `.admin-section` y se eliminó la restricción que lo aplicaba únicamente a las tres primeras opciones. Especialidades, roles y cuentas de usuario comparten ahora el mismo contorno; se conservan los estilos del estado activo y de los temas claro y oscuro. Se actualizaron ambos registros de desarrollo.
 
 **Validación:** La compilación de producción del frontend finalizó correctamente. Persisten los avisos previos relativos a `fs` en face-api.js y al tamaño de los paquetes. No se realizó una comprobación visual en navegador para este ajuste de estilos.
+
+## 15. Generación local de la migración inicial PostgreSQL
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Incorporar una migración reproducible del modelo actual sin ejecutar operaciones sobre Supabase.
+
+**Intervención y decisiones técnicas:** Se generó `InicialPostgreSQL` con sus metadatos y snapshot en `VeterinariaAPI/Migrations`, y el script `database/migraciones/InicialPostgreSQL.sql`. Se añadió `.config/dotnet-tools.json` con dotnet-ef 8.0.11 y `VeterinariaAPI/Data/VeterinariodbContextFactory.cs`, que usa una conexión local inoperante sin credenciales y evita iniciar la API o leer configuración de producción. Se sustituyó el valor predeterminado de SQL Server de FechaEmision por CURRENT_DATE en el contexto. Se actualizó README y ambos registros.
+
+**Validación:** Herramienta restaurada; generación de migración y compilación Release satisfactorias. SQL generado sin ejecución. La comprobación `has-pending-model-changes` confirmó ausencia de diferencias. El SQL incluye 14 tablas del modelo y la tabla de historial. La primera comprobación con --no-build usó un ensamblado anterior a la migración; tras recompilar, la generación SQL y la comprobación fueron satisfactorias. `git diff --check` sin errores.
+
+**Limitaciones:** No se ejecutó database update, ni SQL, ni se inició la API. No se conectó a Supabase. No se comprobó la equivalencia con su esquema ni se probó la creación en un servidor PostgreSQL. Esta migración crea el esquema completo; no es una línea base vacía para una base existente y no debe aplicarse directamente a ella. No se ejecutó la suite de pruebas.
+
+## 16. Coherencia del paciente en consultas vinculadas a citas
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Garantizar que la selección de una cita en el formulario de consulta determine de forma unívoca el paciente atendido.
+
+**Intervención:** En ConsultasView.jsx se asigna automáticamente el paciente al seleccionar una cita, se deshabilita su selector y se limita su listado al paciente asignado. Al retirar la cita, se permite nuevamente elegir cualquier paciente. La regla se comparte entre creación y edición. El backend ya verifica esta relación en BusinessValidationFilter para POST y PUT, por lo que se conservó sin cambios. Se añadió ConsultaPaciente.test.jsx y se actualizaron ambas bitácoras.
+
+**Validación:** Una prueba de interfaz aprobada para asignación de Thor, bloqueo, exclusión de Luna y recuperación de selección libre. Doce pruebas de BusinessValidationTests aprobadas con almacenamiento de pruebas en memoria, incluida la comprobación de discrepancia de paciente. Compilación frontend correcta con avisos preexistentes de face-api.js y tamaño de paquetes. La ejecución inicial de backend en entorno restringido no finalizó y fue interrumpida; la ejecución con permisos ampliados terminó correctamente. No se realizó revisión visual en navegador ni cambios en Supabase.
+
+## 17. Búsqueda de pacientes y selección contextual de citas
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Facilitar la localización del paciente y restringir las citas disponibles a las de ese animal que no estén completadas.
+
+**Intervención:** En frontend/src/views/ConsultasView.jsx se sustituyó el selector de paciente por búsqueda textual con resultados seleccionables mediante botones, conservando nombre, especie, dueño y RUT. La búsqueda ignora mayúsculas y tildes. Escribir invalida la selección anterior y retira la cita; seleccionar otro animal evita conservar una cita incompatible. El listado de citas filtra por paciente y excluye Completada. En edición se conserva una asociación histórica completada mediante una opción oculta que no se ofrece como alternativa nueva. Se actualizó ConsultaPaciente.test.jsx y ambos registros.
+
+**Validación:** Prueba de interfaz aprobada para búsqueda por dueño, detalles de resultados, exclusión de citas ajenas y completadas, limpieza de asociación y ausencia de resultados. Compilación frontend correcta con avisos preexistentes. No se ejecutaron pruebas nuevas del backend ni inspección visual en navegador. No se modificó Supabase. El filtrado de estado es de interfaz; se mantiene la validación de pertenencia existente en el servidor.
+
+## 18. Activación explícita de resultados de búsqueda de pacientes
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Evitar selecciones automáticas y listados generales al abrir o enfocar la búsqueda de pacientes en consultas.
+
+**Intervención:** En frontend/src/views/ConsultasView.jsx se eliminó la preselección del primer paciente al crear una consulta y la apertura de resultados por foco. Los resultados requieren texto no vacío tras eliminar espacios exteriores. El paciente existente se conserva en edición y enfocar una selección no despliega el catálogo. Se amplió ConsultaPaciente.test.jsx y se actualizaron ambos registros.
+
+**Validación:** Una prueba de interfaz aprobada con verificaciones de campo inicial vacío, foco y clic sin resultados, espacios en blanco, búsqueda filtrada, nueva interacción con selección previa y limpieza del texto. Se conservan comprobaciones de filtrado de citas. No se realizó revisión visual ni nueva compilación para este ajuste; no se modificaron backend ni Supabase.
+
+## 19. Formularios de recetas vacíos y control de fechas de emisión
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Exigir ingreso explícito de los datos de nuevas recetas y restringir las fechas de emisión de recetas y facturas al día actual, manteniendo una vigencia no anterior a la emisión.
+
+**Implementación y decisiones:** ConsultasView.jsx inicializa las nuevas recetas con fechas, insumo, dosis y duración vacíos; los datos existentes se conservan al editar. Se eliminaron también las preselecciones de insumo y duración cuando una receta no tiene detalle. dateValidation.js incorpora la fecha de America/Santiago y un esquema compartido de emisión del día actual, utilizado por consultaSchema.js y facturaSchema.js. Los controles de emisión tienen límites mínimo y máximo iguales a hoy; Válida hasta tiene mínimo igual a emisión. FacturasView.jsx utiliza la fecha chilena para sus valores iniciales. BusinessValidationFilter aplica la regla en POST y PUT de recetas y facturas y conserva la comparación de vigencia. No se modifican fechas de citas, filtros históricos ni otras fechas que no representan emisión.
+
+**Componentes y pruebas:** Se actualizaron BusinessValidationTests.cs, AuditoriaTests.cs y businessSchemas.test.js para usar fechas actuales en escenarios válidos; se añadieron casos de creación y edición con ayer y mañana, conservación de valores ante rechazos, vigencia anterior y pruebas de límite UTC/Chile en EmissionDates.test.js. ConsultaPaciente.test.jsx comprueba todos los campos vacíos de una nueva receta y los atributos de fecha. Se actualizaron simultáneamente ambas bitácoras.
+
+**Validación:** Suite frontend: 90 pruebas aprobadas antes de incorporar el último caso visual de formulario; después, las dos pruebas del archivo ConsultaPaciente.test.jsx aprobaron. Backend: 95 pruebas aprobadas con almacenamiento de pruebas, excluyendo conexión externa a Supabase y la prueba separada de concurrencia. Compilación frontend correcta con avisos preexistentes de face-api.js y paquetes grandes. No se ejecutaron pruebas de navegador en esta intervención.
+
+**Alcance y límites:** La regla solicitada se aplica también al editar: una emisión histórica no permite guardar hasta cumplir la fecha actual; no se cambian registros existentes automáticamente. Se usa la fecha de Chile en ambas capas, aunque el navegador depende del reloj del dispositivo y el servidor valida con su propio reloj. No se modificó Supabase ni se aplicaron migraciones.
+
+## 20. Ingreso explícito de datos para nuevos insumos
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Evitar valores predefinidos en el formulario de creación de insumos.
+
+**Intervención:** En frontend/src/views/InsumosView.jsx se dejaron vacíos tipo, stock y precio en el estado inicial y al abrir una nueva alta; el nombre ya estaba vacío. Se incorporó una opción sin valor para solicitar la selección de categoría. La edición conserva los datos del registro. Se actualizaron AI_LOG.md y BITACORA.md.
+
+**Validación:** Las cuatro pruebas existentes de RequiredNumbers.test.js aprobaron, incluida la exigencia de stock explícito y la aceptación de cero ingresado. No se realizó nueva compilación ni revisión visual para este ajuste. No se modificaron backend ni Supabase.
+
+## 21. Búsqueda textual de clientes en facturación
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Homogeneizar la selección de clientes del formulario de facturación con la búsqueda interactiva utilizada en consultas médicas.
+
+**Intervención:** En frontend/src/views/FacturasView.jsx se sustituyó el selector por un campo de búsqueda de nombre o RUT, con resultados seleccionables que muestran ambos datos. El formulario nuevo comienza sin cliente; no se muestran resultados con texto vacío, espacios o al enfocar una selección. La comparación de nombres ignora tildes y mayúsculas, y la de RUT omite puntos, guion y espacios. Escribir invalida el cliente anterior y la selección explícita asigna su identificador. Se conserva el cliente al editar y se sincroniza el texto cuando una cita asigna automáticamente su propietario. Se incorporó FacturaCliente.test.jsx y se actualizaron ambas bitácoras.
+
+**Validación:** Una prueba de interfaz aprobada que cubre inicio vacío, foco sin catálogo, búsqueda por nombre sin tilde, RUT sin formato, selección y ausencia de coincidencias. Compilación frontend correcta con avisos preexistentes de face-api.js y tamaño de paquetes. No se realizó revisión visual ni nuevas pruebas de backend. No se modificó Supabase.
+
+## 22. Citas de facturación restringidas al propietario seleccionado
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Limitar las citas disponibles para incorporar a una factura a las pertenecientes al cliente seleccionado, manteniendo disponibles las completadas.
+
+**Intervención:** Se corrigió citasDisponibles en FacturasView.jsx: no devuelve citas sin cliente ni recurre al catálogo completo cuando no hay coincidencias. La pertenencia se comprueba mediante clienteId del paciente o id de su propietario anidado. Se limpia la selección de cita al escribir otro cliente; la incorporación solo busca entre citas disponibles y ya no reasigna el cliente automáticamente. Se ajustaron los mensajes de ausencia de cliente o citas. Se amplió FacturaCliente.test.jsx y se actualizaron ambos registros.
+
+**Validación:** Una prueba de interfaz aprobada cubre citas propias, exclusión de ajenas, conservación de completadas, propietario anidado, cambio de cliente y cliente sin citas. No se realizó nueva compilación, inspección visual ni pruebas de backend para este ajuste. Sin cambios en Supabase.
+
+## 23. Retroalimentación de datos incompletos al emitir facturas
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Proporcionar mensajes visibles y accesibles que identifiquen datos faltantes al intentar emitir una factura.
+
+**Intervención:** En frontend/src/views/FacturasView.jsx se habilitó el intento de envío sin detalles para permitir mostrar explicaciones, manteniendo el bloqueo mediante validación antes de cualquier solicitud. Se evalúan conjuntamente campos y ausencia de conceptos, se presenta un aviso general, errores asociados a cliente y fecha, y una explicación de cómo agregar una cita o un insumo. Se conserva el foco automático en el primer campo inválido mediante AccessibleForm. Se amplió FacturaCliente.test.jsx y se actualizaron ambas bitácoras.
+
+**Validación:** Dos pruebas del archivo FacturaCliente.test.jsx aprobaron. El nuevo caso comprueba mensajes simultáneos, descripciones accesibles, foco del cliente y ausencia de envío de la factura incompleta. Compilación frontend correcta con avisos preexistentes de face-api.js y tamaño de paquetes. No se realizó inspección visual ni nuevas pruebas de backend. No se modificó Supabase.
+
+## 24. Adaptación del formulario de facturación al área visible
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Optimizar la distribución del formulario de facturación para utilizarse al 100 % de zoom, sin que sus acciones queden fuera de la pantalla.
+
+**Intervención:** FacturasView.jsx organiza las tarjetas de selección y resumen en dos columnas para escritorio y una para pantallas menores. Se añadió FacturasView.css con ancho adaptable, altura limitada al viewport dinámico, encabezado y acciones fuera del área desplazable y un único cuerpo principal con desplazamiento interno cuando el contenido lo requiere. El diálogo se monta mediante portal en document.body y se sitúa sobre la navegación para evitar recortes por contenedores o capas de la aplicación. Se actualizó la indicación de ubicación de las secciones y ambas bitácoras.
+
+**Validación:** Dos pruebas unitarias de FacturaCliente.test.jsx y compilación frontend correctas, con avisos preexistentes. Una prueba Playwright con datos simulados aprobó en 1366x768, 1920x1080 y 390x844: límites del diálogo dentro del viewport, ausencia de desbordamiento horizontal del cuerpo, controles de cierre y emisión visibles y botón alcanzable por puntero. En los dos tamaños de escritorio el formulario inicial no requirió desplazamiento vertical. Se inspeccionaron capturas de escritorio y móvil. La revisión inicial detectó interferencias de capas, corregidas mediante portal y verificadas en la ejecución final.
+
+**Limitaciones:** En móvil, alturas reducidas o listados extensos se mantiene desplazamiento interno, con acciones siempre visibles. Se comprobó el estado inicial con datos simulados en Edge; no se verificaron todos los estados de factura ni otras plataformas. Backend y Supabase sin cambios.

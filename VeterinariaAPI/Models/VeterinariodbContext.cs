@@ -172,7 +172,7 @@ public partial class VeterinariodbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Facturas__3214EC07EDC3F268");
 
-            entity.Property(e => e.FechaEmision).HasDefaultValueSql("(CONVERT([date],getdate()))");
+            entity.Property(e => e.FechaEmision).HasDefaultValueSql("CURRENT_DATE");
             entity.Property(e => e.MontoImpuestos).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.MontoTotal).HasColumnType("decimal(10, 2)");
 

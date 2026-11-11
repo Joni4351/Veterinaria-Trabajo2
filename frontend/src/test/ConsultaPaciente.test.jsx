@@ -1,0 +1,63 @@
+import React from 'react';
+import { expect, it, vi } from 'vitest';
+import { render, screen, fireEvent, within } from '@testing-library/react';
+import { ConsultasView } from '../views/ConsultasView';
+import api from '../services/api';
+import { todayInChile } from '../schemas/dateValidation';
+vi.mock('../services/api', () => ({ default: { get: vi.fn(), post: vi.fn() } }));
+vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ hasRole: () => true, isAdmin: true }) }));
+it('busca pacientes, filtra citas propias no completadas y limpia la cita al cambiar de paciente', async () => {
+ const pacientes = [{ id: 1, nombre: 'Luna', especie: 'Canino' }, { id: 2, nombre: 'Thor', especie: 'Canino', cliente: { nombreCompleto: 'Jonathan', documentoIdentidad: '18.765.432-7' } }];
+ const citas = [{ id: 8, pacienteId: 2, paciente: pacientes[1], estado: 'Confirmada' }, { id: 9, pacienteId: 2, estado: 'Completada' }, { id: 10, pacienteId: 1, estado: 'Pendiente' }];
+ api.get.mockImplementation(async url => ({ data: url.endsWith('/pacientes') ? pacientes : url.endsWith('/citas') ? citas : [] }));
+ render(<ConsultasView />);
+ fireEvent.click(await screen.findByRole('button', { name: /Nueva Consulta/ }));
+ const paciente = screen.getByLabelText(/Paciente Atendido/);
+ const cita = screen.getByLabelText(/Cita Asociada/);
+ expect(paciente).toHaveValue('');
+ fireEvent.focus(paciente);
+ fireEvent.click(paciente);
+ expect(screen.queryByRole('group', { name: 'Resultados de pacientes' })).not.toBeInTheDocument();
+ fireEvent.change(paciente, { target: { value: '   ' } });
+ expect(screen.queryByRole('group', { name: 'Resultados de pacientes' })).not.toBeInTheDocument();
+ fireEvent.change(paciente, { target: { value: 'jonathan' } });
+ const resultados = screen.getByRole('group', { name: 'Resultados de pacientes' });
+ expect(within(resultados).queryByRole('button', { name: /Luna/ })).not.toBeInTheDocument();
+ fireEvent.click(within(resultados).getByRole('button', { name: /Thor.*Jonathan.*18.765.432-7/ }));
+ expect(Array.from(cita.options).map(o => o.value)).toEqual(['', '8']);
+ fireEvent.change(cita, { target: { value: '8' } });
+ expect(paciente.value).toContain('Thor');
+ fireEvent.blur(paciente);
+ fireEvent.focus(paciente);
+ fireEvent.click(paciente);
+ expect(screen.queryByRole('group', { name: 'Resultados de pacientes' })).not.toBeInTheDocument();
+ fireEvent.change(paciente, { target: { value: '' } });
+ expect(screen.queryByRole('group', { name: 'Resultados de pacientes' })).not.toBeInTheDocument();
+ fireEvent.change(paciente, { target: { value: 'Luna' } });
+ expect(cita).toHaveValue('');
+ fireEvent.click(screen.getByRole('button', { name: /Luna \(Canino\)/ }));
+ expect(Array.from(cita.options).map(o => o.value)).toEqual(['', '10']);
+ fireEvent.change(paciente, { target: { value: 'inexistente' } });
+ expect(screen.getByRole('status')).toHaveTextContent('No se encontraron pacientes');
+ expect(Array.from(cita.options).map(o => o.value)).toEqual(['']);
+});
+
+it('abre una receta nueva con todos los campos vacíos y límites de fecha coherentes', async () => {
+ api.get.mockImplementation(async url => ({ data: url.endsWith('/consultas') ? [
+   { id: 5, pacienteId: 1, paciente: { nombre: 'Thor', especie: 'Canino' }, motivo: 'Control', diagnostico: 'Saludable' }
+ ] : url.endsWith('/insumos') ? [{ id: 1, nombreProducto: 'Medicamento', stockActual: 10 }] : [] }));
+ render(<ConsultasView />);
+ fireEvent.click(await screen.findByRole('button', { name: 'Emitir Receta Médica' }));
+ const modal = within(await screen.findByRole('dialog', { name: 'Receta veterinaria' }));
+ const emision = await modal.findByLabelText(/Fecha de Emisión/);
+ const validez = modal.getByLabelText(/Válida Hasta/);
+ expect(emision).toHaveValue('');
+ expect(validez).toHaveValue('');
+ expect(modal.getByLabelText(/Medicamento \/ Insumo/)).toHaveValue('');
+ expect(modal.getByLabelText(/Dosis/)).toHaveValue('');
+ expect(modal.getByLabelText(/Duración/)).toHaveValue(null);
+ expect(emision).toHaveAttribute('min', todayInChile());
+ expect(emision).toHaveAttribute('max', todayInChile());
+ fireEvent.change(emision, { target: { value: todayInChile() } });
+ expect(validez).toHaveAttribute('min', todayInChile());
+});

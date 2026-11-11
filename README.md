@@ -58,9 +58,17 @@ Los comandos siguientes usan **PowerShell** y parten de la raíz del repositorio
 
 El backend usa Npgsql y lee **`ConnectionStrings:miconexion`**. El archivo `veterinariodb.sql` es un script histórico para SQL Server y no puede ejecutarse directamente en PostgreSQL.
 
-**Limitación para una instalación desde cero:** el repositorio no incluye migraciones ni un script de creación para PostgreSQL. La API tampoco ejecuta `EnsureCreated` ni `Migrate`: solo intenta insertar datos iniciales en tablas existentes. Necesitas una base previamente preparada o un respaldo PostgreSQL compatible facilitado por el responsable del proyecto. Crear una base vacía no basta.
+El repositorio incluye la migración inicial `InicialPostgreSQL` y su SQL en `database/migraciones/InicialPostgreSQL.sql`, generados desde el modelo de EF Core. No se han aplicado ni validado contra un servidor PostgreSQL. La API no ejecuta `EnsureCreated` ni `Migrate` automáticamente. La migración describe la creación del esquema completo y no debe aplicarse directamente a una base Supabase que ya tenga esas tablas: su adopción requiere comparar los esquemas y preparar una línea base.
 
-Para preparar un esquema nuevo, queda pendiente adaptar el DDL a PostgreSQL y comprobar tablas, columnas, claves, identidades y tipos contra `VeterinariaAPI/Models/VeterinariodbContext.cs`. Ese modelo todavía contiene un valor predeterminado de SQL Server para `Factura.FechaEmision` (`CONVERT([date],getdate())`), que debe adaptarse antes de generar migraciones PostgreSQL.
+Para generar archivos sin conectarse a Supabase, desde la raíz del repositorio:
+
+```powershell
+dotnet tool restore
+dotnet ef migrations add NombreDelCambio --project VeterinariaAPI --context VeterinariodbContext --configuration Release
+dotnet ef migrations script --project VeterinariaAPI --context VeterinariodbContext --configuration Release --output cambio.sql
+```
+
+La fábrica de diseño `VeterinariodbContextFactory` evita iniciar la API y utiliza una conexión local inoperante sin secretos. No lee la conexión de producción; los comandos que necesiten una base real requieren una conexión explícita. Crear migraciones o generar SQL no los ejecuta. `Factura.FechaEmision` utiliza ahora `CURRENT_DATE`, compatible con PostgreSQL. La validación del esquema real y de su creación en una base desechable permanece pendiente.
 
 Para Supabase, usa los datos del pooler de tu propio proyecto. Se recomienda una cadena Npgsql `Host=...;Port=...;...`: el código reescribe algunas URL `postgresql://` hacia un pooler de región fija.
 
@@ -276,7 +284,7 @@ Playwright levanta Vite y simula las respuestas de la API; no genera registros e
 
 ### Límites y cambios expresamente pendientes
 
-- Las migraciones de EF Core y su baseline para la base existente se explicaron como preparación futura; no quedaron implementadas. El script facial adapta una tabla existente y no crea todo el esquema.
+- La migración inicial PostgreSQL está generada localmente; su aplicación, validación en servidor y línea base para adoptar la base existente siguen pendientes. El script facial adapta una tabla existente.
 - El usuario solicitó aplicar únicamente la corrección de restauración de sesión. Se conserva `localStorage`; no se implementaron cookies HttpOnly, refresh tokens, revocación de sesiones ni eliminación del fallback heredado de contraseñas en texto plano.
 - Las comprobaciones previas de agenda no garantizan exclusión entre peticiones concurrentes ni detectan intervalos completos, porque el modelo no tiene duración de atención.
 - La cantidad y el precio histórico todavía no se almacenan por separado en cada detalle de factura. Esa mejora sigue siendo necesaria para una reconstrucción fiable del inventario cuando cambian los precios.

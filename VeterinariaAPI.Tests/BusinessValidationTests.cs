@@ -9,6 +9,44 @@ namespace VeterinariaAPI.Tests;
 public class BusinessValidationTests(FacialFactory factory) : IClassFixture<FacialFactory>
 {
     private static int sequence = 20000;
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(1)]
+    public async Task RejectsEmissionDatesOutsideTodayForCreateAndUpdate(int offset)
+    {
+        var data = await Seed(); using var client = factory.Client();
+        var response = await client.PostAsJsonAsync("/api/v1/consultas", new {
+            pacienteId = data.patient, motivo = "Control general", diagnostico = "Sin hallazgos"
+        });
+        response.EnsureSuccessStatusCode();
+        var consulta = await response.Content.ReadFromJsonAsync<Consulta>();
+        var receta = new { consultaId = consulta!.Id, fechaEmision = Today, validaHasta = Today.AddDays(7) };
+        var factura = new { clienteId = 1, fechaEmision = Today, montoTotal = 100, montoImpuestos = 19 };
+        var createdReceta = await client.PostAsJsonAsync("/api/v1/recetas", receta);
+        var createdFactura = await client.PostAsJsonAsync("/api/v1/facturas", factura);
+        Assert.Equal(HttpStatusCode.Created, createdReceta.StatusCode);
+        Assert.Equal(HttpStatusCode.Created, createdFactura.StatusCode);
+        var recetaId = (await createdReceta.Content.ReadFromJsonAsync<Receta>())!.Id;
+        var facturaId = (await createdFactura.Content.ReadFromJsonAsync<Factura>())!.Id;
+        var invalidReceta = new { consultaId = consulta.Id, fechaEmision = Today.AddDays(offset), validaHasta = Today.AddDays(7) };
+        var invalidFactura = new { clienteId = 1, fechaEmision = Today.AddDays(offset), montoTotal = 100, montoImpuestos = 19 };
+        foreach (var result in new[] {
+            await client.PostAsJsonAsync("/api/v1/recetas", invalidReceta),
+            await client.PutAsJsonAsync($"/api/v1/recetas/{recetaId}", invalidReceta),
+            await client.PostAsJsonAsync("/api/v1/facturas", invalidFactura),
+            await client.PutAsJsonAsync($"/api/v1/facturas/{facturaId}", invalidFactura)
+        }) {
+            Assert.Equal(HttpStatusCode.BadRequest, result.StatusCode);
+            Assert.Contains("fechaEmision", await result.Content.ReadAsStringAsync());
+        }
+        Assert.Equal(HttpStatusCode.BadRequest, (await client.PutAsJsonAsync($"/api/v1/recetas/{recetaId}",
+            new { consultaId = consulta.Id, fechaEmision = Today, validaHasta = Today.AddDays(-1) })).StatusCode);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<VeterinariodbContext>();
+        Assert.Equal(Today, (await db.Recetas.FindAsync(recetaId))!.FechaEmision);
+        Assert.Equal(Today, (await db.Facturas.FindAsync(facturaId))!.FechaEmision);
+    }
+    private static DateOnly Today => DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("America/Santiago")));
     private async Task<(int patient, int other, int appointment, int supply, DateTime time)> Seed(string state = "Confirmada")
     {
         using var scope = factory.Services.CreateScope();
@@ -109,10 +147,10 @@ public class BusinessValidationTests(FacialFactory factory) : IClassFixture<Faci
         Assert.Equal(HttpStatusCode.Created, consultationResponse.StatusCode);
         var consultation = await consultationResponse.Content.ReadFromJsonAsync<Consulta>();
         Assert.Equal(HttpStatusCode.BadRequest, (await client.PostAsJsonAsync("/api/v1/recetas", new {
-            consultaId = consultation!.Id, fechaEmision = "2026-05-20", validaHasta = "2026-05-19"
+            consultaId = consultation!.Id, fechaEmision = Today.ToString("yyyy-MM-dd"), validaHasta = Today.AddDays(-1).ToString("yyyy-MM-dd")
         })).StatusCode);
         Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/v1/recetas", new {
-            consultaId = consultation!.Id, fechaEmision = "2026-05-20", validaHasta = "2026-05-20"
+            consultaId = consultation!.Id, fechaEmision = Today.ToString("yyyy-MM-dd"), validaHasta = Today.ToString("yyyy-MM-dd")
         })).StatusCode);
     }
 
@@ -122,13 +160,13 @@ public class BusinessValidationTests(FacialFactory factory) : IClassFixture<Faci
         var data = await Seed(); using var client = factory.Client();
         var supply = new { tipo = "insumo", insumoId = data.supply, cantidad = 2 };
         var response = await client.PostAsJsonAsync("/api/v1/facturas", new {
-            clienteId = 1, fechaEmision = "2026-05-20", montoTotal = 0, montoImpuestos = 0, items = new[] { supply, supply }
+            clienteId = 1, fechaEmision = Today.ToString("yyyy-MM-dd"), montoTotal = 0, montoImpuestos = 0, items = new[] { supply, supply }
         });
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var scope = factory.Services.CreateScope();
         Assert.Equal(3, (await scope.ServiceProvider.GetRequiredService<VeterinariodbContext>().Insumos.FindAsync(data.supply))!.StockActual);
         var mismatch = await client.PostAsJsonAsync("/api/v1/facturas", new {
-            clienteId = data.patient, fechaEmision = "2026-05-20", montoTotal = 0, montoImpuestos = 0,
+            clienteId = data.patient, fechaEmision = Today.ToString("yyyy-MM-dd"), montoTotal = 0, montoImpuestos = 0,
             items = new[] { new { tipo = "cita", citaId = data.appointment, especialidadId = 1, cantidad = 1 } }
         });
         Assert.Equal(HttpStatusCode.BadRequest, mismatch.StatusCode);

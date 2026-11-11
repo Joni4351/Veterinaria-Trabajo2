@@ -11,6 +11,8 @@ public class BusinessValidationFilter(VeterinariodbContext db) : IEndpointFilter
     {
         if (context.HttpContext.Request.Method is not ("POST" or "PUT")) return await next(context);
         var errors = new Dictionary<string, string[]>();
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow,
+            TimeZoneInfo.FindSystemTimeZoneById("America/Santiago")));
         void Error(string field, string message) => errors[field] = [message];
         var id = int.TryParse(context.HttpContext.Request.RouteValues["id"]?.ToString(), out var routeId) ? routeId : 0;
 
@@ -86,7 +88,7 @@ public class BusinessValidationFilter(VeterinariodbContext db) : IEndpointFilter
 
                 case RecetasApi.RecetaCreateDto dto:
                     if (!await db.Consultas.AnyAsync(x => x.Id == dto.ConsultaId)) Error("consultaId", "La consulta seleccionada no existe.");
-                    if (dto.FechaEmision == default) Error("fechaEmision", "Indique una fecha de emisión válida.");
+                    if (dto.FechaEmision != today) Error("fechaEmision", "La fecha de emisión debe corresponder al día de hoy (hora de Chile).");
                     if (dto.ValidaHasta == default || dto.ValidaHasta < dto.FechaEmision)
                         Error("validaHasta", "La vigencia de la receta no puede terminar antes de su emisión.");
                     break;
@@ -98,7 +100,7 @@ public class BusinessValidationFilter(VeterinariodbContext db) : IEndpointFilter
 
                 case FacturasApi.FacturaCreateDto dto:
                     if (!await db.Clientes.AnyAsync(x => x.Id == dto.ClienteId)) Error("clienteId", "El cliente de la factura no existe.");
-                    if (dto.FechaEmision == default) Error("fechaEmision", "Indique una fecha de emisión válida.");
+                    if (dto.FechaEmision != today) Error("fechaEmision", "La fecha de emisión debe corresponder al día de hoy (hora de Chile).");
                     if (dto.Items is not { Count: > 0 })
                     {
                         if (dto.MontoTotal <= 0) Error("montoTotal", "El monto total debe ser mayor a cero.");

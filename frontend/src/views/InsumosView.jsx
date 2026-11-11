@@ -41,9 +41,9 @@ export const InsumosView = () => {
 
   const [formData, setFormData] = useState({
     nombreProducto: '',
-    tipo: 'Medicamento',
-    stockActual: 10,
-    precioUnitario: 1000
+    tipo: '',
+    stockActual: '',
+    precioUnitario: ''
   });
 
   useEffect(() => {
@@ -100,9 +100,9 @@ export const InsumosView = () => {
       setEditingId(null);
       setFormData({
         nombreProducto: '',
-        tipo: 'Medicamento',
-        stockActual: 10,
-        precioUnitario: 1000
+        tipo: '',
+        stockActual: '',
+        precioUnitario: ''
       });
     }
     setIsModalOpen(true);
@@ -383,6 +383,7 @@ export const InsumosView = () => {
                     value={formData.tipo}
                     onChange={(e) => setFormData({ ...formData, tipo: e.target.value })} required
                   >
+                    <option value="">Seleccione un tipo...</option>
                     <option value="Medicamento">Medicamento</option>
                     <option value="Vacuna">Vacuna</option>
                     <option value="Material Quirúrgico">Material Quirúrgico</option>

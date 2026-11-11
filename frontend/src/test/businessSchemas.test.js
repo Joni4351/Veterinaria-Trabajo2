@@ -4,7 +4,7 @@ import { clienteSchema, validarRutChileno } from '../schemas/clienteSchema';
 import { pacienteSchema } from '../schemas/pacienteSchema';
 import { facturaSchema } from '../schemas/facturaSchema';
 import { recetaMedicaSchema } from '../schemas/consultaSchema';
-import { dateTimeInputValue } from '../schemas/dateValidation';
+import { dateTimeInputValue, todayInChile } from '../schemas/dateValidation';
 
 describe('Validaciones del negocio clínico', () => {
   const appointment = { pacienteId: 1, usuarioId: 2, especialidadId: 1, fechaHora: '2030-05-20T10:00', estado: 'Pendiente' };
@@ -33,10 +33,11 @@ describe('Validaciones del negocio clínico', () => {
     expect(clienteSchema.safeParse({ ...client, telefono: '+56 9 1234 5678' }).success).toBe(true);
   });
   it('valida fechas de recetas e impuestos que no superen el total', () => {
-    const prescription = { fechaEmision: '2026-05-20', validaHasta: '2026-05-19', insumoId: 1, dosis: 'Una dosis', duracionDias: 5 };
+    const today = todayInChile();
+    const prescription = { fechaEmision: today, validaHasta: '2000-01-01', insumoId: 1, dosis: 'Una dosis', duracionDias: 5 };
     expect(recetaMedicaSchema.safeParse(prescription).success).toBe(false);
-    expect(recetaMedicaSchema.safeParse({ ...prescription, validaHasta: '2026-05-20' }).success).toBe(true);
-    expect(facturaSchema.safeParse({ clienteId: 1, fechaEmision: '2026-05-20', montoTotal: 100, montoImpuestos: 101 }).success).toBe(false);
+    expect(recetaMedicaSchema.safeParse({ ...prescription, validaHasta: today }).success).toBe(true);
+    expect(facturaSchema.safeParse({ clienteId: 1, fechaEmision: today, montoTotal: 100, montoImpuestos: 101 }).success).toBe(false);
     expect(facturaSchema.safeParse({ clienteId: 1, fechaEmision: '2026-02-31', montoTotal: 100, montoImpuestos: 19 }).success).toBe(false);
   });
 });

@@ -2,6 +2,39 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { writeFile } from 'node:fs/promises';
 
+test('facturación se ajusta al viewport y mantiene sus acciones visibles al 100 por ciento', async ({ page }, testInfo) => {
+  await prepare(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  for (const [width, height] of [[1366, 768], [1920, 1080], [390, 844]]) {
+    await page.setViewportSize({ width, height });
+    await page.goto('/facturas');
+    await page.getByRole('button', { name: 'Emitir Factura', exact: true }).click();
+    const dialog = page.getByRole('dialog', { name: 'Factura', exact: true });
+    const panel = dialog.locator('.invoice-dialog');
+    const button = dialog.getByRole('button', { name: 'Confirmar y Emitir Factura' });
+    await expect(button).toBeInViewport();
+    await expect(dialog.getByLabel(/Cliente Facturado/)).toBeInViewport();
+    await expect(dialog.getByRole('button', { name: 'Cerrar modal', exact: true })).toBeInViewport();
+    expect(await button.evaluate(el => {
+      const r = el.getBoundingClientRect();
+      return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+    })).toBe(true);
+    const bounds = await panel.boundingBox();
+    expect(bounds.y).toBeGreaterThanOrEqual(0);
+    expect(bounds.y + bounds.height).toBeLessThanOrEqual(height);
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(width);
+    expect(await dialog.locator('.invoice-body').evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+    if (width >= 1100) {
+      expect(await dialog.locator('.invoice-body').evaluate(el => el.scrollHeight <= el.clientHeight + 1)).toBe(true);
+    }
+    await page.screenshot({ path: testInfo.outputPath(`factura-${width}.png`) });
+    await dialog.locator('.invoice-body').evaluate(el => { el.scrollTop = el.scrollHeight; });
+    await expect(button).toBeInViewport();
+    await dialog.getByRole('button', { name: 'Cancelar', exact: true }).click();
+  }
+});
+
 async function prepare(page) {
   await page.addInitScript(() => {
     localStorage.setItem('vet_token', ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Date.now() / 1000 + 3600 })), 'signature'].join('.'));

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { calendarDateSchema } from './dateValidation';
+import { emissionDateSchema } from './dateValidation';
 
 export const facturaSchema = z.object({
   clienteId: z.coerce
@@ -10,7 +10,7 @@ export const facturaSchema = z.object({
     .int('Seleccione un identificador entero válido')
     .min(1, 'Debe seleccionar un cliente'),
 
-  fechaEmision: calendarDateSchema('La fecha de emisión'),
+  fechaEmision: emissionDateSchema(),
 
   montoImpuestos: z.coerce
     .number({

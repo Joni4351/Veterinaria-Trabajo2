@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { calendarDateSchema } from './dateValidation';
+import { calendarDateSchema, emissionDateSchema } from './dateValidation';
 
 export const consultaSchema = z.object({
   pacienteId: z.coerce
@@ -33,7 +33,7 @@ export const consultaSchema = z.object({
 });
 
 export const recetaMedicaSchema = z.object({
-  fechaEmision: calendarDateSchema('La fecha de emisión'),
+  fechaEmision: emissionDateSchema(),
 
   validaHasta: calendarDateSchema('La fecha de validez'),
 

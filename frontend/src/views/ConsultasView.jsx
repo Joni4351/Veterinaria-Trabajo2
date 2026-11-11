@@ -1,3 +1,4 @@
+import { todayInChile } from '../schemas/dateValidation';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
 import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
@@ -25,6 +26,13 @@ export const ConsultasView = () => {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [searchDueno, setSearchDueno] = useState('');
+  const [patientSearch, setPatientSearch] = useState(null);
+  const [showPatients, setShowPatients] = useState(false);
+  const patientLabel = p => {
+    const cli = p.cliente || clientes.find(c => c.id === p.clienteId);
+    return `${p.nombre} (${p.especie}) — Dueño: ${cli?.nombreCompleto || 'Sin dueño'} (RUT: ${cli?.documentoIdentidad || '—'})`;
+  };
+  const normalizeSearch = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
   // Filtros de API
   const [filters, setFilters] = useState({
@@ -44,11 +52,11 @@ export const ConsultasView = () => {
   const [recetaError, setRecetaError] = useState('');
   const [recetaFieldErrors, setRecetaFieldErrors] = useState({});
   const [recetaForm, setRecetaForm] = useState({
-    fechaEmision: new Date().toISOString().slice(0, 10),
-    validaHasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    fechaEmision: '',
+    validaHasta: '',
     insumoId: '',
     dosis: '',
-    duracionDias: 7
+    duracionDias: ''
   });
 
   // Modal Confirmación Borrado
@@ -133,6 +141,8 @@ export const ConsultasView = () => {
   };
 
   const handleOpenModal = (consulta = null) => {
+    setPatientSearch(null);
+    setShowPatients(false);
     setError('');
     setFieldErrors({});
     if (consulta) {
@@ -146,7 +156,7 @@ export const ConsultasView = () => {
     } else {
       setEditingId(null);
       setFormData({
-        pacienteId: pacientes[0]?.id ? String(pacientes[0].id) : '',
+        pacienteId: '',
         citaId: '',
         motivo: '',
         diagnostico: ''
@@ -239,16 +249,16 @@ export const ConsultasView = () => {
               validaHasta: rec.validaHasta,
               insumoId: String(det.insumoId),
               dosis: det.dosis || '',
-              duracionDias: det.duracionDias || 7
+              duracionDias: det.duracionDias || ''
             });
           } else {
             setExistingDetalle(null);
             setRecetaForm({
               fechaEmision: rec.fechaEmision,
               validaHasta: rec.validaHasta,
-              insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
+              insumoId: '',
               dosis: '',
-              duracionDias: 7
+              duracionDias: ''
             });
           }
         } catch (errDet) {
@@ -257,20 +267,20 @@ export const ConsultasView = () => {
           setRecetaForm({
             fechaEmision: rec.fechaEmision,
             validaHasta: rec.validaHasta,
-            insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
+            insumoId: '',
             dosis: '',
-            duracionDias: 7
+            duracionDias: ''
           });
         }
       } else {
         setExistingReceta(null);
         setExistingDetalle(null);
         setRecetaForm({
-          fechaEmision: new Date().toISOString().slice(0, 10),
-          validaHasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-          insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
-          dosis: '1 comprimido cada 12 horas con alimento',
-          duracionDias: 7
+          fechaEmision: '',
+          validaHasta: '',
+          insumoId: '',
+          dosis: '',
+          duracionDias: ''
         });
       }
     } catch (err) {
@@ -278,11 +288,11 @@ export const ConsultasView = () => {
       setExistingReceta(null);
       setExistingDetalle(null);
       setRecetaForm({
-        fechaEmision: new Date().toISOString().slice(0, 10),
-        validaHasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
-        dosis: '1 comprimido cada 12 horas con alimento',
-        duracionDias: 7
+        fechaEmision: '',
+        validaHasta: '',
+        insumoId: '',
+        dosis: '',
+        duracionDias: ''
       });
     } finally {
       setRecetaLoading(false);
@@ -628,27 +638,34 @@ export const ConsultasView = () => {
                 <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label" htmlFor="consulta-paciente">Paciente Atendido <RequiredIndicator /></label>
-                    <select
+                    <input
                       id="consulta-paciente"
-                      className={`form-select ${fieldErrors.pacienteId ? 'border-red-500' : ''}`}
-                      value={formData.pacienteId}
+                      type="search"
+                      autoComplete="off"
+                      className="form-input"
+                      placeholder="Buscar por nombre, especie, dueño o RUT..."
+                      value={patientSearch ?? (pacientes.find(p => String(p.id) === formData.pacienteId) ? patientLabel(pacientes.find(p => String(p.id) === formData.pacienteId)) : '')}
                       onChange={(e) => {
-                        setFormData({ ...formData, pacienteId: e.target.value });
+                        setPatientSearch(e.target.value);
+                        setShowPatients(true);
+                        setFormData(prev => ({ ...prev, pacienteId: '', citaId: '' }));
                         if (fieldErrors.pacienteId) setFieldErrors(prev => ({ ...prev, pacienteId: null }));
                       }}
                       aria-invalid={!!fieldErrors.pacienteId}
                       aria-describedby={fieldErrors.pacienteId ? 'pacienteId-error' : undefined} required
-                    >
-                      <option value="">Seleccione el paciente...</option>
-                      {pacientes.map(p => {
-                        const cli = p.cliente || clientes.find(c => c.id === p.clienteId);
-                        return (
-                          <option key={p.id} value={p.id}>
-                            {p.nombre} ({p.especie}) — Dueño: {cli?.nombreCompleto || 'Sin dueño'} (RUT: {cli?.documentoIdentidad || '—'})
-                          </option>
-                        );
-                      })}
-                    </select>
+                    />
+                    {showPatients && patientSearch?.trim() && <div role="group" aria-label="Resultados de pacientes" style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+                      {pacientes.filter(p => normalizeSearch(patientLabel(p)).includes(normalizeSearch(patientSearch ?? ''))).map(p => (
+                        <button key={p.id} type="button" className="form-input" style={{ textAlign: 'left', cursor: 'pointer', whiteSpace: 'normal', height: 'auto' }}
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, pacienteId: String(p.id), citaId: prev.pacienteId === String(p.id) ? prev.citaId : '' }));
+                            setPatientSearch(null);
+                            setShowPatients(false);
+                            setFieldErrors(prev => ({ ...prev, pacienteId: null, citaId: null }));
+                          }}>{patientLabel(p)}</button>
+                      ))}
+                      {!pacientes.some(p => normalizeSearch(patientLabel(p)).includes(normalizeSearch(patientSearch ?? ''))) && <p role="status">No se encontraron pacientes.</p>}
+                    </div>}
                     {fieldErrors.pacienteId && (
                       <span id="pacienteId-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                         {fieldErrors.pacienteId}
@@ -662,10 +679,17 @@ export const ConsultasView = () => {
                       id="consulta-cita"
                       className="form-select"
                       value={formData.citaId}
-                      onChange={(e) => setFormData({ ...formData, citaId: e.target.value })}
+                      onChange={(e) => {
+                        const citaId = e.target.value;
+                        const cita = citas.find(c => String(c.id) === citaId);
+                        setFormData(prev => ({ ...prev, citaId, pacienteId: cita ? String(cita.pacienteId) : prev.pacienteId }));
+                        setFieldErrors(prev => ({ ...prev, citaId: null, pacienteId: null }));
+                      }}
                     >
                       <option value="">Atención espontánea / Urgencia</option>
-                      {citas.map(cit => (
+                      {formData.citaId && citas.some(c => String(c.id) === formData.citaId && normalizeSearch(c.estado || '') === 'completada') &&
+                        <option hidden value={formData.citaId}>Cita previamente asociada (se conserva)</option>}
+                      {citas.filter(cit => String(cit.pacienteId) === formData.pacienteId && normalizeSearch(cit.estado || '') !== 'completada').map(cit => (
                         <option key={cit.id} value={cit.id}>
                           Cita del {new Date(cit.fechaHora).toLocaleDateString()} ({cit.paciente?.nombre || 'Paciente'})
                         </option>
@@ -821,7 +845,7 @@ export const ConsultasView = () => {
                       id="receta-emision"
                       type="date"
                       className={`form-input ${recetaFieldErrors.fechaEmision ? 'border-red-500' : ''}`}
-                      value={recetaForm.fechaEmision}
+                      value={recetaForm.fechaEmision} min={todayInChile()} max={todayInChile()}
                       onChange={(e) => {
                         setRecetaForm({ ...recetaForm, fechaEmision: e.target.value });
                         if (recetaFieldErrors.fechaEmision) setRecetaFieldErrors(prev => ({ ...prev, fechaEmision: null }));
@@ -841,7 +865,7 @@ export const ConsultasView = () => {
                       id="receta-validez"
                       type="date"
                       className={`form-input ${recetaFieldErrors.validaHasta ? 'border-red-500' : ''}`}
-                      value={recetaForm.validaHasta}
+                      value={recetaForm.validaHasta} min={recetaForm.fechaEmision || todayInChile()}
                       onChange={(e) => {
                         setRecetaForm({ ...recetaForm, validaHasta: e.target.value });
                         if (recetaFieldErrors.validaHasta) setRecetaFieldErrors(prev => ({ ...prev, validaHasta: null }));

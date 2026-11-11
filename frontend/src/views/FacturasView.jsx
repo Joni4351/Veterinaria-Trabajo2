@@ -1,8 +1,11 @@
+import { todayInChile } from '../schemas/dateValidation';
+import './FacturasView.css';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
 import { AccessibleForm, RequiredIndicator } from "../components/AccessibleForm";
 import { notifySuccess } from '../services/notifications';
 import React, { useState, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import { DollarSign, Plus, Edit2, Trash2, X, AlertCircle, FileText, Filter, RotateCcw, CheckCircle2, ShoppingBag, Calendar, Minus } from 'lucide-react';
@@ -16,6 +19,15 @@ export const FacturasView = () => {
 
   const [facturas, setFacturas] = useState([]);
   const [clientes, setClientes] = useState([]);
+  const [clientSearch, setClientSearch] = useState(null);
+  const clientLabel = c => `${c.nombreCompleto} — RUT: ${c.documentoIdentidad}`;
+  const normalizeClientSearch = text => text.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const matchesClient = c => {
+    const text = normalizeClientSearch(clientSearch || '');
+    const rut = text.replace(/[.\-\s]/g, '');
+    return normalizeClientSearch(c.nombreCompleto || '').includes(text) ||
+      (rut.length > 0 && normalizeClientSearch(c.documentoIdentidad || '').replace(/[.\-\s]/g, '').includes(rut));
+  };
   const [consultas, setConsultas] = useState([]);
   const [insumos, setInsumos] = useState([]);
   const [detalles, setDetalles] = useState([]);
@@ -61,7 +73,7 @@ export const FacturasView = () => {
 
   const [formData, setFormData] = useState({
     clienteId: '',
-    fechaEmision: new Date().toISOString().slice(0, 10),
+    fechaEmision: todayInChile(),
     montoImpuestos: 0,
     montoTotal: 0
   });
@@ -142,10 +154,9 @@ export const FacturasView = () => {
   // Lista de citas médicas cargadas desde la agenda
   const citasDisponibles = useMemo(() => {
     if (!Array.isArray(citas)) return [];
-    if (!formData.clienteId) return citas;
+    if (!formData.clienteId) return [];
     const cid = Number(formData.clienteId);
-    const delCliente = citas.filter(c => c.paciente?.clienteId === cid || c.paciente?.cliente?.id === cid);
-    return delCliente.length > 0 ? delCliente : citas;
+    return citas.filter(c => Number(c.paciente?.clienteId ?? c.paciente?.cliente?.id) === cid);
   }, [citas, formData.clienteId]);
 
   const calcularTotalesFactura = (items) => {
@@ -156,6 +167,7 @@ export const FacturasView = () => {
   };
 
   const handleOpenModal = (factura = null) => {
+    setClientSearch(null);
     setError('');
     setFieldErrors({});
     setItemError('');
@@ -215,8 +227,8 @@ export const FacturasView = () => {
       setEditingId(null);
       setItemsFactura([]);
       setFormData({
-        clienteId: clientes[0]?.id ? String(clientes[0].id) : '',
-        fechaEmision: new Date().toISOString().slice(0, 10),
+        clienteId: '',
+        fechaEmision: todayInChile(),
         montoImpuestos: 0,
         montoTotal: 0
       });
@@ -234,7 +246,7 @@ export const FacturasView = () => {
       return;
     }
 
-    const cita = citas.find(c => c.id === Number(selectedCitaId));
+    const cita = citasDisponibles.find(c => c.id === Number(selectedCitaId));
     if (!cita) return;
 
     const precioCita = Number(cita.especialidad?.costoBase || 0);
@@ -244,11 +256,6 @@ export const FacturasView = () => {
     const fechaHoraStr = cita.fechaHora ? new Date(cita.fechaHora).toLocaleDateString('es-CL', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
 
     const nombreItem = `Cita #${cita.id} — ${nombrePaciente} (${espNombre}) con ${profesional} [${fechaHoraStr}]`;
-
-    // Sincronizar cliente de la factura si no coincide
-    if (cita.paciente?.clienteId && String(formData.clienteId) !== String(cita.paciente.clienteId)) {
-      setFormData(prev => ({ ...prev, clienteId: String(cita.paciente.clienteId) }));
-    }
 
     const nuevoItem = {
       id: `cita-${cita.id}`,
@@ -381,18 +388,16 @@ export const FacturasView = () => {
     setFieldErrors({});
     setItemError('');
 
-    if (!editingId && itemsFactura.length === 0) {
-      setError('Debe incorporar al menos un tipo de cita o insumo a la factura antes de emitirla.');
-      return;
-    }
-
     const validation = facturaSchema.safeParse(formData);
-    if (!validation.success) {
+    const missingItems = !editingId && itemsFactura.length === 0;
+    if (!validation.success || missingItems) {
       const errors = {};
-      validation.error.issues.forEach((err) => {
+      validation.error?.issues.forEach((err) => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setFieldErrors(errors);
+      setError('Complete o corrija los datos indicados antes de guardar la factura.');
+      if (missingItems) setItemError('Debe agregar al menos una cita médica o un insumo al detalle. Seleccionarlo no basta: pulse «Agregar Cita» o «Agregar Insumo».');
       return;
     }
 
@@ -726,9 +731,9 @@ export const FacturasView = () => {
         const { subtotalNeto, iva, total } = calcularTotalesFactura(itemsFactura);
         const selectedInsumo = insumos.find(i => i.id === Number(selectedInsumoId));
 
-        return (
-          <AccessibleDialog className="modal-overlay" aria-label="Factura" onClose={() => setIsModalOpen(false)}>
-            <div className="modal-content" style={{ maxWidth: '840px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
+        return createPortal(
+          <AccessibleDialog className="modal-overlay invoice-overlay" aria-label="Factura" onClose={() => setIsModalOpen(false)}>
+            <div className="modal-content invoice-dialog">
               {/* Tarjeta Visual Cabecera */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -749,8 +754,8 @@ export const FacturasView = () => {
                 </button>
               </div>
 
-              <AccessibleForm onSubmit={handleSubmit} noValidate>
-                <div className="modal-body" style={{ maxHeight: '78vh', overflowY: 'auto', padding: 0 }}>
+              <AccessibleForm className="invoice-form" onSubmit={handleSubmit} noValidate>
+                <div className="modal-body invoice-body">
                   {error && (
                     <div className="alert alert-danger" role="alert" style={{ marginBottom: '0.85rem' }}>
                       <AlertCircle size={18} />
@@ -766,6 +771,8 @@ export const FacturasView = () => {
                   )}
 
                   {/* 1. Datos Generales de la Factura (Tarjeta Visual) */}
+                  <div className="invoice-columns">
+                  <div className="invoice-column">
                   <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       <FileText size={18} color="var(--teal-text)" />
@@ -778,24 +785,34 @@ export const FacturasView = () => {
                       <div className="form-group" style={{ marginBottom: 0 }}>
                         <label className="form-label" htmlFor="factura-cliente" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                           Cliente Facturado <RequiredIndicator /></label>
-                        <select
+                        <input
                           id="factura-cliente"
-                          className={`form-select ${fieldErrors.clienteId ? 'border-red-500' : ''}`}
-                          value={formData.clienteId}
+                          type="search"
+                          autoComplete="off"
+                          placeholder="Buscar por nombre o RUT..."
+                          className={`form-input ${fieldErrors.clienteId ? 'border-red-500' : ''}`}
+                          value={clientSearch ?? (clientes.find(c => String(c.id) === formData.clienteId) ? clientLabel(clientes.find(c => String(c.id) === formData.clienteId)) : '')}
                           onChange={(e) => {
-                            setFormData({ ...formData, clienteId: e.target.value });
+                            setClientSearch(e.target.value);
+                            setSelectedCitaId('');
+                            setFormData(prev => ({ ...prev, clienteId: '' }));
                             if (fieldErrors.clienteId) setFieldErrors(prev => ({ ...prev, clienteId: null }));
                           }}
                           aria-invalid={!!fieldErrors.clienteId}
                           aria-describedby={fieldErrors.clienteId ? 'factura-cliente-error' : undefined} required
-                        >
-                          <option value="">Seleccione cliente...</option>
-                          {clientes.map(c => (
-                            <option key={c.id} value={c.id}>
-                              {c.nombreCompleto} — RUT: {c.documentoIdentidad}
-                            </option>
+                        />
+                        {clientSearch?.trim() && <div role="group" aria-label="Resultados de clientes" style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+                          {clientes.filter(matchesClient).map(c => (
+                            <button key={c.id} type="button" className="form-input" style={{ textAlign: 'left', cursor: 'pointer', whiteSpace: 'normal', height: 'auto' }}
+                              onClick={() => {
+                                setFormData(prev => ({ ...prev, clienteId: String(c.id) }));
+                                setClientSearch(null);
+                                setSelectedCitaId('');
+                                setFieldErrors(prev => ({ ...prev, clienteId: null }));
+                              }}>{clientLabel(c)}</button>
                           ))}
-                        </select>
+                          {!clientes.some(matchesClient) && <p role="status">No se encontraron clientes.</p>}
+                        </div>}
                         {fieldErrors.clienteId && (
                           <span id="factura-cliente-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                             {fieldErrors.clienteId}
@@ -810,7 +827,7 @@ export const FacturasView = () => {
                           id="factura-fecha"
                           type="date"
                           className={`form-input ${fieldErrors.fechaEmision ? 'border-red-500' : ''}`}
-                          value={formData.fechaEmision}
+                          value={formData.fechaEmision} min={todayInChile()} max={todayInChile()}
                           onChange={(e) => {
                             setFormData({ ...formData, fechaEmision: e.target.value });
                             if (fieldErrors.fechaEmision) setFieldErrors(prev => ({ ...prev, fechaEmision: null }));
@@ -854,7 +871,7 @@ export const FacturasView = () => {
                         <option value="">
                           {tieneCitaSeleccionada 
                             ? 'Cita ya asociada a esta factura (bloqueado)' 
-                            : (citasDisponibles.length === 0 ? 'No hay citas registradas en agenda' : 'Seleccione cita médica de la agenda...')}
+                            : (!formData.clienteId ? 'Seleccione primero un cliente' : citasDisponibles.length === 0 ? 'Este cliente no tiene citas registradas' : 'Seleccione cita médica de la agenda...')}
                         </option>
                         {citasDisponibles.map(c => {
                           const dueno = c.paciente?.cliente?.nombreCompleto || 'Dueño';
@@ -965,6 +982,8 @@ export const FacturasView = () => {
                   </div>
 
                   {/* 4. Tabla Detallada de Conceptos Seleccionados (Tarjeta Visual) */}
+                  </div>
+                  <div className="invoice-column">
                   <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -982,7 +1001,7 @@ export const FacturasView = () => {
 
                     {itemsFactura.length === 0 ? (
                       <div style={{ background: 'var(--gray-50)', border: '1px dashed var(--gray-300)', borderRadius: '0.5rem', padding: '1.5rem', textAlign: 'center', color: 'var(--gray-400)', fontSize: '0.88rem' }}>
-                        No ha seleccionado citas ni insumos todavía. Utilice las secciones superiores para incorporar conceptos a la factura.
+                        No ha seleccionado citas ni insumos todavía. Utilice las secciones de selección para incorporar conceptos a la factura.
                       </div>
                     ) : (
                       <div className="table-responsive" style={{ border: '1px solid var(--gray-200)', borderRadius: '0.5rem', overflowX: 'auto' }}>
@@ -1142,17 +1161,19 @@ export const FacturasView = () => {
                 </div>
 
                 {/* Pie del Formulario (Tarjeta Visual) */}
-                <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '0.75rem', marginTop: '0.85rem' }}>
+                </div>
+                </div>
+                <div className="invoice-footer">
                   <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                     Cancelar
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={!editingId && itemsFactura.length === 0}>
+                  <button type="submit" className="btn btn-primary">
                     {editingId ? 'Actualizar Factura' : 'Confirmar y Emitir Factura'}
                   </button>
                 </div>
               </AccessibleForm>
             </div>
-          </AccessibleDialog>
+          </AccessibleDialog>, document.body
         );
       })()}
 

@@ -114,7 +114,7 @@ public class AuditoriaTests
     {
         using var factory = new FacialFactory(); using var client = factory.Client();
         var response = await client.PostAsJsonAsync("/api/v1/facturas", new {
-            clienteId = 1, fechaEmision = "2026-11-08", montoTotal = 0, montoImpuestos = 0,
+            clienteId = 1, fechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, TimeZoneInfo.FindSystemTimeZoneById("America/Santiago"))), montoTotal = 0, montoImpuestos = 0,
             items = new[] { new { tipo = "insumo", insumoId = 1, cantidad = 2 } }
         });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
