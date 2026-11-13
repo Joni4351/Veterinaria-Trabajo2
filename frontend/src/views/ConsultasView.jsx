@@ -572,8 +572,8 @@ export const ConsultasView = () => {
                                   <button 
                                     className={`btn btn-sm ${tieneReceta ? 'btn-primary' : 'btn-secondary'}`} 
                                     onClick={() => handleOpenReceta(c)}
-                                    title={tieneReceta ? "Actualizar o Eliminar Receta Médica" : "Emitir Receta Médica"}
-                                    aria-label={tieneReceta ? "Actualizar o Eliminar Receta Médica" : "Emitir Receta Médica"}
+                                    title={tieneReceta ? (canDelete ? "Actualizar o Eliminar Receta Médica" : "Actualizar Receta Médica") : "Emitir Receta Médica"}
+                                    aria-label={tieneReceta ? (canDelete ? "Actualizar o Eliminar Receta Médica" : "Actualizar Receta Médica") : "Emitir Receta Médica"}
                                     style={tieneReceta ? { backgroundColor: '#059669', borderColor: '#059669' } : {}}
                                   >
                                     <Pill size={14} />
@@ -824,7 +824,7 @@ export const ConsultasView = () => {
                       <div>
                         <strong>Receta existente detectada (Folio #{existingReceta.id}).</strong>
                         <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--success-text)' }}>
-                          Puedes actualizar las indicaciones y vigencia, o borrar la receta si ya no es requerida.
+                          {canDelete ? 'Puedes actualizar las indicaciones y vigencia, o eliminar la receta si corresponde.' : 'Puedes actualizar las indicaciones y vigencia de la receta.'}
                         </span>
                       </div>
                     </div>
@@ -960,7 +960,7 @@ export const ConsultasView = () => {
               {/* Pie de Acciones (Tarjeta Visual) */}
               <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  {existingReceta && (
+                  {existingReceta && canDelete && (
                     <button
                       type="button"
                       className="btn btn-danger"
@@ -988,7 +988,7 @@ export const ConsultasView = () => {
       ); })()}
 
       {/* ConfirmModal para eliminar consulta */}
-      <ConfirmModal isOpen={deleteRecetaConfirm} title="Eliminar receta médica" message="¿Desea eliminar la receta médica vinculada a esta consulta? Esta acción no se puede deshacer."
+      <ConfirmModal isOpen={canDelete && deleteRecetaConfirm} title="Eliminar receta médica" message="¿Desea eliminar la receta médica vinculada a esta consulta? Esta acción no se puede deshacer."
         loading={recetaLoading} onCancel={() => setDeleteRecetaConfirm(false)} onConfirm={async () => { await handleDeleteReceta(); setDeleteRecetaConfirm(false); }} />
       <ConfirmModal
         isOpen={deleteConfirm.isOpen}

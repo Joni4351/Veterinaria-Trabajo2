@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using VeterinariaAPI.Extensions;
 using VeterinariaAPI.Models;
 using VeterinariaAPI.Repositories;
+using VeterinariaAPI.Services;
 
 namespace VeterinariaAPI.Endpoints
 {
@@ -40,118 +41,74 @@ namespace VeterinariaAPI.Endpoints
                 return Results.Ok(listaDetalleFac);
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
-            // API para crear un detalle de factura con sincronización de inventario y recálculo tributario
-            detallefac.MapPost("/", async (DetalleFacturaCreateDto dto, IRepository<DetallesFactura> repo, VeterinariodbContext db) =>
+            detallefac.MapPost("/", async (DetalleFacturaCreateDto dto, VeterinariodbContext db) =>
             {
-                var errores = dto.Validar();
-                if (errores.Count > 0)
-                {
-                    return Results.ValidationProblem(errores);
-                }
+                var errors = dto.Validar();
+                if (errors.Count > 0) return Results.ValidationProblem(errors);
+                await using var tx = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync() : null;
+                decimal price = dto.Subtotal;
+                if (dto.InsumoId.HasValue) {
+                    var supply = await db.Insumos.FindAsync(dto.InsumoId.Value);
+                    if (supply == null) return Results.BadRequest(new { message = "El insumo ya no existe." });
+                    if (supply.StockActual < dto.Cantidad) return Results.BadRequest(new { message = "Stock insuficiente para agregar el insumo." });
+                    price = supply.PrecioUnitario;
+                    supply.StockActual -= dto.Cantidad;
+                } else if (dto.Cantidad != 1) return Results.BadRequest(new { message = "Una atención debe tener cantidad 1." });
+                var line = new DetallesFactura { FacturaId = dto.FacturaId, ConsultaId = dto.ConsultaId, InsumoId = dto.InsumoId,
+                    Cantidad = dto.Cantidad, PrecioUnitario = price, Subtotal = price * dto.Cantidad };
+                db.DetallesFacturas.Add(line);
+                await db.SaveChangesAsync();
+                await BillingConsistency.Recalculate(db, dto.FacturaId);
+                if (tx != null) await tx.CommitAsync();
+                return Results.Created($"/api/v1/detallefac/{line.Id}", line);
+            }).RequireAuthorization(p => p.RequireRole("Administrador"));
 
-                if (dto.InsumoId.HasValue)
-                {
-                    var insumo = await db.Insumos.FindAsync(dto.InsumoId.Value);
-                    if (insumo != null)
-                    {
-                        if (insumo.StockActual < 1)
-                        {
-                            return Results.BadRequest(new { message = $"Stock insuficiente para '{insumo.NombreProducto}'. Stock disponible: {insumo.StockActual}." });
-                        }
-                        insumo.StockActual -= 1;
-                    }
-                }
-
-                var nuevoDetalle = new DetallesFactura
-                {
-                    FacturaId = dto.FacturaId,
-                    ConsultaId = dto.ConsultaId,
-                    InsumoId = dto.InsumoId,
-                    Subtotal = dto.Subtotal
-                };
-
-                await repo.CrearAsync(nuevoDetalle);
-                await repo.GuardarCambiosAsync();
-
-                // Recalcular Subtotal neto, IVA (19%) y Total en la factura padre
-                var fac = await db.Facturas.FindAsync(dto.FacturaId);
-                if (fac != null)
-                {
-                    var subtotales = await db.DetallesFacturas.Where(d => d.FacturaId == dto.FacturaId).Select(d => d.Subtotal).ToListAsync();
-                    decimal subtotalNeto = subtotales.Sum();
-                    fac.MontoImpuestos = Math.Round(subtotalNeto * 0.19m, 0, MidpointRounding.AwayFromZero);
-                    fac.MontoTotal = subtotalNeto + fac.MontoImpuestos;
-                    await db.SaveChangesAsync();
-                }
-
-                return Results.Created($"/api/v1/detallefac/{nuevoDetalle.Id}", nuevoDetalle);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
-
-            // API para editar detalle factura por ID
-            detallefac.MapPut("/{id:int}", async (int id, DetalleFacturaCreateDto dto, IRepository<DetallesFactura> repo, VeterinariodbContext db) =>
+            detallefac.MapPut("/{id:int}", async (int id, DetalleFacturaCreateDto dto, VeterinariodbContext db) =>
             {
-                var errores = dto.Validar();
-                if (errores.Count > 0)
-                {
-                    return Results.ValidationProblem(errores);
-                }
+                var errors = dto.Validar();
+                if (errors.Count > 0) return Results.ValidationProblem(errors);
+                await using var tx = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync() : null;
+                var line = await db.DetallesFacturas.FindAsync(id);
+                if (line == null) return Results.NotFound();
+                if (line.FacturaId != dto.FacturaId || line.InsumoId != dto.InsumoId)
+                    return Results.BadRequest(new { message = "No puede mover una línea a otra factura ni cambiar su insumo." });
+                decimal price = dto.Subtotal;
+                if (line.InsumoId.HasValue) {
+                    var oldQuantity = BillingConsistency.Quantity(line);
+                    price = BillingConsistency.Price(line);
+                    var supply = await db.Insumos.FindAsync(line.InsumoId.Value);
+                    if (supply == null) return Results.BadRequest(new { message = "El insumo ya no existe." });
+                    var difference = dto.Cantidad - oldQuantity;
+                    if (supply.StockActual < difference) return Results.BadRequest(new { message = "Stock insuficiente para actualizar la cantidad." });
+                    supply.StockActual -= difference;
+                } else if (dto.Cantidad != 1) return Results.BadRequest(new { message = "Una atención debe tener cantidad 1." });
+                line.ConsultaId = dto.ConsultaId; line.Cantidad = dto.Cantidad;
+                line.PrecioUnitario = price; line.Subtotal = price * dto.Cantidad;
+                await db.SaveChangesAsync();
+                await BillingConsistency.Recalculate(db, line.FacturaId);
+                if (tx != null) await tx.CommitAsync();
+                return Results.Ok(line);
+            }).RequireAuthorization(p => p.RequireRole("Administrador"));
 
-                var detallefacExistente = await repo.ObtenerPorIdAsync(id);
-                if (detallefacExistente is null) return Results.NotFound();
-
-                detallefacExistente.FacturaId = dto.FacturaId;
-                detallefacExistente.ConsultaId = dto.ConsultaId;
-                detallefacExistente.InsumoId = dto.InsumoId;
-                detallefacExistente.Subtotal = dto.Subtotal;
-
-                await repo.GuardarCambiosAsync();
-
-                var fac = await db.Facturas.FindAsync(detallefacExistente.FacturaId);
-                if (fac != null)
-                {
-                    var subtotales = await db.DetallesFacturas.Where(d => d.FacturaId == detallefacExistente.FacturaId).Select(d => d.Subtotal).ToListAsync();
-                    decimal subtotalNeto = subtotales.Sum();
-                    fac.MontoImpuestos = Math.Round(subtotalNeto * 0.19m, 0, MidpointRounding.AwayFromZero);
-                    fac.MontoTotal = subtotalNeto + fac.MontoImpuestos;
-                    await db.SaveChangesAsync();
-                }
-
-                return Results.Ok(detallefacExistente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
-
-            // API para eliminar un detalle de factura con reposición de inventario
-            detallefac.MapDelete("/{id:int}", async (int id, IRepository<DetallesFactura> repo, VeterinariodbContext db) =>
+            detallefac.MapDelete("/{id:int}", async (int id, VeterinariodbContext db) =>
             {
-                var detallefacExistente = await repo.ObtenerPorIdAsync(id);
-                if (detallefacExistente is null) return Results.NotFound();
-
-                if (detallefacExistente.InsumoId.HasValue)
-                {
-                    var insumo = await db.Insumos.FindAsync(detallefacExistente.InsumoId.Value);
-                    if (insumo != null)
-                    {
-                        insumo.StockActual += 1; // Restitución automática al stock
-                    }
+                await using var tx = db.Database.IsRelational() ? await db.Database.BeginTransactionAsync() : null;
+                var line = await db.DetallesFacturas.FindAsync(id);
+                if (line == null) return Results.NotFound();
+                if (line.InsumoId.HasValue) {
+                    var quantity = BillingConsistency.Quantity(line);
+                    var supply = await db.Insumos.FindAsync(line.InsumoId.Value);
+                    if (supply == null) throw new BillingDataException("El insumo asociado ya no está disponible.");
+                    supply.StockActual = checked(supply.StockActual + quantity);
                 }
-
-                int facturaId = detallefacExistente.FacturaId;
-                await repo.EliminarAsync(detallefacExistente);
-                await repo.GuardarCambiosAsync();
-
-                var fac = await db.Facturas.FindAsync(facturaId);
-                if (fac != null)
-                {
-                    var subtotales = await db.DetallesFacturas.Where(d => d.FacturaId == facturaId).Select(d => d.Subtotal).ToListAsync();
-                    decimal subtotalNeto = subtotales.Sum();
-                    fac.MontoImpuestos = Math.Round(subtotalNeto * 0.19m, 0, MidpointRounding.AwayFromZero);
-                    fac.MontoTotal = subtotalNeto + fac.MontoImpuestos;
-                    await db.SaveChangesAsync();
-                }
-
+                var invoiceId = line.FacturaId;
+                db.DetallesFacturas.Remove(line);
+                await db.SaveChangesAsync();
+                await BillingConsistency.Recalculate(db, invoiceId);
+                if (tx != null) await tx.CommitAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(p => p.RequireRole("Administrador"));
         }
-
         // DTO estructurado con el prefijo 'property:' para la correcta validación por reflexión
         public record DetalleFacturaCreateDto(
             [property: Required(ErrorMessage = "El ID de la factura es obligatorio.")]
@@ -164,7 +121,8 @@ namespace VeterinariaAPI.Endpoints
 
             [property: Required(ErrorMessage = "El subtotal es obligatorio.")]
             [property: Range(0.01, 10000000.0, ErrorMessage = "El subtotal debe ser mayor a 0.")]
-            decimal Subtotal
+            decimal Subtotal,
+            [property: Range(1, 1000000, ErrorMessage = "La cantidad debe estar entre 1 y 1.000.000.")] int Cantidad = 1
         );
     }
 }

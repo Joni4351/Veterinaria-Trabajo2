@@ -300,7 +300,7 @@ for (const role of ['Veterinario', 'Recepcionista']) {
 }
 
 test('administrador crea cuentas desde Administración sin cambiar su sesión', async ({ page }) => {
-  let payload;
+  let payload, edited;
   await page.addInitScript(() => {
     localStorage.setItem('vet_token', ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Math.floor(Date.now() / 1000) + 3600 })), 'test-signature'].join('.'));
     localStorage.setItem('vet_user', JSON.stringify({ id: 1, name: 'Administrador de prueba', role: 'Administrador' }));
@@ -311,6 +311,11 @@ test('administrador crea cuentas desde Administración sin cambiar su sesión', 
       payload = route.request().postDataJSON();
       return route.fulfill({ status: 201, json: { id: 9 } });
     }
+    if (path.endsWith('/usuarios/9') && route.request().method() === 'PUT') {
+      edited = route.request().postDataJSON();
+      return route.fulfill({ json: { id: 9, ...edited } });
+    }
+    if (path.endsWith('/usuarios')) return route.fulfill({ json: payload ? [{ id: 9, nombreCompleto: edited?.nombreCompleto || payload.nombreCompleto, email: payload.email, rolId: 7, rol: 'Veterinario' }] : [] });
     return route.fulfill({ json: path.endsWith('/roles') ? [{ id: 7, nombre: 'Veterinario' }] : [] });
   });
   await page.goto('/admin');
@@ -323,6 +328,19 @@ test('administrador crea cuentas desde Administración sin cambiar su sesión', 
   await page.getByRole('button', { name: 'Crear usuario', exact: true }).click();
   await expect(page.getByRole('status')).toContainText('Usuario creado correctamente');
   expect(payload.rolId).toBe(7);
+  const edit = page.getByRole('button', { name: 'Editar usuario Nuevo Veterinario', exact: true });
+  await edit.click();
+  const dialog = page.getByRole('dialog', { name: 'Editar usuario' });
+  await expect(dialog.getByRole('textbox', { name: 'Nombre completo', exact: true })).toHaveValue('Nuevo Veterinario');
+  await expect(dialog.getByLabel('Nueva contraseña (opcional)')).toHaveValue('');
+  await page.keyboard.press('Escape');
+  await expect(edit).toBeFocused();
+  await edit.click();
+  await dialog.getByRole('textbox', { name: 'Nombre completo', exact: true }).fill('Veterinario actualizado');
+  await dialog.getByRole('button', { name: 'Guardar cambios' }).click();
+  await expect(page.getByRole('status')).toContainText('Usuario actualizado correctamente');
+  await expect(page.getByRole('button', { name: 'Editar usuario Veterinario actualizado', exact: true })).toBeVisible();
+  expect(edited).toEqual({ nombreCompleto: 'Veterinario actualizado', email: 'nuevo@example.com', rolId: 7 });
   expect(await page.evaluate(() => JSON.parse(localStorage.getItem('vet_user')).role)).toBe('Administrador');
 });
 

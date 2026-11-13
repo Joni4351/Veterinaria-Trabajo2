@@ -32,6 +32,7 @@ export const facturaSchema = z.object({
 });
 
 export const detalleFacturaSchema = z.object({
+  cantidad: z.preprocess(plainNumberInput, z.coerce.number().int('La cantidad debe ser entera').min(1, 'La cantidad debe ser positiva').max(1000000, 'Máximo 1.000.000 unidades')).default(1),
   tipo: z.enum(['consulta', 'insumo'], {
     required_error: 'Debe seleccionar un tipo de ítem'
   }),

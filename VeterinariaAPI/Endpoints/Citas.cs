@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using VeterinariaAPI.Extensions;
 using VeterinariaAPI.Models;
@@ -19,7 +20,7 @@ namespace VeterinariaAPI.Endpoints
                 string? estado,
                 DateTime? fechaDesde,
                 DateTime? fechaHasta,
-                IRepository<Cita> repo) =>
+                IRepository<Cita> repo, HttpContext http) =>
             {
                 var query = repo.Query().AsNoTracking()
                     .Include(c => c.Paciente)
@@ -28,7 +29,13 @@ namespace VeterinariaAPI.Endpoints
                     .Include(c => c.Especialidad)
                     .AsQueryable();
 
-                if (usuarioId.HasValue)
+                if (http.User.IsInRole("Veterinario"))
+                {
+                    if (!int.TryParse(http.User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId) || actorId <= 0)
+                        return Results.Forbid();
+                    query = query.Where(c => c.UsuarioId == actorId);
+                }
+                else if (usuarioId.HasValue)
                 {
                     query = query.Where(c => c.UsuarioId == usuarioId.Value);
                 }
@@ -133,7 +140,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.EliminarAsync(citaExistente);
                 await repo.GuardarCambiosAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
         }
 
         // DTO de entrada estructurado con reglas de validación

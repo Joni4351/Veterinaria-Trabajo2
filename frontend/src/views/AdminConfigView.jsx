@@ -21,6 +21,7 @@ export const AdminConfigView = () => {
   const [especialidades, setEspecialidades] = useState([]);
   const [roles, setRoles] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+  const [editingUser, setEditingUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Filtros API
@@ -71,8 +72,8 @@ export const AdminConfigView = () => {
     setLoading(true);
     try {
       const params = {};
-      if (rolFilters.nombre) params.nombre = rolFilters.nombre;
-      if (rolFilters.permisosEscritura !== '') params.permisosEscritura = rolFilters.permisosEscritura === 'true';
+      if (activeTab === 'roles' && rolFilters.nombre) params.nombre = rolFilters.nombre;
+      if (activeTab === 'roles' && rolFilters.permisosEscritura !== '') params.permisosEscritura = rolFilters.permisosEscritura === 'true';
       const res = await api.get('/api/v1/roles', { params });
       setRoles(res.data || []);
     } catch (err) {
@@ -445,10 +446,10 @@ export const AdminConfigView = () => {
               <div>
                 <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Usuarios Registrados</h2>
               </div>
+              <UserCreateForm roles={roles} onCreated={fetchUsuarios} editingUser={editingUser} onEditClosed={() => setEditingUser(null)} />
             </div>
 
             {/* Filtros Usuarios */}
-            <UserCreateForm roles={roles} onCreated={fetchUsuarios} />
             <div className="filter-panel" style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-700)' }}>
                 <Filter size={15} /> Filtros de Usuarios (API)
@@ -514,6 +515,7 @@ export const AdminConfigView = () => {
                         <span className="badge badge-primary">{u.rol || 'Usuario'}</span>
                       </td>
                       <td data-label="Acciones" style={{ textAlign: 'right' }}>
+                        <button className="btn-icon" onClick={() => setEditingUser(u)} title="Editar usuario" aria-label={`Editar usuario ${u.nombreCompleto}`}><Edit2 size={16} aria-hidden="true" /></button>
                         <button className="btn-icon danger" onClick={() => handleRequestDelete('usu', u.id, u.nombreCompleto)} title="Eliminar usuario" aria-label="Eliminar usuario">
                           <Trash2 size={16} />
                         </button>

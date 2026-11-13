@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using VeterinariaAPI.Extensions;
 using VeterinariaAPI.Models;
 using VeterinariaAPI.Repositories;
+using VeterinariaAPI.Services;
 
 namespace VeterinariaAPI.Endpoints
 {
@@ -65,8 +66,8 @@ namespace VeterinariaAPI.Endpoints
                 if (dto.Items != null && dto.Items.Count > 0)
                 {
                     var isRelational = db.Database.IsRelational();
-                    Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = isRelational 
-                        ? await db.Database.BeginTransactionAsync() 
+                    await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = isRelational
+                        ? await db.Database.BeginTransactionAsync()
                         : null;
 
                     try
@@ -95,8 +96,8 @@ namespace VeterinariaAPI.Endpoints
 
                             if (insumoDb.StockActual < item.Cantidad)
                             {
-                                return Results.BadRequest(new { 
-                                    message = $"Stock insuficiente para '{insumoDb.NombreProducto}'. Stock disponible: {insumoDb.StockActual}, solicitado: {item.Cantidad}." 
+                                return Results.BadRequest(new {
+                                    message = $"Stock insuficiente para '{insumoDb.NombreProducto}'. Stock disponible: {insumoDb.StockActual}, solicitado: {item.Cantidad}."
                                 });
                             }
 
@@ -138,6 +139,7 @@ namespace VeterinariaAPI.Endpoints
                         // 4. Cálculo automático de IVA (19%) con precisión monetaria y redondeo chileno CLP
                         decimal ivaCalculado = Math.Round(subtotalNetoCalculado * 0.19m, 0, MidpointRounding.AwayFromZero);
                         decimal totalCalculado = subtotalNetoCalculado + ivaCalculado;
+                        if (totalCalculado > 10000000m) throw new BillingDataException("El total no puede superar 10.000.000.");
 
                         // 5. Crear cabecera de la factura
                         var nuevaFactura = new Factura
@@ -184,6 +186,8 @@ namespace VeterinariaAPI.Endpoints
                                 FacturaId = nuevaFactura.Id,
                                 ConsultaId = consultaId,
                                 InsumoId = item.Tipo == "insumo" ? item.InsumoId : null,
+                                Cantidad = item.Tipo == "insumo" ? item.Cantidad : 1,
+                                PrecioUnitario = subtotalLinea / (item.Tipo == "insumo" ? item.Cantidad : 1),
                                 Subtotal = subtotalLinea
                             };
 
@@ -229,7 +233,7 @@ namespace VeterinariaAPI.Endpoints
 
                     return Results.Created($"/api/v1/facturas/{nuevaFactura.Id}", nuevaFactura);
                 }
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Recepcionista"));
 
             // API para editar factura por ID con recalculación de IVA (19%) y sincronización de ítems/stock
             facturas.MapPut("/{id:int}", async (int id, FacturaCreateDto dto, IRepository<Factura> repo, VeterinariodbContext db) =>
@@ -255,8 +259,8 @@ namespace VeterinariaAPI.Endpoints
                     }
 
                     var isRelational = db.Database.IsRelational();
-                    Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = isRelational 
-                        ? await db.Database.BeginTransactionAsync() 
+                    await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = isRelational
+                        ? await db.Database.BeginTransactionAsync()
                         : null;
 
                     try
@@ -265,9 +269,9 @@ namespace VeterinariaAPI.Endpoints
                         foreach (var detViejo in facturaExistente.DetallesFacturas.Where(d => d.InsumoId.HasValue))
                         {
                             var insumoViejo = await db.Insumos.FindAsync(detViejo.InsumoId!.Value);
-                            if (insumoViejo != null && insumoViejo.PrecioUnitario > 0)
+                            if (insumoViejo != null)
                             {
-                                int cantVieja = Math.Max(1, (int)Math.Round(detViejo.Subtotal / insumoViejo.PrecioUnitario));
+                                int cantVieja = BillingConsistency.Quantity(detViejo);
                                 insumoViejo.StockActual += cantVieja;
                             }
                         }
@@ -289,12 +293,14 @@ namespace VeterinariaAPI.Endpoints
 
                             if (insumoDb.StockActual < item.Cantidad)
                             {
-                                return Results.BadRequest(new { 
-                                    message = $"Stock insuficiente para '{insumoDb.NombreProducto}'. Stock disponible: {insumoDb.StockActual}, solicitado: {item.Cantidad}." 
+                                return Results.BadRequest(new {
+                                    message = $"Stock insuficiente para '{insumoDb.NombreProducto}'. Stock disponible: {insumoDb.StockActual}, solicitado: {item.Cantidad}."
                                 });
                             }
 
-                            insumosAfectados.Add((insumoDb, item.Cantidad, item.Cantidad * insumoDb.PrecioUnitario));
+                            var previousLine = facturaExistente.DetallesFacturas.FirstOrDefault(x => x.InsumoId == item.InsumoId);
+                            var price = previousLine == null ? insumoDb.PrecioUnitario : BillingConsistency.Price(previousLine);
+                            insumosAfectados.Add((insumoDb, item.Cantidad, item.Cantidad * price));
                         }
 
                         // 3. Recalcular subtotal neto, IVA (19%) y total para la factura editada
@@ -308,6 +314,8 @@ namespace VeterinariaAPI.Endpoints
                             }
                             else if (item.Tipo == "cita")
                             {
+                                var previousService = facturaExistente.DetallesFacturas.FirstOrDefault(x => !x.InsumoId.HasValue && x.ConsultaId == item.ConsultaId);
+                                if (previousService != null) { subtotalNetoCalculado += BillingConsistency.Price(previousService); continue; }
                                 if (item.CitaId.HasValue)
                                 {
                                     var cita = await db.Citas.Include(c => c.Especialidad).FirstOrDefaultAsync(c => c.Id == item.CitaId.Value);
@@ -331,6 +339,7 @@ namespace VeterinariaAPI.Endpoints
 
                         decimal ivaCalculado = Math.Round(subtotalNetoCalculado * 0.19m, 0, MidpointRounding.AwayFromZero);
                         decimal totalCalculado = subtotalNetoCalculado + ivaCalculado;
+                        if (totalCalculado > 10000000m) throw new BillingDataException("El total no puede superar 10.000.000.");
 
                         // 4. Actualizar cabecera con montos reformulados
                         facturaExistente.ClienteId = dto.ClienteId;
@@ -354,6 +363,9 @@ namespace VeterinariaAPI.Endpoints
                             }
                             else if (item.Tipo == "cita")
                             {
+                                var previousService = facturaExistente.DetallesFacturas.FirstOrDefault(x => !x.InsumoId.HasValue && x.ConsultaId == item.ConsultaId);
+                                if (previousService != null) subtotalLinea = BillingConsistency.Price(previousService);
+                                else
                                 if (item.CitaId.HasValue)
                                 {
                                     var cita = await db.Citas.Include(c => c.Especialidad).FirstOrDefaultAsync(c => c.Id == item.CitaId.Value);
@@ -373,6 +385,8 @@ namespace VeterinariaAPI.Endpoints
                                 FacturaId = facturaExistente.Id,
                                 ConsultaId = consultaId,
                                 InsumoId = item.Tipo == "insumo" ? item.InsumoId : null,
+                                Cantidad = item.Tipo == "insumo" ? item.Cantidad : 1,
+                                PrecioUnitario = subtotalLinea / (item.Tipo == "insumo" ? item.Cantidad : 1),
                                 Subtotal = subtotalLinea
                             };
 
@@ -399,6 +413,7 @@ namespace VeterinariaAPI.Endpoints
                 }
                 else
                 {
+                    if (facturaExistente.DetallesFacturas.Any()) return Results.BadRequest(new { message = "Actualice la factura con sus conceptos para mantener importes e inventario consistentes." });
                     facturaExistente.ClienteId = dto.ClienteId;
                     facturaExistente.FechaEmision = dto.FechaEmision;
                     facturaExistente.MontoImpuestos = dto.MontoImpuestos;
@@ -407,7 +422,7 @@ namespace VeterinariaAPI.Endpoints
                     await db.SaveChangesAsync();
                     return Results.Ok(facturaExistente);
                 }
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
 
             // API para eliminar Facturas
             facturas.MapDelete("/{id:int}", async (int id, IRepository<Factura> repo, VeterinariodbContext db) =>
@@ -425,7 +440,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.EliminarAsync(facturaExistente);
                 await repo.GuardarCambiosAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
         }
 
         // DTO estructurado con el prefijo 'property:' para la correcta validación por reflexión

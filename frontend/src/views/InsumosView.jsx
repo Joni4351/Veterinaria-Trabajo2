@@ -12,8 +12,8 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { Package, Plus, Search, Edit2, Trash2, X, AlertCircle, Filter, RotateCcw } from 'lucide-react';
 
 export const InsumosView = () => {
-  const { hasRole, isAdmin } = useAuth();
-  const canCreateOrEdit = hasRole(['Administrador', 'Veterinario']);
+  const { isAdmin } = useAuth();
+  const canCreateOrEdit = isAdmin;
   const canDelete = isAdmin;
 
   const [insumos, setInsumos] = useState([]);

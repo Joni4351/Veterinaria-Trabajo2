@@ -96,7 +96,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.GuardarCambiosAsync();
 
                 return Results.Created($"/api/v1/clientes/{nuevoCliente.Id}", nuevoCliente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
             // API para editar un cliente por ID
             clientes.MapPut("/{id:int}", async (int id, ClienteCreateDto dto, IRepository<Cliente> repo) =>
@@ -145,7 +145,7 @@ namespace VeterinariaAPI.Endpoints
 
                 await repo.GuardarCambiosAsync();
                 return Results.Ok(clienteExistente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Recepcionista"));
 
             // API para eliminar cliente
             clientes.MapDelete("/{id:int}", async (int id, IRepository<Cliente> repo, VeterinariodbContext db) =>

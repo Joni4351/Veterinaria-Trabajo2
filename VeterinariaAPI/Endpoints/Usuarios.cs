@@ -46,11 +46,18 @@ namespace VeterinariaAPI.Endpoints
                     u.Id,
                     u.NombreCompleto,
                     u.Email,
+                    u.RolId,
                     Rol = u.Rol != null ? u.Rol.Nombre : "Sin Rol"
                 }).ToListAsync();
 
                 return Results.Ok(respuesta);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
+
+            // Operational selectors expose only professional identifiers and display names.
+            usuarios.MapGet("/profesionales", async (VeterinariodbContext db) => Results.Ok(await db.Usuarios.AsNoTracking()
+                .Where(u => u.Rol.Nombre == "Veterinario").OrderBy(u => u.NombreCompleto).ThenBy(u => u.Id)
+                .Select(u => new { u.Id, u.NombreCompleto, Rol = "Veterinario" }).ToListAsync()))
+                .RequireAuthorization(p => p.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
             // API para registrar/crear un usuario (Protegido con AuthPolicy)
             usuarios.MapPost("/register", async (UsuarioRegisterDto dto, IUsuarioRepository repo, AuthService auth, VeterinariodbContext db) =>
@@ -124,6 +131,31 @@ namespace VeterinariaAPI.Endpoints
                 return LoginFacialApi.Session(usuario, config);
             }).RequireRateLimiting("AuthPolicy");
 
+            usuarios.MapPut("/{id:int}", async (int id, UsuarioUpdateDto dto, VeterinariodbContext db, AuthService auth, HttpContext http) =>
+            {
+                if (!int.TryParse(http.User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId) ||
+                    !await db.Usuarios.AnyAsync(u => u.Id == actorId && u.Rol.Nombre == "Administrador")) return Results.Forbid();
+                dto = dto with { NombreCompleto = dto.NombreCompleto?.Trim()!, Email = dto.Email?.Trim()! };
+                var errors = dto.Validar();
+                if (errors.Count > 0) return Results.ValidationProblem(errors);
+                var user = await db.Usuarios.FindAsync(id);
+                if (user == null) return Results.NotFound();
+                if (!await db.Roles.AnyAsync(r => r.Id == dto.RolId))
+                    errors["RolId"] = ["Seleccione un rol existente."];
+                if (id == actorId && dto.RolId != user.RolId)
+                    errors["RolId"] = ["No puede cambiar su propio rol desde esta pantalla."];
+                var email = dto.Email.Trim().ToLowerInvariant();
+                if (await db.Usuarios.AnyAsync(u => u.Id != id && u.Email.ToLower() == email))
+                    errors["Email"] = ["El correo electrónico ya se encuentra registrado en el sistema."];
+                if (errors.Count > 0) return Results.ValidationProblem(errors);
+                user.NombreCompleto = dto.NombreCompleto.Trim();
+                user.Email = email;
+                user.RolId = dto.RolId;
+                if (!string.IsNullOrEmpty(dto.Password)) user.PasswordHash = auth.HashPassword(user, dto.Password);
+                await db.SaveChangesAsync();
+                return Results.Ok(new { user.Id, user.NombreCompleto, user.Email, user.RolId });
+            }).RequireAuthorization(p => p.RequireRole("Administrador"));
+
             // API para eliminar usuario por ID
             usuarios.MapDelete("/{id:int}", async (int id, IUsuarioRepository repo, VeterinariodbContext db) =>
             {
@@ -161,6 +193,12 @@ namespace VeterinariaAPI.Endpoints
             [property: MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres.")]
             string Password
         );
+
+        public record UsuarioUpdateDto(
+            [property: Range(1, int.MaxValue, ErrorMessage = "Seleccione un rol válido.")] int RolId,
+            [property: Required, StringLength(100, MinimumLength = 3)] string NombreCompleto,
+            [property: Required, EmailAddress] string Email,
+            [property: MinLength(6, ErrorMessage = "La contraseña debe tener al menos 6 caracteres.")] string? Password = null);
 
         public record LoginRequest(
             [property: Required(ErrorMessage = "El correo electrónico es obligatorio.")]

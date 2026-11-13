@@ -129,7 +129,10 @@ public class BusinessValidationFilter(VeterinariodbContext db) : IEndpointFilter
                             if (item.CitaId.HasValue || item.ConsultaId.HasValue || item.EspecialidadId.HasValue) Error("items", "Una línea de insumo no puede contener una atención clínica.");
                             var supply = await db.Insumos.AsNoTracking().FirstOrDefaultAsync(x => x.Id == item.InsumoId);
                             if (supply == null) Error("items", "Seleccione un insumo existente para cada línea.");
-                            else net += supply.PrecioUnitario * item.Cantidad;
+                            else {
+                                var previousLine = id > 0 ? await db.DetallesFacturas.AsNoTracking().FirstOrDefaultAsync(x => x.FacturaId == id && x.InsumoId == item.InsumoId) : null;
+                                net += (previousLine == null ? supply.PrecioUnitario : BillingConsistency.Price(previousLine)) * item.Cantidad;
+                            }
                         }
                         else if (item.Tipo == "cita")
                         {

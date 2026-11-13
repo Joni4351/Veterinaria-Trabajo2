@@ -12,6 +12,24 @@ async function applyTheme(page, theme) {
   }, theme);
 }
 
+test('detalle de cita es de solo lectura, accesible y conserva el foco al cerrar', async ({ page }) => {
+  await prepare(page); await page.emulateMedia({ reducedMotion: 'reduce' }); await page.goto('/citas');
+  const open = page.getByRole('button', { name: 'Ver detalle de cita de Luna', exact: true });
+  await open.click();
+  const dialog = page.getByRole('dialog', { name: 'Detalle de cita' });
+  for (const text of ['Luna', 'Cliente de prueba', 'Profesional', 'Medicina General', 'Confirmada']) await expect(dialog.getByText(text, { exact: true })).toBeVisible();
+  await expect(dialog.locator('input, select, textarea')).toHaveCount(0);
+  await expect(dialog.getByRole('button', { name: 'Cerrar detalle de cita' })).toBeFocused();
+  for (const theme of ['light', 'dark']) {
+    await applyTheme(page, theme);
+    expect((await new AxeBuilder({ page }).include('[role="dialog"]').analyze()).violations).toEqual([]);
+  }
+  await page.setViewportSize({ width: 360, height: 800 });
+  expect(await dialog.evaluate(el => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(dialog).toHaveCount(0); await expect(open).toBeFocused();
+});
+
 test('reportes filtran, paginan, exportan y conservan accesibilidad en ambos temas', async ({ page }, testInfo) => {
   await prepare(page);
   const requests = [];
@@ -113,6 +131,26 @@ test('eliminar receta pide confirmación personalizada y cancelar no envía la o
   await expect(confirmation).toHaveCount(0);
   expect(deletions).toBe(1);
   expect(nativeDialogs).toBe(0);
+});
+
+test('veterinario puede abrir la edición de receta sin acciones de eliminación', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('vet_token', ['eyJhbGciOiJIUzI1NiJ9', btoa(JSON.stringify({ exp: Date.now() / 1000 + 3600 })), 'signature'].join('.'));
+    localStorage.setItem('vet_user', JSON.stringify({ id: 2, name: 'Veterinario prueba', role: 'Veterinario' }));
+  });
+  const paciente = { id: 1, nombre: 'Luna', especie: 'Felino', clienteId: 1 };
+  await page.route('**/api/**', route => {
+    const path = new URL(route.request().url()).pathname;
+    const data = { consultas: [{ id: 1, pacienteId: 1, paciente, motivo: 'Control', diagnostico: 'Sin hallazgos' }],
+      pacientes: [paciente], recetas: [{ id: 7, consultaId: 1, fechaEmision: '2026-11-13', validaHasta: '2026-11-14' }] };
+    return route.fulfill({ json: data[path.split('/').at(-1)] || [] });
+  });
+  await page.goto('/consultas');
+  await expect(page.getByRole('button', { name: 'Nueva Consulta', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Eliminar consulta médica' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Actualizar Receta Médica', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Actualizar Receta', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Eliminar Receta', exact: true })).toHaveCount(0);
 });
 
 test('movimiento reducido, menú móvil con Escape y ampliación al 200 por ciento', async ({ page }) => {
@@ -382,6 +420,7 @@ async function prepare(page) {
   const paciente = { id: 1, nombre: 'Luna', especie: 'Canino', raza: 'Mestizo', peso: 12, clienteId: 1, cliente };
   const data = { clientes: [cliente], pacientes: [paciente], roles: [{ id: 1, nombre: 'Administrador', permisosEscritura: true }],
     usuarios: [{ id: 1, nombreCompleto: 'Administrador', rol: 'Administrador', email: 'admin@example.com' }],
+    profesionales: [{ id: 2, nombreCompleto: 'Profesional', rol: 'Veterinario' }],
     especialidades: [{ id: 1, nombre: 'Medicina General', costoBase: 25000 }],
     citas: [{ id: 1, pacienteId: 1, paciente, fechaHora: '2026-11-10T15:00:00', estado: 'Confirmada', usuario: { nombreCompleto: 'Profesional' }, especialidad: { nombre: 'Medicina General' } }],
     consultas: [{ id: 1, pacienteId: 1, paciente, motivo: 'Control general', diagnostico: 'Paciente saludable' }],

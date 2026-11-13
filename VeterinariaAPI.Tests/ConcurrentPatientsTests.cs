@@ -19,7 +19,7 @@ public class ConcurrentPatientsTests(ITestOutputHelper output)
         double MeanMs, double P95Ms, double MaxMs, double ElapsedMs);
 
     [Fact]
-    public async Task TwentyAuthenticatedUsersCanCreateReadUpdateAndDeleteTheirOwnPatients()
+    public async Task TwentyAuthenticatedUsersCanCreateReadUpdateAndAdministratorCanDeletePatients()
     {
         using var factory = new FacialFactory();
         using var bootstrap = factory.Client();
@@ -116,7 +116,7 @@ public class ConcurrentPatientsTests(ITestOutputHelper output)
                     Assert.Equal($"{prefix}-{index}-actualizado", patient.GetProperty("nombre").GetString());
                     Assert.Equal(13.5m, patient.GetProperty("peso").GetDecimal());
                 });
-            await RunPhase("Eliminar pacientes", HttpStatusCode.NoContent, index => clients[index].DeleteAsync($"/api/v1/pacientes/{patients[index]}"));
+            await RunPhase("Eliminar pacientes como administrador", HttpStatusCode.NoContent, index => bootstrap.DeleteAsync($"/api/v1/pacientes/{patients[index]}"));
 
             using (var scope = factory.Services.CreateScope())
             {
@@ -129,7 +129,7 @@ public class ConcurrentPatientsTests(ITestOutputHelper output)
                 {
                     var own = events.Where(x => x.RegistroId == patients[index]).ToArray();
                     Assert.Equal(new[] { "CREAR", "ELIMINAR", "MODIFICAR" }, own.Select(x => x.Accion).OrderBy(x => x));
-                    Assert.All(own, item => Assert.Equal(actors[index].Id, item.UsuarioId));
+                    Assert.All(own, item => Assert.Equal(item.Accion == "ELIMINAR" ? 1 : actors[index].Id, item.UsuarioId));
                 }
                 // Dispose the complete isolated store afterwards; remove test-only actors/owner as well.
                 db.Clientes.Remove(await db.Clientes.FindAsync(ownerId) ?? throw new InvalidOperationException());
@@ -145,7 +145,7 @@ public class ConcurrentPatientsTests(ITestOutputHelper output)
                 Phases = phases, ErrorRatePercent = phases.Sum(x => x.Errors) * 100.0 / phases.Sum(x => x.Requests),
                 ReadsWithin3000Ms = phases.Where(x => x.Operation.Contains("Consultar") || x.Operation.Contains("Comprobar")).All(x => x.MaxMs <= 3000),
                 WritesWithin5000Ms = phases.Where(x => !x.Operation.Contains("Consultar") && !x.Operation.Contains("Comprobar")).All(x => x.MaxMs <= 5000),
-                Limitations = "Ráfagas de 20 sesiones autenticadas con JWT de prueba; no prueba sostenida, ni login concurrente, ni navegador, red real, PostgreSQL o Supabase. No acredita los RNF de producción."
+                Limitations = "Ráfagas de 20 sesiones autenticadas con JWT de prueba para alta, consulta y edición; borrados concurrentes por una cuenta administradora. No prueba sostenida, ni login concurrente, ni navegador, red real, PostgreSQL o Supabase. No acredita los RNF de producción."
             };
             var path = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "TestResults", "concurrencia-pacientes-20.json"));
             Directory.CreateDirectory(Path.GetDirectoryName(path)!);

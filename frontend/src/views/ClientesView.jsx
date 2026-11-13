@@ -12,8 +12,8 @@ import { Users, Plus, Search, Edit2, Trash2, X, AlertCircle, Phone, Mail, Filter
 
 export const ClientesView = () => {
   const { hasRole, isAdmin } = useAuth();
-  const canCreate = hasRole(['Administrador', 'Veterinario']);
-  const canEditOrDelete = isAdmin;
+  const canCreate = hasRole(['Administrador', 'Veterinario', 'Recepcionista']);
+  const canEdit = isAdmin || hasRole(['Recepcionista']);
 
   const [clientes, setClientes] = useState([]);
   const [tablePage, setTablePage] = useState(1), [tableOrder, setTableOrder] = useState('asc');
@@ -295,14 +295,14 @@ export const ClientesView = () => {
                       </div>
                     </td>
                     <td data-label="Acciones" style={{ textAlign: 'right' }}>
-                      {canEditOrDelete ? (
+                      {canEdit ? (
                         <>
                           <button className="btn-icon" onClick={() => handleOpenModal(c)} title="Editar" aria-label={`Editar cliente ${c.nombreCompleto}`}>
                             <Edit2 size={16} />
                           </button>
-                          <button className="btn-icon danger" onClick={() => handleRequestDelete(c)} title="Eliminar" aria-label={`Eliminar cliente ${c.nombreCompleto}`}>
+                          {isAdmin && <button className="btn-icon danger" onClick={() => handleRequestDelete(c)} title="Eliminar" aria-label={`Eliminar cliente ${c.nombreCompleto}`}>
                             <Trash2 size={16} />
-                          </button>
+                          </button>}
                         </>
                       ) : (
                         <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Solo Lectura</span>

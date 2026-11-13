@@ -79,7 +79,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.GuardarCambiosAsync();
 
                 return Results.Created($"/api/v1/insumos/{nuevoInsumo.Id}", nuevoInsumo);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
 
             // API para editar insumo por ID
             insumos.MapPut("/{id:int}", async (int id, InsumoCreateDto dto, IRepository<Insumo> repo) =>
@@ -100,7 +100,7 @@ namespace VeterinariaAPI.Endpoints
 
                 await repo.GuardarCambiosAsync();
                 return Results.Ok(insumoExistente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
 
             // API para eliminar insumos
             insumos.MapDelete("/{id:int}", async (int id, IRepository<Insumo> repo, VeterinariodbContext db) =>
@@ -124,7 +124,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.EliminarAsync(insumoExistente);
                 await repo.GuardarCambiosAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
         }
 
         // DTO estructurado con el prefijo 'property:' para la correcta validación por reflexión

@@ -1009,3 +1009,115 @@ En vetclinic-review, los tres contenedores quedaron saludables y las migraciones
 **Seguimiento de concurrencia:** El frontend y contenedores de 43335829104 aprobaron en GitHub. La siguiente ejecución resolvió las fechas de facturación y detectó una aserción no portable en ConcurrentPatientsTests: las cien solicitudes de las cinco fases finalizaron sin errores, pero una fase midió quince solicitudes solapadas y la prueba exigía exactamente veinte. Se conservan las veinte sesiones, validaciones de datos, auditoría, errores y tiempos; el pico observado se verifica dentro del rango posible de 1 a 20, sin fabricar un solapamiento exacto dependiente del planificador. El informe conserva el valor medido y sus limitaciones InMemory. Suite local: 131 aprobadas, una integración externa omitida. Se prepara una nueva ejecución remota para comprobar el resultado completo.
 
 **Cierre comprobado en GitHub:** La ejecución 43336537895 del commit 9ed753f terminó completed/success. Backend: 131 aprobadas, una integración externa omitida y cero fallos. Frontend: 106 pruebas unitarias y 29 de navegador aprobadas. Contenedores, salud de API, respaldo/restauración y los dos trabajos publish (api/frontend) concluyeron success. Las imágenes se publicaron en GHCR con etiqueta del SHA completo probado. En las ejecuciones anteriores fallidas la publicación permaneció omitida. Este cierre actualiza exclusivamente ambas bitácoras y se publica con [skip ci] para no repetir la misma validación por un cambio sin código.
+
+## Sesión 46 — 13/11/2026 — Formularios de alta y edición de usuarios
+
+**Objetivo:** Incorporar creación mediante ventana modal y edición de cuentas desde las acciones del listado administrativo.
+
+**Implementación:** Formulario compartido en AccessibleDialog, botón Nuevo usuario junto al título, acción Editar por fila, campos precargados, contraseña opcional y recarga tras guardar. Se mantienen validación, mensajes, bloqueo de envíos y manejo de foco/Escape. Se separa la carga de roles para cuentas respecto de filtros del catálogo. El endpoint PUT nuevo autoriza únicamente administradores con rol vigente, valida identificadores/datos y correo único, impide la modificación del propio rol, conserva el hash cuando no hay contraseña nueva y audita sin exponer secretos. Se agrega RolId al listado.
+
+**Componentes:** UsuariosApi, UserCreateForm, AdminConfigView, UserEditingTests, pruebas unitarias del formulario, escenario de navegador y AI_LOG/BITACORA.
+
+**Validación:** Backend: 136 aprobadas y una externa omitida. Frontend: suite inicial de 106 aprobadas; tres pruebas del formulario aprobadas al añadir el caso nuevo. Compilación correcta con avisos previos. Navegador: creación y auditoría axe de formularios/listados en ambos temas aprobadas; recorrido ampliado de alta y edición con Escape, foco, contraseña conservada y fila actualizada aprobado. Pruebas con InMemory y respuestas interceptadas; sin cambios en Supabase, esquema o contenedores, sin ejecución remota de CI, commits o push. Los cambios de permisos no revocan JWT previamente emitidos.
+
+## Sesión 47 — 13/11/2026 — Alta y edición de clientes por recepción
+
+**Objetivo:** Alinear los permisos del módulo Clientes con las tareas de recepción, manteniendo la eliminación administrativa.
+
+**Implementación:** Autorización explícita de Recepcionista en POST y PUT de clientes, y separación de los controles de crear, editar y eliminar en la interfaz. Se mantienen validaciones, auditoría y restricciones de los demás roles y módulos; no se amplía el permiso global de escritura.
+
+**Componentes:** ClientesApi, ClientesView, ReceptionistClientPermissionsTests, ReceptionistClients.test y ambas bitácoras.
+
+**Validación:** Backend completo: 139 aprobadas y una externa omitida. Nuevos casos prueban creación/consulta/edición, duplicados, actor de auditoría y eliminación denegada; se conserva el rechazo de edición para anónimos y veterinarios. Prueba de interfaz aprobada para creación/edición visibles, guardado y eliminación ausente. Build correcto con avisos previos. Datos InMemory y respuestas simuladas; sin cambios en Supabase, esquema, Docker, CI remoto, commits o push.
+
+## Sesión 48 — 13/11/2026 — Edición de pacientes habilitada para recepción
+
+**Objetivo:** Ampliar exclusivamente el permiso de actualización de pacientes al rol Recepcionista.
+
+**Implementación:** Se autoriza recepción en PUT pacientes y en el botón Editar de cada fila, conservando los permisos previos de creación y eliminación y las validaciones/auditoría existentes.
+
+**Componentes:** PacientesApi, PacientesView, ReceptionistPatientPermissionsTests, PacientesView.test, AI_LOG y BITACORA.
+
+**Validación:** 140 pruebas backend aprobadas, una integración externa omitida; ocho pruebas de interfaz de pacientes aprobadas y build correcto con avisos previos. Se comprobaron persistencia, actor de auditoría, validaciones de propietario/peso y denegación de alta/eliminación para recepción. InMemory y servicios simulados, sin cambios en Supabase, esquema, Docker, CI remoto, commits o push.
+
+## Sesión 49 — 13/11/2026 — Eliminación de pacientes exclusiva del administrador
+
+**Objetivo:** Restringir el borrado de pacientes en backend al rol Administrador.
+
+**Implementación:** Se retiró Veterinario de la autorización DELETE, conservando bloqueos por citas/consultas. Los nuevos casos verifican 401 anónimo, 403 Veterinario/Recepcionista, 204 Administrador sin dependencias y rechazo con relaciones. La fase de borrado de la prueba concurrente se ajustó al administrador y la auditoría comprueba su actor; alta/consulta/edición mantienen sesiones veterinarias.
+
+**Componentes:** PacientesApi, PatientDeletionPermissionsTests, ConcurrentPatientsTests, AI_LOG y BITACORA.
+
+**Validación:** Suite final 145 aprobadas y una externa omitida. Se corrigió una expectativa obsoleta de borrado por veterinario detectada en la primera ejecución. Pruebas InMemory; sin cambios en Supabase, esquema, frontend, contenedores, CI remoto, commits o push.
+
+## Sesión 50 — 13/11/2026 — Consulta de citas limitada a la cuenta veterinaria
+
+**Objetivo:** Cumplir el criterio de correspondencia entre citas consultadas e identidad veterinaria autenticada.
+
+**Implementación:** El endpoint GET de agenda restringe por identificador JWT y no permite sustituirlo con usuarioId de consulta. Identidades inválidas se rechazan; filtros de estado/especialidad/fecha permanecen combinados. Administrador y Recepcionista mantienen agenda general. Se oculta el filtro profesional al Veterinario y se evita enviarlo desde su interfaz.
+
+**Componentes:** CitasApi, CitasView, AppointmentVisibilityTests, CitasScope.test, AI_LOG y BITACORA.
+
+**Validación:** 150 pruebas backend aprobadas y una externa omitida; tres casos frontend por rol y compilación aprobados con avisos previos. Se probaron parámetros de otro usuario, alcance propio, filtros combinados, accesos generales y solicitudes no autorizadas. Entornos InMemory y simulados, sin cambios en Supabase, esquema, Docker, CI remoto, commits o push. No se modificaron permisos de escritura ni otros endpoints con referencias a citas.
+
+## Sesión 51 — 13/11/2026 — Consulta independiente del detalle de cita
+
+**Objetivo:** Completar los criterios 3 y 5 de la historia 8: detalle de cita y mensaje específico de agenda sin asignaciones.
+
+**Implementación:** Se añadió Ver detalle por fila y un diálogo reutilizable con información de cita, paciente, propietario y profesional en formato de solo lectura. AccessibleDialog gestiona foco/Escape y regreso al botón. Se usa el conjunto ya autorizado de citas y no se incorporan operaciones de escritura. Se muestra un mensaje propio de Veterinario ante resultados vacíos y se separa el error de carga del error del formulario para no confundir fallos con ausencia de datos.
+
+**Componentes:** CitaDetailDialog, CitasView, CitasScope.test, accesibilidad.spec y ambas bitácoras.
+
+**Validación:** 114 pruebas frontend aprobadas y build correcto con avisos previos. Cinco casos unitarios cubren roles, datos, detalle, foco y error/vacío; recorrido de navegador aprobado para detalle, accesibilidad en ambos temas con movimiento reducido y adaptación a 360 px. No se eliminaron reglas axe para resolver la medición inicial durante una transición. Pruebas con API simulada; sin cambios de backend, Supabase, esquema, contenedores, CI remoto, commits o push.
+
+## Sesión 52 — 13/11/2026 — Borrado clínico exclusivo del Administrador
+
+**Objetivo:** Restringir la eliminación clínica al Administrador en frontend y backend.
+
+**Implementación:** DELETE consultas/recetas/detallesRe exige Administrador; Veterinario mantiene alta y actualización. Se ocultan el botón y la confirmación de eliminación de receta para los demás roles y se adecuan sus etiquetas e indicaciones. Se mantienen las verificaciones de dependencias y el borrado de detalles junto a la receta.
+
+**Componentes:** Endpoints clínicos, ConsultasView, ClinicalDeletionPermissionsTests, accesibilidad.spec y ambas bitácoras.
+
+**Validación:** 155 pruebas backend aprobadas y una externa omitida; 114 frontend aprobadas, compilación correcta con avisos previos y dos escenarios de navegador aprobados. Se comprobaron rechazo por rol, preservación de registros, borrado autorizado y dependencias. La primera prueba visual permitió corregir la ubicación de la condición del botón; la repetición aprobó. InMemory y respuestas simuladas; sin intervención en Supabase, esquema, contenedores, CI remoto, commits o push.
+
+## Sesión 53 — 13/11/2026 — Catálogo de insumos de solo lectura para roles operativos
+
+**Objetivo:** Permitir únicamente al Administrador crear, editar y eliminar insumos directamente.
+
+**Implementación:** Restricción de POST/PUT/DELETE al Administrador y conservación de GET para Administrador, Veterinario y Recepcionista. La interfaz oculta controles de escritura para los dos últimos roles y muestra Solo Lectura. Se mantienen los procesos de inventario de facturación y las restricciones de integridad.
+
+**Componentes:** InsumosApi, InsumosView, SupplyPermissionsTests, InsumosPermissions.test y ambas bitácoras.
+
+**Validación:** 159 pruebas backend aprobadas y una externa omitida, tres casos frontend por rol aprobados y build correcto con avisos previos. Se verificaron acceso directo a API, inmutabilidad al denegar y ciclo administrativo autorizado. Entornos simulados/InMemory, sin cambios en Supabase, esquema, contenedores, CI remoto, commits o push.
+
+## Sesión 54 — 13/11/2026 — Permisos de emisión de facturas por rol
+
+**Objetivo:** Permitir emisión a Administrador y Recepcionista, y mantener Veterinario en consulta de facturación.
+
+**Implementación:** POST facturas autoriza administración/recepción. Edición/eliminación de facturas emitidas y escrituras de detalles se reservan al Administrador. La interfaz separa emisión y mantenimiento, ocultando controles no autorizados sin impedir consultar detalles. Se conserva el guardado de conceptos e inventario dentro del flujo de emisión.
+
+**Componentes:** FacturasApi, DetalleFacturasAPI, FacturasView, InvoicePermissionsTests, InvoicePermissions.test y ambas bitácoras.
+
+**Validación:** 165 pruebas backend aprobadas, una externa omitida; tres pruebas de interfaz por rol aprobadas y build correcto con advertencias previas. Casos nuevos verifican emisión, stock, detalles, auditoría, consulta y rechazo de operaciones no autorizadas. Entorno InMemory/simulado; sin cambios en Supabase, esquema, contenedores, CI remoto, commits o push.
+
+## Sesión 55 — 13/11/2026 — Borrado de citas reservado al Administrador
+
+**Objetivo:** Alinear la autorización de eliminación de citas con la interfaz sin alterar el menú ni los permisos de operación de agenda.
+
+**Implementación:** DELETE de citas se restringe a Administrador; se mantienen dependencias clínicas, auditoría y las autorizaciones de lectura/alta/edición. Se incorporan pruebas por rol y casos de dependencias e inexistencia.
+
+**Componentes:** CitasApi, AppointmentDeletionPermissionsTests, AI_LOG y BITACORA.
+
+**Validación:** 171 pruebas backend aprobadas, una externa omitida y cuatro escenarios de navegador aprobados sobre navegación, sesión y rutas administrativas. Se comprobó rechazo por rol, conservación ante denegación, borrado válido y bloqueo de citas con consulta facturada. Pruebas InMemory y simuladas; sin intervención en Supabase, migraciones, Docker, CI remoto, commits o push.
+
+## Sesión 56 — 13/11/2026 — Integridad transaccional e histórica de facturación
+
+**Objetivo:** Cerrar los pendientes de inventario/facturación y alinear permisos e información con las historias revisadas.
+
+**Implementación:** Cantidad/precio histórico por línea con migración versionada; reposición por unidades registradas, conservación de precios al editar, transacción conjunta de líneas/inventario/totales/auditoría y concurrencia optimista. Las líneas antiguas ambiguas se bloquean sin inferir unidades del precio actual. La interfaz muestra ID de factura, cantidad/precio y controla cantidades/subtotales de insumos. Se protege el cambio directo de importes sin conceptos. Recepcionista obtiene alta de pacientes; listado completo de usuarios solo administrativo y selector profesional limitado para agenda. Se actualizan README, pruebas, CI y las dos bitácoras, sin informes académicos.
+
+**Componentes:** DetallesFactura/contexto/migración/snapshot, BillingConsistency, middleware y filtro de negocio, endpoints de facturación/cuentas/pacientes, vistas y esquema de formulario, pruebas técnicas y Test-BillingIntegrity.ps1.
+
+**Validación:** 176 backend aprobadas y una externa omitida; 123 frontend aprobadas, build correcto con avisos previos; 31 escenarios de navegador y uno real Docker aprobados. PostgreSQL aislado rechazó la segunda venta concurrente con 409 y mantuvo una venta y stock cero. Precio histórico y reposición de tres unidades comprobados tras cambio de catálogo. Fallos SQL inyectados confirmaron rollback de cabecera/detalle/stock/total/auditoría. La prueba elimina sus disparadores/datos y comprueba previamente conexión/puerto del entorno aislado. Docker reconstruido y migración aplicada exclusivamente en vetclinic-review; respaldo/restauración también comprobados. La nueva prueba queda incorporada al pipeline.
+
+**Pendientes externos:** Supabase no se modificó; requiere aplicar/revisar la migración y resolver con documentación original las cantidades históricas ausentes. Se prepara publicación de cambios y verificación de CI remoto; el resultado aún no se atribuye. No se implementan idempotencia general, pagos, anulación tributaria o detección de presencia real. El gráfico personal ajeno al cambio permanece sin versionar.

@@ -188,6 +188,9 @@ namespace VeterinariaAPI.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("Cantidad")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("ConsultaId")
                         .HasColumnType("integer");
 
@@ -196,6 +199,9 @@ namespace VeterinariaAPI.Migrations
 
                     b.Property<int?>("InsumoId")
                         .HasColumnType("integer");
+
+                    b.Property<decimal?>("PrecioUnitario")
+                        .HasColumnType("decimal(10, 2)");
 
                     b.Property<decimal>("Subtotal")
                         .HasColumnType("decimal(10, 2)");
@@ -211,6 +217,10 @@ namespace VeterinariaAPI.Migrations
 
                     b.ToTable("DetallesFactura", null, t =>
                         {
+                            t.HasCheckConstraint("CK_DetallesFacturas_Cantidad", "\"Cantidad\" IS NULL OR \"Cantidad\" > 0");
+
+                            t.HasCheckConstraint("CK_DetallesFacturas_Precio", "\"PrecioUnitario\" IS NULL OR \"PrecioUnitario\" >= 0");
+
                             t.HasCheckConstraint("CK_DetallesFacturas_Subtotal", "\"Subtotal\" >= 0");
                         });
                 });
@@ -295,6 +305,7 @@ namespace VeterinariaAPI.Migrations
                         .HasColumnType("decimal(10, 2)");
 
                     b.Property<decimal>("MontoTotal")
+                        .IsConcurrencyToken()
                         .HasColumnType("decimal(10, 2)");
 
                     b.HasKey("Id")
@@ -327,6 +338,7 @@ namespace VeterinariaAPI.Migrations
                         .HasColumnType("decimal(10, 2)");
 
                     b.Property<int>("StockActual")
+                        .IsConcurrencyToken()
                         .HasColumnType("integer");
 
                     b.Property<string>("Tipo")

@@ -73,6 +73,9 @@ jobs:
       - name: Verify backup and restore on isolated database
         shell: pwsh
         run: ./scripts/Test-BackupRestore.ps1 -Project vetclinic-ci -EnvFile ''
+      - name: Verify billing rollback and inventory concurrency on PostgreSQL
+        shell: pwsh
+        run: ./scripts/Test-BillingIntegrity.ps1 -Project vetclinic-ci -EnvFile '' -BaseUrl 'http://127.0.0.1:15174'
       - name: Stop isolated stack
         if: always()
         run: docker compose -p vetclinic-ci down --volumes

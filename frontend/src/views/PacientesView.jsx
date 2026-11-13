@@ -17,7 +17,8 @@ import {
 
 export const PacientesView = () => {
   const { hasRole, isAdmin } = useAuth();
-  const canCreateOrEdit = typeof hasRole === 'function' ? hasRole(['Administrador', 'Veterinario']) : false;
+  const canCreateOrEdit = typeof hasRole === 'function' ? hasRole(['Administrador', 'Veterinario', 'Recepcionista']) : false;
+  const canEdit = canCreateOrEdit || (typeof hasRole === 'function' && hasRole(['Recepcionista']));
   const canDelete = isAdmin || (typeof hasRole === 'function' && hasRole(['Administrador']));
 
   // Estados de datos
@@ -428,7 +429,7 @@ export const PacientesView = () => {
                             </button>
 
                             {/* Editar */}
-                            {canCreateOrEdit && (
+                            {canEdit && (
                               <button
                                 type="button"
                                 className="btn-icon"

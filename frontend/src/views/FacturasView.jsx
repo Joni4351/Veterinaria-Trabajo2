@@ -16,7 +16,8 @@ import { ConfirmModal } from '../components/ConfirmModal';
 
 export const FacturasView = () => {
   const { hasRole, isAdmin } = useAuth();
-  const canCreateOrEdit = hasRole(['Administrador', 'Veterinario']);
+  const canCreate = hasRole(['Administrador', 'Recepcionista']);
+  const canEdit = isAdmin;
   const canDelete = isAdmin;
 
   const [facturas, setFacturas] = useState([]);
@@ -65,6 +66,7 @@ export const FacturasView = () => {
   const [detalleError, setDetalleError] = useState('');
   const [detalleFieldErrors, setDetalleFieldErrors] = useState({});
   const [nuevoItem, setNuevoItem] = useState({
+    cantidad: 1,
     tipo: 'insumo',
     insumoId: '',
     consultaId: '',
@@ -181,6 +183,10 @@ export const FacturasView = () => {
     setInsumoCantidad(1);
 
     if (factura) {
+      if (detalles.some(d => d.facturaId === factura.id && d.insumoId && !(d.cantidad > 0))) {
+        notifyConflict('La factura contiene líneas históricas sin cantidad registrada. Revise el documento original antes de modificar su inventario.');
+        return;
+      }
       setEditingId(factura.id);
       setFormData({
         clienteId: String(factura.clienteId),
@@ -215,9 +221,9 @@ export const FacturasView = () => {
           citaId: cit?.id || null,
           especialidadId: cit?.especialidadId || null,
           nombre: nombreConcepto,
-          precioUnitario: Number(d.subtotal),
-          cantidad: 1,
-          stockMax: ins ? ins.stockActual : 1,
+          precioUnitario: Number(d.precioUnitario ?? Number(d.subtotal) / (d.cantidad || 1)),
+          cantidad: d.cantidad || 1,
+          stockMax: ins ? ins.stockActual + d.cantidad : 1,
           subtotal: Number(d.subtotal)
         };
       });
@@ -473,6 +479,7 @@ export const FacturasView = () => {
     setDetalleFieldErrors({});
     const initialInsumo = insumos[0];
     setNuevoItem({
+      cantidad: 1,
       tipo: 'insumo',
       insumoId: initialInsumo?.id ? String(initialInsumo.id) : '',
       consultaId: consultas[0]?.id ? String(consultas[0].id) : '',
@@ -509,7 +516,8 @@ export const FacturasView = () => {
         facturaId: selectedFactura.id,
         consultaId: validation.data.tipo === 'consulta' && validation.data.consultaId ? Number(validation.data.consultaId) : null,
         insumoId: validation.data.tipo === 'insumo' && validation.data.insumoId ? Number(validation.data.insumoId) : null,
-        subtotal: validation.data.subtotal
+        subtotal: validation.data.subtotal,
+        cantidad: validation.data.tipo === 'insumo' ? validation.data.cantidad : 1
       };
 
       await api.post('/api/v1/detallefac', payload);
@@ -558,7 +566,7 @@ export const FacturasView = () => {
               Gestión de Facturación y Cobros
             </h1>
             </div>
-          {canCreateOrEdit && (
+          {canCreate && (
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
               <Plus size={18} />
               Emitir Factura
@@ -676,6 +684,7 @@ export const FacturasView = () => {
               <table className="custom-table">
                 <thead>
                   <tr>
+                    <th scope="col">Factura</th>
                     <th scope="col">Cliente / Dueño</th>
                     <th scope="col">RUT / Documento</th>
                     <th scope="col">Fecha Emisión</th>
@@ -689,6 +698,7 @@ export const FacturasView = () => {
                     const cliente = clientes.find(c => c.id === f.clienteId);
                     return (
                       <tr key={f.id}>
+                        <td data-label="Factura"><strong>Factura {f.id}</strong></td>
                         <td data-label="Cliente">
                           <strong style={{ color: 'var(--gray-900)' }}>{cliente ? cliente.nombreCompleto : 'Cliente'}</strong>
                         </td>
@@ -714,7 +724,7 @@ export const FacturasView = () => {
                             <FileText size={14} />
                             Detalles
                           </button>
-                          {canCreateOrEdit && (
+                          {canEdit && (
                             <button className="btn-icon" onClick={() => handleOpenModal(f)} title="Editar" aria-label="Editar factura">
                               <Edit2 size={16} />
                             </button>
@@ -724,7 +734,7 @@ export const FacturasView = () => {
                               <Trash2 size={16} />
                             </button>
                           )}
-                          {!canCreateOrEdit && !canDelete && (
+                          {!canEdit && !canDelete && (
                             <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Solo Lectura</span>
                           )}
                         </td>
@@ -1224,7 +1234,7 @@ export const FacturasView = () => {
               )}
 
               {/* Tarjeta Visual: Añadir Ítem / Concepto al Detalle */}
-              <div style={{ background: 'var(--bg-surface)', padding: '1.1rem 1.35rem', borderRadius: '0.85rem', marginBottom: '0.85rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+              {canEdit && <div style={{ background: 'var(--bg-surface)', padding: '1.1rem 1.35rem', borderRadius: '0.85rem', marginBottom: '0.85rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <Plus size={18} color="var(--teal-text)" />
                   <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
@@ -1261,7 +1271,7 @@ export const FacturasView = () => {
                           setNuevoItem({ 
                             ...nuevoItem, 
                             insumoId: e.target.value,
-                            subtotal: ins ? ins.precioUnitario : nuevoItem.subtotal
+                            subtotal: ins ? ins.precioUnitario * Number(nuevoItem.cantidad || 1) : nuevoItem.subtotal
                           });
                           setDetalleFieldErrors({});
                         }} required
@@ -1297,12 +1307,21 @@ export const FacturasView = () => {
                       step="0.01"
                       className={`form-input ${detalleFieldErrors.subtotal ? 'border-red-500' : ''}`}
                       value={nuevoItem.subtotal}
+                      readOnly={nuevoItem.tipo === 'insumo'}
                       onChange={(e) => {
                         setNuevoItem({ ...nuevoItem, subtotal: e.target.value });
                         if (detalleFieldErrors.subtotal) setDetalleFieldErrors(prev => ({ ...prev, subtotal: null }));
                       }} required
                     />
                   </div>
+
+                  {nuevoItem.tipo === 'insumo' && <div className="form-group" style={{ marginBottom: 0 }}>
+                    <label className="form-label" htmlFor="detalle-cantidad">Cantidad <RequiredIndicator /></label>
+                    <NumericInput id="detalle-cantidad" className="form-input" min="1" step="1" required value={nuevoItem.cantidad ?? 1}
+                      aria-invalid={!!detalleFieldErrors.cantidad} aria-describedby={detalleFieldErrors.cantidad ? 'detalle-cantidad-error' : undefined}
+                      onChange={e => { const quantity = e.target.value; const supply = insumos.find(i => i.id === Number(nuevoItem.insumoId)); setNuevoItem({ ...nuevoItem, cantidad: quantity, subtotal: Number(quantity) * Number(supply?.precioUnitario || 0) }); setDetalleFieldErrors({}); }} />
+                    {detalleFieldErrors.cantidad && <span id="detalle-cantidad-error" className="form-error">{detalleFieldErrors.cantidad}</span>}
+                  </div>}
 
                   <div>
                     <SubmitButton type="submit" className="btn btn-primary" style={{ width: '100%' }}>
@@ -1320,8 +1339,7 @@ export const FacturasView = () => {
                     {detalleFieldErrors.subtotal}
                   </span>
                 )}
-              </div>
-
+              </div>}
               {/* Tarjeta Visual: Líneas Registradas de la Factura */}
               <div style={{ background: 'var(--bg-surface)', padding: '1.1rem 1.35rem', borderRadius: '0.85rem', marginBottom: '0.85rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
@@ -1343,6 +1361,8 @@ export const FacturasView = () => {
                       <thead style={{ background: 'var(--gray-100)' }}>
                         <tr>
                           <th scope="col">Concepto / Tipo</th>
+                          <th scope="col">Cantidad</th>
+                          <th scope="col">Precio unitario histórico</th>
                           <th scope="col">Subtotal</th>
                           <th scope="col" style={{ textAlign: 'right' }}>Acción</th>
                         </tr>
@@ -1358,11 +1378,13 @@ export const FacturasView = () => {
                                 {con && <span><strong>Consulta:</strong> {con.motivo}</span>}
                                 {!ins && !con && <span style={{ color: 'var(--gray-400)' }}>Servicio Veterinario</span>}
                               </td>
+                              <td data-label="Cantidad">{d.cantidad ?? 'No registrado'}</td>
+                              <td data-label="Precio unitario histórico">{d.precioUnitario != null ? `$${Number(d.precioUnitario).toLocaleString('es-CL')}` : 'No registrado'}</td>
                               <td data-label="Subtotal"><strong style={{ color: 'var(--gray-900)' }}>${Number(d.subtotal).toLocaleString('es-CL')}</strong></td>
                               <td data-label="Acción" style={{ textAlign: 'right' }}>
-                                <button className="btn-icon danger" onClick={() => handleRequestDeleteDetalle(d.id)} aria-label="Eliminar línea">
+                                {canDelete && <button className="btn-icon danger" onClick={() => handleRequestDeleteDetalle(d.id)} aria-label="Eliminar línea">
                                   <Trash2 size={16} />
-                                </button>
+                                </button>}
                               </td>
                             </tr>
                           );

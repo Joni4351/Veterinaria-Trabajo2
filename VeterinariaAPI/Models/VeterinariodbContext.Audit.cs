@@ -18,7 +18,7 @@ public partial class VeterinariodbContext
         [typeof(DetallesRecetum)] = ("DetallesReceta", ["RecetaId", "InsumoId", "Dosis", "DuracionDias"]),
         [typeof(Insumo)] = ("Insumos", ["NombreProducto", "Tipo", "StockActual", "PrecioUnitario"]),
         [typeof(Factura)] = ("Facturas", ["ClienteId", "FechaEmision", "MontoImpuestos", "MontoTotal"]),
-        [typeof(DetallesFactura)] = ("DetallesFactura", ["FacturaId", "ConsultaId", "InsumoId", "Subtotal"]),
+        [typeof(DetallesFactura)] = ("DetallesFactura", ["FacturaId", "ConsultaId", "InsumoId", "Cantidad", "PrecioUnitario", "Subtotal"]),
         [typeof(Especialidade)] = ("Especialidades", ["Nombre", "CostoBase"]),
         [typeof(Role)] = ("Roles", ["Nombre", "PermisosEscritura"]),
         [typeof(Usuario)] = ("Usuarios", ["RolId", "NombreCompleto", "Email"]),
@@ -54,6 +54,9 @@ public partial class VeterinariodbContext
 
     private async Task<int> SaveAuditedAsync(bool accept, bool synchronous, CancellationToken cancellationToken)
     {
+        foreach (var entry in ChangeTracker.Entries<DetallesFactura>().Where(x => x.State == EntityState.Added))
+            if (entry.Entity.Cantidad is > 0 && entry.Entity.PrecioUnitario == null)
+                entry.Entity.PrecioUnitario = entry.Entity.Subtotal / entry.Entity.Cantidad.Value;
         ChangeTracker.DetectChanges();
         var pending = ChangeTracker.Entries().Where(x => x.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .Where(x => AuditedTypes.ContainsKey(x.Entity.GetType())).Select(entry =>

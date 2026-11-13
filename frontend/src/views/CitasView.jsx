@@ -9,12 +9,14 @@ import { useAuth } from '../context/AuthContext';
 import { citaSchema } from '../schemas/citasSchema';
 import { dateTimeInputValue } from '../schemas/dateValidation';
 import { ConfirmModal } from '../components/ConfirmModal';
-import { Calendar, Plus, Search, Edit2, Trash2, X, AlertCircle, Clock, Filter, RotateCcw } from 'lucide-react';
+import { CitaDetailDialog } from '../components/CitaDetailDialog';
+import { Calendar, Plus, Search, Edit2, Trash2, X, AlertCircle, Clock, Filter, RotateCcw, Eye } from 'lucide-react';
 
 export const CitasView = () => {
   const { hasRole, isAdmin } = useAuth();
   const canCreateOrEdit = hasRole(['Administrador', 'Veterinario', 'Recepcionista']);
   const canDelete = isAdmin;
+  const ownAgenda = hasRole(['Veterinario']) && !isAdmin;
 
   const [citas, setCitas] = useState([]);
   const [pacientes, setPacientes] = useState([]);
@@ -30,8 +32,10 @@ export const CitasView = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [selectedCita, setSelectedCita] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [loadError, setLoadError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [searchDueno, setSearchDueno] = useState('');
 
@@ -77,7 +81,7 @@ export const CitasView = () => {
       const [pacRes, espRes, usuRes, cliRes] = await Promise.allSettled([
         api.get('/api/v1/pacientes'),
         api.get('/api/v1/especialidades'),
-        api.get('/api/v1/usuarios'),
+        api.get('/api/v1/usuarios/profesionales'),
         api.get('/api/v1/clientes')
       ]);
 
@@ -92,9 +96,10 @@ export const CitasView = () => {
 
   const fetchCitas = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const params = {};
-      if (filters.usuarioId) params.usuarioId = filters.usuarioId;
+      if (!ownAgenda && filters.usuarioId) params.usuarioId = filters.usuarioId;
       if (filters.especialidadId) params.especialidadId = filters.especialidadId;
       if (filters.estado) params.estado = filters.estado;
       if (filters.fechaDesde) params.fechaDesde = filters.fechaDesde;
@@ -104,7 +109,7 @@ export const CitasView = () => {
       setCitas(res.data || []);
     } catch (err) {
       console.error(err);
-      setError('Error al conectar con el servidor para obtener las citas.');
+      setLoadError('Error al conectar con el servidor para obtener las citas.');
     } finally {
       setLoading(false);
     }
@@ -237,7 +242,7 @@ export const CitasView = () => {
             <Filter size={16} /> Filtros de Agenda (API)
           </div>
           <div className="filter-grid">
-            <div>
+            {!ownAgenda && <div>
               <label htmlFor="citas-field-0" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Profesional / Vet</label>
               <select id="citas-field-0"
                 className="form-select"
@@ -249,7 +254,7 @@ export const CitasView = () => {
                   <option key={u.id} value={u.id}>{u.nombreCompleto}</option>
                 ))}
               </select>
-            </div>
+            </div>}
             <div>
               <label htmlFor="citas-field-1" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Especialidad</label>
               <select id="citas-field-1"
@@ -319,10 +324,11 @@ export const CitasView = () => {
           if (loading) {
             return <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-500)' }}>Cargando agenda de citas...</p>;
           }
+          if (loadError) return <p role="alert" className="alert alert-danger">{loadError}</p>;
           if (displayedCitas.length === 0) {
             return (
-              <p style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-400)' }}>
-                No se encontraron citas médicas registradas con los filtros aplicados.
+              <p role="status" style={{ textAlign: 'center', padding: '2rem', color: 'var(--gray-600)' }}>
+                {ownAgenda ? 'No tienes citas asignadas para los filtros seleccionados.' : 'No se encontraron citas médicas registradas con los filtros aplicados.'}
               </p>
             );
           }
@@ -380,6 +386,7 @@ export const CitasView = () => {
                         </span>
                       </td>
                       <td data-label="Acciones" style={{ textAlign: 'right' }}>
+                        <button type="button" className="btn btn-secondary btn-sm" onClick={() => setSelectedCita(c)} aria-label={`Ver detalle de cita de ${c.paciente?.nombre || 'paciente'}`}><Eye size={15} aria-hidden="true" /> Ver detalle</button>
                         {canCreateOrEdit ? (
                           <>
                             <button className="btn-icon" onClick={() => handleOpenModal(c)} title="Editar" aria-label="Editar cita médica">
@@ -406,6 +413,7 @@ export const CitasView = () => {
       </div>
 
       {/* Modal Citas (Estructura de Tarjetas Visuales) */}
+      {selectedCita && <CitaDetailDialog cita={selectedCita} pacientes={pacientes} clientes={clientes} onClose={() => setSelectedCita(null)} />}
       {isModalOpen && (
         <AccessibleDialog className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-cita-title" aria-label="Cita veterinaria" onClose={() => setIsModalOpen(false)}>
           <div className="modal-content" style={{ maxWidth: '640px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>

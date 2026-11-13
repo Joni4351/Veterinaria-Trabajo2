@@ -76,7 +76,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.GuardarCambiosAsync();
 
                 return Results.Created($"/api/v1/pacientes/{nuevoPaciente.Id}", nuevoPaciente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
             // API para editar paciente por ID
             pacientes.MapPut("/{id:int}", async (int id, PacienteCreateDto dto, IRepository<Paciente> repo) =>
@@ -99,7 +99,7 @@ namespace VeterinariaAPI.Endpoints
 
                 await repo.GuardarCambiosAsync();
                 return Results.Ok(pacienteExistente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
             // API para eliminar pacientes
             pacientes.MapDelete("/{id:int}", async (int id, IRepository<Paciente> repo, VeterinariodbContext db) =>
@@ -123,7 +123,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.EliminarAsync(pacienteExistente);
                 await repo.GuardarCambiosAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
         }
 
         // DTO estructurado con el prefijo 'property:' para la correcta validación por reflexión
