@@ -256,7 +256,7 @@ namespace VeterinariaAPI.Tests
             var payload = new
             {
                 ClienteId = clienteId,
-                FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                 MontoImpuestos = 0m,
                 MontoTotal = 0m,
                 Items = new[]
@@ -297,7 +297,7 @@ namespace VeterinariaAPI.Tests
             var payload = new
             {
                 ClienteId = 1,
-                FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                 MontoImpuestos = 0m,
                 MontoTotal = 0m,
                 Items = new[]
@@ -329,7 +329,7 @@ namespace VeterinariaAPI.Tests
             var payload = new
             {
                 ClienteId = 1,
-                FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                 MontoImpuestos = 0m,
                 MontoTotal = 0m,
                 Items = new[]
@@ -379,7 +379,7 @@ namespace VeterinariaAPI.Tests
             var payload = new
             {
                 ClienteId = 1,
-                FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                 MontoImpuestos = 0m,
                 MontoTotal = 0m,
                 Items = new[]
@@ -419,7 +419,7 @@ namespace VeterinariaAPI.Tests
                 var factura = new Factura
                 {
                     ClienteId = 1,
-                    FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                    FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                     MontoImpuestos = 1900m,
                     MontoTotal = 11900m
                 };
@@ -441,7 +441,7 @@ namespace VeterinariaAPI.Tests
             var putPayload = new
             {
                 ClienteId = 1,
-                FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                 MontoImpuestos = 0m,
                 MontoTotal = 0m,
                 Items = new[]

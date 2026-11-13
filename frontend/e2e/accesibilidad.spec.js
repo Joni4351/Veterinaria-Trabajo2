@@ -481,4 +481,3 @@ test('se puede saltar la navegación y mantener el contenido accesible con texto
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });
-
