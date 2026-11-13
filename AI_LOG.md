@@ -1274,3 +1274,4 @@ Recepcionista puede registrar pacientes conforme a la historia 5, conservando la
 
 Validación remota complementaria (13/11/2026): el run 43461207441 aprobó backend y contenedores, pero detectó contraste transitorio durante la animación de opacidad del aviso de conflicto. Se elimina dicha animación en ConflictDialog.css para presentar el aviso con contraste íntegro desde su apertura; se repite la comprobación automatizada sin excluir reglas de accesibilidad.
 Resultado local complementario: Playwright aprobó la prueba del diálogo de conflictos (1/1), incluyendo axe en ambos temas y recuperación de foco.
+La repetición remota 43462304628 confirmó que suprimir la animación no bastaba en Chromium Linux. Se retira además el desenfoque de fondo del aviso y se añade diagnóstico de estilos cuando axe detecte incidencias, conservando todas las reglas. Chromium local también aprobó la prueba aislada antes de este ajuste.

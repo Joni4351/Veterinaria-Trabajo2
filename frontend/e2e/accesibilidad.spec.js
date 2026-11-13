@@ -104,7 +104,9 @@ test('conflictos usan un diálogo personalizado y mantienen el registro y el foc
   await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
   for (const theme of ['light', 'dark']) {
     await applyTheme(page, theme);
-    expect((await new AxeBuilder({ page }).include('.conflict-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations).toEqual([]);
+    const result = await new AxeBuilder({ page }).include('.conflict-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+    if (result.violations.length) console.log('Conflict contrast diagnostics', theme, await conflict.evaluate(root => [...root.querySelectorAll('h2, p, button')].map(el => ({ text: el.textContent, color: getComputedStyle(el).color, background: getComputedStyle(el).backgroundColor, opacity: getComputedStyle(el).opacity }))));
+    expect(result.violations).toEqual([]);
   }
   await page.keyboard.press('Escape');
   await expect(conflict).toHaveCount(0);
@@ -520,3 +522,4 @@ test('se puede saltar la navegación y mantener el contenido accesible con texto
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });
+

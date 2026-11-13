@@ -1124,3 +1124,4 @@ En vetclinic-review, los tres contenedores quedaron saludables y las migraciones
 
 Validación remota complementaria (13/11/2026): backend y contenedores aprobados en el run 43461207441. La auditoría del diálogo detectó contraste transitorio durante su aparición; se suprime la animación de opacidad del aviso (ConflictDialog.css), conservando foco, colores y controles. Pendiente confirmar el nuevo resultado automatizado.
 Resultado local complementario: prueba Playwright del aviso aprobada (1/1), con auditoría axe en tema claro y oscuro y comprobación del foco.
+El run 43462304628 mantiene aprobados backend y contenedores; persiste una incidencia de contraste en Chromium Linux. Se retira backdrop-filter del aviso y se incorporan diagnósticos de estilos en la prueba para facilitar una reproducción verificable, sin omitir reglas axe.
