@@ -7,7 +7,7 @@ export default defineConfig({
   testMatch: ['registro-facial.spec.js', 'accesibilidad.spec.js'],
   timeout: 120000,
   workers: 1,
-  use: { baseURL: `http://localhost:${port}`, browserName: 'chromium', channel: 'msedge' },
+  use: { baseURL: `http://localhost:${port}`, browserName: 'chromium', channel: process.env.CI ? undefined : 'msedge' },
   webServer: {
     command: `npm run dev -- --host localhost --port ${port} --strictPort`,
     url: `http://localhost:${port}`, reuseExistingServer: false,

@@ -144,7 +144,13 @@ builder.Services.AddScoped<FacialEncryptionService>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<FacialLoginChallenges>();
 builder.Services.AddScoped<DemoSeederService>();
+builder.Services.AddScoped<HistoricalSeederService>();
 builder.Services.AddScoped<DefaultRoleService>();
+builder.Services.AddScoped<ReportService>();
+builder.Services.AddSingleton<IReportFormat, CsvReportFormat>();
+builder.Services.AddSingleton<IReportFormat, XlsxReportFormat>();
+builder.Services.AddSingleton<IReportFormat, PdfReportFormat>();
+builder.Services.AddSingleton<IReportFormat, PrintReportFormat>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<AuditOperation>();
 
@@ -185,7 +191,11 @@ builder.Services.AddDbContext<VeterinariodbContext>(options =>
 
 // OpenApi y Swagger
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options => {
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme {
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http, Scheme = "bearer", BearerFormat = "JWT", Description = "Token obtenido al completar el inicio de sesión." });
+    options.OperationFilter<SwaggerAuthorizationFilter>();
+});
 
 // ==========================================
 // 4. CONFIGURACIÓN DE CORS
@@ -246,7 +256,7 @@ app.MapGet("/health/ready", async (VeterinariodbContext db, CancellationToken ca
 // =========================================================
 app.UseMiddleware<GlobalExceptionMiddleware>();
 
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || builder.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -265,6 +275,11 @@ app.Use(async (context, next) =>
 });
 
 app.UseCors("FrontendPolicy");
+app.UseStatusCodePages(async status => {
+    var http = status.HttpContext;
+    if (http.Request.Path.StartsWithSegments("/api")) await http.Response.WriteAsJsonAsync(new { status = http.Response.StatusCode,
+        error = "Solicitud rechazada", message = http.Response.StatusCode switch { 401 => "Inicie sesión para continuar.", 403 => "No tiene permisos para esta operación.", 404 => "El recurso solicitado no existe.", 429 => "Demasiadas solicitudes. Intente más tarde.", _ => "No se pudo completar la solicitud." }, traceId = http.TraceIdentifier });
+});
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -290,10 +305,11 @@ app.MapAuditoriaApi();
 app.MapDashboardApi();
 app.MapLoginFacialApi();
 
-app.MapGet("/api/test-error", () =>
+if (app.Environment.IsDevelopment()) app.MapGet("/api/test-error", () =>
 {
     throw new Exception("Prueba de falla capturada por el middleware");
 });
+app.MapReportesApi();
 
 // =========================================================
 // =========================================================
@@ -307,16 +323,19 @@ using (var scope = app.Services.CreateScope())
         var db = services.GetRequiredService<VeterinariodbContext>();
         var auth = services.GetRequiredService<AuthService>();
 
+        if (builder.Configuration.GetValue<bool>("Database:MigrateOnStartup") && db.Database.IsRelational()) await db.Database.MigrateAsync();
         // 1. Reconcile each required role on every startup, including partially populated databases.
         var defaultRoles = await services.GetRequiredService<DefaultRoleService>().EnsureAsync();
 
+        var demoEnabled = app.Environment.IsDevelopment() || db.Database.ProviderName == "Microsoft.EntityFrameworkCore.InMemory" || builder.Configuration.GetValue<bool>("Demo:Enabled");
+        if (demoEnabled) {
         // 2. Usuarios
         if (!db.Usuarios.Any())
         {
             var admin = new Usuario
             {
                 RolId = defaultRoles["Administrador"].Id,
-                NombreCompleto = "Jonathan Garrido",
+                NombreCompleto = "Administrador de demostración",
                 Email = "admin@veterinaria.com"
             };
             admin.PasswordHash = auth.HashPassword(admin, "Admin123*");
@@ -324,7 +343,7 @@ using (var scope = app.Services.CreateScope())
             var vet = new Usuario
             {
                 RolId = defaultRoles["Veterinario"].Id,
-                NombreCompleto = "Dr. Carlos Mendoza",
+                NombreCompleto = "Profesional de demostración",
                 Email = "vet@veterinaria.com"
             };
             vet.PasswordHash = auth.HashPassword(vet, "Vet123*");
@@ -332,7 +351,7 @@ using (var scope = app.Services.CreateScope())
             var recep = new Usuario
             {
                 RolId = defaultRoles["Recepcionista"].Id,
-                NombreCompleto = "Ana Silva",
+                NombreCompleto = "Recepción de demostración",
                 Email = "recep@veterinaria.com"
             };
             recep.PasswordHash = auth.HashPassword(recep, "Recep123*");
@@ -373,36 +392,36 @@ using (var scope = app.Services.CreateScope())
         {
             var cliente1 = new Cliente
             {
-                DocumentoIdentidad = "18.765.432-7",
-                NombreCompleto = "Jonathan Garrido",
-                Telefono = "+56992027788",
-                Email = "joni@gmail.com"
+                DocumentoIdentidad = DemoSeederService.DemoRut(99000301),
+                NombreCompleto = "Cliente sintético 1",
+                Telefono = "+56000000001",
+                Email = "cliente1@example.invalid"
             };
             var cliente2 = new Cliente
             {
-                DocumentoIdentidad = "12.345.678-5",
-                NombreCompleto = "Juan Pérez",
+                DocumentoIdentidad = DemoSeederService.DemoRut(99000302),
+                NombreCompleto = "Cliente sintético 2",
                 Telefono = "+56912345678",
                 Email = "juan.perez@example.com"
             };
             var cliente3 = new Cliente
             {
-                DocumentoIdentidad = "11.111.111-1",
-                NombreCompleto = "María González",
+                DocumentoIdentidad = DemoSeederService.DemoRut(99000303),
+                NombreCompleto = "Cliente sintético 3",
                 Telefono = "+56987654321",
                 Email = "maria.gonzalez@example.com"
             };
             var cliente4 = new Cliente
             {
-                DocumentoIdentidad = "7.654.321-6",
-                NombreCompleto = "Pedro Soto",
+                DocumentoIdentidad = DemoSeederService.DemoRut(99000304),
+                NombreCompleto = "Cliente sintético 4",
                 Telefono = "+56976543210",
                 Email = "pedro.soto@example.com"
             };
             var cliente5 = new Cliente
             {
-                DocumentoIdentidad = "19.876.543-0",
-                NombreCompleto = "Camila Morales",
+                DocumentoIdentidad = DemoSeederService.DemoRut(99000305),
+                NombreCompleto = "Cliente sintético 5",
                 Telefono = "+56954321678",
                 Email = "camila.morales@example.com"
             };
@@ -481,9 +500,9 @@ using (var scope = app.Services.CreateScope())
                 db.SaveChanges();
 
                 // Facturas
-                var f1 = new Factura { ClienteId = cliente1.Id, FechaEmision = DateOnly.FromDateTime(DateTime.Today.AddDays(-5)), MontoImpuestos = 7600.00m, MontoTotal = 47600.00m };
-                var f2 = new Factura { ClienteId = cliente2.Id, FechaEmision = DateOnly.FromDateTime(DateTime.Today.AddDays(-2)), MontoImpuestos = 7030.00m, MontoTotal = 44030.00m };
-                var f3 = new Factura { ClienteId = cliente3.Id, FechaEmision = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)), MontoImpuestos = 4750.00m, MontoTotal = 29750.00m };
+                var f1 = new Factura { ClienteId = cliente1.Id, FechaEmision = DateOnly.FromDateTime(DateTime.Today.AddDays(-5)), MontoImpuestos = 9880.00m, MontoTotal = 61880.00m };
+                var f2 = new Factura { ClienteId = cliente2.Id, FechaEmision = DateOnly.FromDateTime(DateTime.Today.AddDays(-2)), MontoImpuestos = 4750.00m, MontoTotal = 29750.00m };
+                var f3 = new Factura { ClienteId = cliente3.Id, FechaEmision = DateOnly.FromDateTime(DateTime.Today.AddDays(-1)), MontoImpuestos = 4180.00m, MontoTotal = 26180.00m };
                 db.Facturas.AddRange(f1, f2, f3);
                 db.SaveChanges();
 
@@ -495,11 +514,20 @@ using (var scope = app.Services.CreateScope())
                 db.SaveChanges();
             }
         }
+        } else if (!db.Usuarios.Any()) {
+            var email = builder.Configuration["Bootstrap:AdminEmail"];
+            var password = builder.Configuration["Bootstrap:AdminPassword"];
+            if (!string.IsNullOrWhiteSpace(email) && password?.Length >= 12) {
+                var admin = new Usuario { NombreCompleto = "Administrador", Email = email, RolId = defaultRoles["Administrador"].Id };
+                admin.PasswordHash = auth.HashPassword(admin, password); db.Usuarios.Add(admin); await db.SaveChangesAsync();
+            }
+        }
     }
     catch (Exception ex)
     {
         var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogWarning(ex, "Aviso: No se pudo verificar o sembrar la base de datos inicial.");
+        if (builder.Configuration.GetValue<bool>("Database:MigrateOnStartup")) throw;
     }
 }
 

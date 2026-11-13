@@ -1,7 +1,8 @@
+import { TablePagination, pageRows } from '../components/TablePagination';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
 import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
-import { notifySuccess } from '../services/notifications';
+import { notifySuccess, notifyConflict } from '../services/notifications';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -15,6 +16,7 @@ export const ClientesView = () => {
   const canEditOrDelete = isAdmin;
 
   const [clientes, setClientes] = useState([]);
+  const [tablePage, setTablePage] = useState(1), [tableOrder, setTableOrder] = useState('asc');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -37,6 +39,8 @@ export const ClientesView = () => {
     email: '',
     telefono: ''
   });
+  useEffect(() => setTablePage(1), [filters]);
+
 
   const [formData, setFormData] = useState({
     documentoIdentidad: '',
@@ -172,7 +176,7 @@ export const ClientesView = () => {
       setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false });
       fetchClientes();
     } catch (err) {
-      alert(err.userMessage || err.response?.data?.message || 'Error al eliminar cliente. Verifique que no tenga mascotas o facturas registradas.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'Error al eliminar cliente. Verifique que no tenga mascotas o facturas registradas.');
       setDeleteConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
@@ -182,10 +186,10 @@ export const ClientesView = () => {
       <div className="card">
         <div className="card-header">
           <div>
-            <h2 className="card-title">
+            <h1 className="card-title">
               <Users size={24} color="var(--teal-text)" />
               Gestión de Clientes (Dueños de Pacientes)
-            </h2>
+            </h1>
             </div>
           {canCreate && (
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
@@ -256,19 +260,19 @@ export const ClientesView = () => {
             No se encontraron clientes con los filtros aplicados.
           </p>
         ) : (
-          <div className="table-responsive">
+          <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
             <table className="custom-table">
               <thead>
                 <tr>
-                  <th>RUT / Documento</th>
-                  <th>Nombre Completo</th>
-                  <th>Teléfono</th>
-                  <th>Correo Electrónico</th>
-                  <th style={{ textAlign: 'right' }}>Acciones</th>
+                  <th scope="col">RUT / Documento</th>
+                  <th scope="col">Nombre Completo</th>
+                  <th scope="col">Teléfono</th>
+                  <th scope="col">Correo Electrónico</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {clientes.map((c) => (
+                {pageRows(clientes, tablePage, tableOrder).map((c) => (
                   <tr key={c.id}>
                     <td data-label="RUT">
                       <span className="badge badge-secondary" style={{ fontFamily: 'monospace', letterSpacing: '0.04em', fontWeight: 700, color: 'var(--teal-text)', background: 'var(--primary-border)' }}>
@@ -308,6 +312,7 @@ export const ClientesView = () => {
                 ))}
               </tbody>
             </table>
+<TablePagination total={clientes.length} page={tablePage} order={tableOrder} onPage={setTablePage} onOrder={setTableOrder} />
           </div>
         )}
       </div>
@@ -323,9 +328,9 @@ export const ClientesView = () => {
                   <Users size={22} />
                 </div>
                 <div>
-                  <h3 id="modal-cliente-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
+                  <h2 id="modal-cliente-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? 'Editar Cliente' : 'Registrar Nuevo Cliente'}
-                  </h3>
+                  </h2>
                   <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Actualice la información del cliente registrado' : 'Ingrese los datos personales y de contacto del cliente'}
                   </span>

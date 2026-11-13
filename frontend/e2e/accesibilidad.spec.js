@@ -1,6 +1,268 @@
 import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { writeFile } from 'node:fs/promises';
+import { dashboardFixture } from '../src/test/dashboardFixture.js';
+
+test('reportes filtran, paginan, exportan y conservan accesibilidad en ambos temas', async ({ page }, testInfo) => {
+  await prepare(page);
+  const requests = [];
+  await page.route('**/api/v1/admin/reportes/**', route => {
+    const url = new URL(route.request().url()); requests.push(url.search);
+    if (url.pathname.includes('/exportar/')) return route.fulfill({ contentType: 'text/csv', headers: { 'content-disposition': 'attachment; filename=prueba.csv' }, body: 'Mes;Total\n2026-01;100' });
+    const managerial = url.pathname.endsWith('gerencial');
+    return route.fulfill({ json: { titulo: managerial ? 'Resumen gerencial' : 'Agenda operativa', emitido: '2026-11-12T12:00:00Z', filtros: 'Período de prueba', total: 30,
+      columnas: [{ title: 'Mes', kind: 'text' }, { title: 'Total', kind: 'decimal' }], filas: [['2026-01', 100]], totales: { 1: 100 }, grafico: managerial ? [{ etiqueta: '2026-01', valor: 100 }] : [] } });
+  });
+  await page.goto('/admin'); await page.getByRole('button', { name: 'Reportes', exact: true }).click();
+  const panel = page.locator('.reports-panel');
+  await expect(panel.getByText('30 registros filtrados')).toBeVisible();
+  await panel.getByRole('button', { name: 'Siguiente', exact: true }).click();
+  await expect(panel).toContainText('Página 2 de 2');
+  expect(requests.some(q => q.includes('pagina=2'))).toBe(true);
+  const download = page.waitForEvent('download');
+  await panel.getByRole('button', { name: 'Exportar CSV' }).click();
+  expect((await download).suggestedFilename()).toMatch(/\.csv$/);
+  await panel.getByRole('combobox', { name: 'Reporte', exact: true }).selectOption('gerencial');
+  await expect(panel.locator('figure')).toContainText('Facturación mensual');
+  await expect(panel.getByRole('button', { name: 'Analizar con IA' })).toHaveCount(0);
+  await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    expect(await panel.locator('.reports-filter-grid').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(3);
+    await page.screenshot({ path: testInfo.outputPath(`reportes-${theme}-desktop.png`), fullPage: true });
+    expect((await new AxeBuilder({ page }).include('.reports-panel').analyze()).violations).toEqual([]);
+    await page.setViewportSize({ width: 360, height: 800 });
+    expect(await panel.locator('.reports-filter-grid').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(1);
+    await page.screenshot({ path: testInfo.outputPath(`reportes-${theme}-mobile.png`), fullPage: true });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await page.setViewportSize({ width: 1440, height: 900 });
+  }
+  await panel.getByLabel('Desde', { exact: true }).fill('2030-01-01');
+  await expect(panel.getByRole('alert')).toContainText('Seleccione fechas válidas');
+  await expect(panel.getByRole('button', { name: 'Exportar CSV' })).toBeDisabled();
+});
+
+test('dashboard calcula promedio y cero agotados con una respuesta anterior de la API', async ({ page }) => {
+  await prepare(page);
+  await page.route('**/api/v1/dashboard/analitica?**', route => route.fulfill({ json: {
+    ...dashboardFixture,
+    indicadores: { totalFacturado: 111265, facturas: 3, citas: 4, canceladas: 1, porcentajeCancelacion: 25, agotados: 0, insumos: 9, bajoStock: 0 },
+    especialidades: [{ id: 1, nombre: 'Medicina General', cantidad: 4 }]
+  } }));
+  await page.goto('/admin');
+  await page.getByRole('button', { name: 'Dashboard de gestión', exact: true }).click();
+  await expect(page.locator('.dash-kpis')).toContainText('$37.088,33');
+  await expect(page.locator('.dash-kpis')).toContainText('0 %');
+  await page.getByRole('button', { name: '30 días', exact: true }).click();
+  await expect(page.locator('.dash-kpis')).not.toContainText('No calculable');
+  await page.getByText('Cómo se calculan los seis indicadores', { exact: true }).click();
+  await expect(page.locator('.dash-indicator-guide')).toContainText('Medicina General: 100 %');
+});
+
+test('conflictos usan un diálogo personalizado y mantienen el registro y el foco', async ({ page }) => {
+  await prepare(page);
+  let nativeDialogs = 0, deletions = 0;
+  page.on('dialog', async dialog => { nativeDialogs++; await dialog.dismiss(); });
+  await page.route('**/api/v1/clientes/1', route => {
+    deletions++;
+    return route.fulfill({ status: 409, json: { message: 'No es posible eliminar el cliente porque tiene pacientes asociados. Elimine o transfiera las mascotas primero.' } });
+  });
+  await page.goto('/clientes');
+  await page.getByRole('button', { name: 'Eliminar cliente Cliente de prueba', exact: true }).click();
+  await page.getByRole('button', { name: 'Eliminar Cliente', exact: true }).click();
+  const conflict = page.getByRole('dialog', { name: 'No se pudo completar la operación' });
+  await expect(conflict).toContainText('Elimine o transfiera las mascotas primero.');
+  await expect(conflict.getByRole('button', { name: 'Entendido' })).toBeFocused();
+  await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+    expect((await new AxeBuilder({ page }).include('.conflict-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations).toEqual([]);
+  }
+  await page.keyboard.press('Escape');
+  await expect(conflict).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Volver', exact: true })).toBeFocused();
+  expect(deletions).toBe(1);
+  expect(nativeDialogs).toBe(0);
+});
+
+test('eliminar receta pide confirmación personalizada y cancelar no envía la operación', async ({ page }) => {
+  await prepare(page);
+  let deleted = false, deletions = 0, nativeDialogs = 0;
+  page.on('dialog', async dialog => { nativeDialogs++; await dialog.dismiss(); });
+  await page.route('**/api/v1/recetas*', route => route.fulfill({ json: deleted ? [] : [{ id: 7, consultaId: 1, fechaEmision: '2026-11-11', validaHasta: '2026-11-12' }] }));
+  await page.route('**/api/v1/recetas/7', route => { deletions++; deleted = true; return route.fulfill({ status: 204 }); });
+  await page.goto('/consultas');
+  await page.getByRole('button', { name: 'Actualizar o Eliminar Receta Médica', exact: true }).click();
+  await page.getByRole('button', { name: 'Eliminar Receta', exact: true }).click();
+  const confirmation = page.getByRole('dialog', { name: 'Eliminar receta médica', exact: true });
+  await expect(confirmation.getByRole('button', { name: 'Cancelar' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  expect(deletions).toBe(0);
+  await page.getByRole('button', { name: 'Eliminar Receta', exact: true }).click();
+  await confirmation.getByRole('button', { name: 'Eliminar', exact: true }).click();
+  await expect(confirmation).toHaveCount(0);
+  expect(deletions).toBe(1);
+  expect(nativeDialogs).toBe(0);
+});
+
+test('movimiento reducido, menú móvil con Escape y ampliación al 200 por ciento', async ({ page }) => {
+  await prepare(page);
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/dashboard');
+  await expect(page.getByRole('button', { name: 'Movimiento reducido activado' })).toBeDisabled();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const menuToggle = page.locator('button[aria-controls="main-sidebar"]');
+  await expect(menuToggle).toHaveAttribute('aria-expanded', 'false');
+  await menuToggle.focus(); await page.keyboard.press('Enter');
+  await expect(page.getByRole('button', { name: 'Cerrar menú lateral' })).toBeFocused();
+  await expect(page.locator('main')).toHaveAttribute('inert');
+  await page.keyboard.press('Escape'); await expect(menuToggle).toBeFocused();
+  await expect(page.locator('main')).not.toHaveAttribute('inert');
+  await page.setViewportSize({ width: 1280, height: 900 });
+  for (const path of ['/dashboard', '/clientes', '/pacientes', '/citas', '/consultas', '/insumos', '/facturas', '/admin']) {
+    await page.goto(path);
+    await expect(page.locator('main')).toBeVisible();
+    await page.evaluate(() => { document.body.style.zoom = '2'; });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+    await expect(page.locator('main h1')).toBeVisible();
+  }
+});
+
+test('auditoría de regiones administrativas y alternativas de gráficos', async ({ page }, testInfo) => {
+  page.setDefaultTimeout(10000);
+  await prepare(page);
+  await page.route('**/api/v1/registro-facial/usuarios?**', route => route.fulfill({ json: { usuarios: [], total: 0, pagina: 1 } }));
+  await page.route('**/api/v1/admin/auditoria?**', route => route.fulfill({ json: { registros: [], total: 0, resumen: [] } }));
+  await page.route('**/api/v1/admin/datos-prueba', route => route.fulfill({ json: { previstos: { pacientes: 3 }, clientesExistentes: 0, descripcion: 'Vista previa de prueba', dataset: 'demo-v1' } }));
+  await page.route('**/api/v1/dashboard/analitica?**', route => route.fulfill({ json: dashboardFixture }));
+  await page.goto('/admin');
+  await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+  const report = [];
+  for (const theme of ['light', 'dark']) {
+    for (const path of ['/dashboard', '/clientes', '/pacientes', '/citas', '/consultas', '/insumos', '/facturas']) {
+      await page.goto(path);
+      await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+      await expect(page.locator('#main-content h1')).toBeVisible();
+      report.push({ theme, section: path, violations: (await new AxeBuilder({ page }).analyze()).violations });
+    }
+    await page.goto('/admin');
+    await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+    await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+    for (const name of ['Dashboard de gestión', 'Historial de cambios', 'Datos de prueba', 'Registro Facial', 'Especialidades Médicas', 'Roles de Seguridad (RBAC)', 'Cuentas de Usuarios']) {
+      await page.getByRole('button', { name, exact: true }).click();
+      if (name === 'Dashboard de gestión') {
+        await expect(page.getByText('Luna', { exact: true })).toBeVisible();
+        for (const summary of await page.locator('.dash-data summary').all()) { await summary.click(); }
+        await expect(page.locator('.dash-data table')).toHaveCount(4);
+        await expect(page.locator('.dash-data caption')).toHaveCount(4);
+        await page.getByText('Cómo se calculan los seis indicadores', { exact: true }).click();
+        await expect(page.locator('.dash-indicator-guide tbody tr')).toHaveCount(6);
+        await expect(page.locator('.dash-kpis')).toContainText('$89.250');
+        await expect(page.locator('.dash-kpis')).toContainText('25 %');
+      }
+      const result = await new AxeBuilder({ page }).analyze();
+      report.push({ theme, section: name, violations: result.violations });
+    }
+  }
+  await writeFile(testInfo.outputPath('auditoria-completa.json'), JSON.stringify(report, null, 2));
+  expect(report.flatMap(r => r.violations.map(v => ({ section: r.section, theme: r.theme, id: v.id, nodes: v.nodes.map(n => n.target) })))).toEqual([]);
+});
+
+test('flujo de registro con teclado, errores asociados, Escape y restauración del foco', async ({ page }) => {
+  await prepare(page);
+  let created = false;
+  await page.route('**/api/v1/clientes*', route => {
+    if (route.request().method() === 'POST') { created = true; return route.fulfill({ status: 201, json: { id: 2, ...route.request().postDataJSON() } }); }
+    return route.fulfill({ json: created ? [{ id: 2, nombreCompleto: 'Cliente Teclado', documentoIdentidad: '12.345.678-5', telefono: '+56912345678', email: 'teclado@example.com' }] : [] });
+  });
+  const tabTo = async locator => {
+    for (let n = 0; n < 70; n++) {
+      if (await locator.evaluate(el => el === document.activeElement)) return;
+      await page.keyboard.press('Tab');
+    }
+    throw new Error('El control no se alcanza mediante Tab');
+  };
+  await page.goto('/clientes');
+  await page.getByRole('link', { name: 'Saltar al contenido principal' }).waitFor({ state: 'attached' });
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('link', { name: 'Saltar al contenido principal' })).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('main')).toBeFocused();
+  await expect(page).toHaveTitle('Clientes | VetClinic Pro');
+  const open = page.getByRole('button', { name: 'Nuevo Cliente', exact: true });
+  await tabTo(open); await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog');
+  await expect(page.locator('main')).not.toHaveAttribute('inert');
+  await tabTo(dialog.getByRole('button', { name: 'Registrar Cliente', exact: true }));
+  await page.keyboard.press('Enter');
+  const invalid = dialog.locator('[aria-invalid="true"]').first();
+  await expect(invalid).toBeFocused();
+  expect(await invalid.getAttribute('aria-describedby')).toBeTruthy();
+  await page.keyboard.press('Escape'); await expect(open).toBeFocused();
+  await page.keyboard.press('Enter');
+  const inputs = dialog.locator('input');
+  for (const [i, value] of ['12.345.678-5', 'Cliente Teclado', '+56912345678', 'teclado@example.com'].entries()) {
+    await tabTo(inputs.nth(i)); await page.keyboard.type(value);
+  }
+  await tabTo(dialog.getByRole('button', { name: 'Registrar Cliente', exact: true }));
+  await page.keyboard.press('Enter');
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByText('Cliente Teclado', { exact: true })).toBeVisible();
+  await expect(open).toBeFocused();
+  expect(created).toBe(true);
+});
+
+test('santuario presenta accesos y compañero en ambos temas y móvil', async ({ page }, testInfo) => {
+  await prepare(page);
+  await page.goto('/dashboard');
+  await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
+  await expect(page.getByRole('heading', { name: 'Bienvenido a VetClinic' })).toBeVisible();
+  await expect(page.locator('.sanctuary-shortcut')).toHaveCount(3);
+  await expect(page.locator('.sanctuary-companion canvas')).toBeVisible();
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+      expect((await new AxeBuilder({ page }).include('.sanctuary-welcome').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`santuario-${width}-${theme}.png`), fullPage: true });
+    }
+  }
+  await page.locator('.sanctuary-shortcut[href="/citas"]').click();
+  await expect(page).toHaveURL(/\/citas$/);
+});
+
+test('dashboard presenta cuatro gráficos accesibles sin desbordar en escritorio y móvil', async ({ page }, testInfo) => {
+  await prepare(page);
+  let requests = 0;
+  await page.route('**/api/v1/dashboard/analitica?**', route => {
+    requests++;
+    return route.fulfill({ json: dashboardFixture });
+  });
+  await page.goto('/admin');
+  await page.getByRole('button', { name: 'Dashboard de gestión', exact: true }).click();
+  await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; animation: none !important; }' });
+  await expect(page.getByText('Luna', { exact: true })).toBeVisible();
+  await expect(page.locator('.dash-chart-card')).toHaveCount(4);
+  await page.getByRole('combobox', { name: 'Especialidad', exact: true }).selectOption('2');
+  await expect.poll(() => requests).toBeGreaterThan(1);
+  await expect(page.getByRole('button', { name: 'Actualizar', exact: true })).toBeEnabled();
+  const prior = requests;
+  await page.evaluate(() => window.dispatchEvent(new Event('vet:datachanged')));
+  await expect.poll(() => requests).toBeGreaterThan(prior);
+  for (const width of [1440, 390]) {
+    await page.setViewportSize({ width, height: 1000 });
+    for (const theme of ['light', 'dark']) {
+      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+      const result = await new AxeBuilder({ page }).include('.dashboard-analytics').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+      expect(result.violations).toEqual([]);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+      await page.screenshot({ path: testInfo.outputPath(`dashboard-${width}-${theme}.png`), fullPage: true });
+    }
+  }
+});
 
 test('los campos numéricos rechazan exponentes y símbolos al escribir o pegar y conservan los decimales permitidos', async ({ page }) => {
   page.setDefaultTimeout(10000);

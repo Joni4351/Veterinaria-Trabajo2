@@ -5,5 +5,5 @@ export default defineConfig({
   testMatch: 'docker.smoke.spec.js',
   timeout: 60000,
   workers: 1,
-  use: { baseURL: 'http://localhost:15173', browserName: 'chromium', channel: 'msedge' },
+  use: { baseURL: process.env.DOCKER_TEST_BASE_URL || 'http://localhost:15173', browserName: 'chromium', channel: process.env.CI ? undefined : 'msedge' },
 });

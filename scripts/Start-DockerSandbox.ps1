@@ -33,11 +33,13 @@ if (-not (Test-Path -LiteralPath $configPath)) {
 }
 
 Push-Location $repoPath
+$previousProfiles = $env:COMPOSE_PROFILES
 try {
+    $env:COMPOSE_PROFILES = 'local'
     $composeArgs = @('compose', '--env-file', '.env.sandbox', '-p', 'vetclinic-sandbox', '-f', 'compose.yaml', '-f', 'compose.sandbox.yaml')
     & docker @composeArgs config --quiet
     if ($LASTEXITCODE -ne 0) { throw 'La configuración de Docker no es válida.' }
     & docker @composeArgs up --build --detach --wait --wait-timeout 180
     if ($LASTEXITCODE -ne 0) { throw 'No fue posible iniciar todos los contenedores; revise docker compose logs.' }
     & docker @composeArgs ps
-} finally { Pop-Location }
+} finally { $env:COMPOSE_PROFILES = $previousProfiles; Pop-Location }

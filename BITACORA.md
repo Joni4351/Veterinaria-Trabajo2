@@ -865,3 +865,133 @@ pruebas nuevas de backend, commits o despliegues en esta intervención.
 **Implementación:** Tras el rechazo inicial del push por revisión automática, Test_Supabase_Connection se cambió a una conexión recibida mediante VETCLINIC_TEST_POSTGRES_CONNECTION y consulta SELECT 1. Se añadió ExternalDatabaseFactAttribute para omitir la prueba sin configuración explícita. Se actualizaron README.md, AI_LOG.md y esta bitácora. No se registraron valores de credenciales.
 
 **Validación y alcance:** 99 pruebas backend aprobadas y una externa omitida, excluyendo concurrencia separada. No se detectaron patrones de conexión con credenciales literales en el archivo corregido; git diff --check correcto. No se conectó a Supabase. La corrección no elimina datos del historial ni cambia contraseñas del proveedor.
+
+
+## Sesión 33 — 11/11/2026 — Dashboard de gestión y visualizaciones de negocio
+
+**Objetivo:** Integrar un tablero operativo con cuatro visualizaciones, filtros interactivos y datos agregados actualizados desde el backend.
+
+**Implementación:** Se creó DashboardAnalytics.cs y se registró su endpoint autenticado en Dashboard.cs, manteniendo el resumen anterior. Se incorporaron agregaciones de facturas, citas y existencias, validación del rango máximo de 366 días y filtros de agenda e inventario. DashboardView.jsx y sus nuevos componentes y estilos presentan gráficos de línea, barras apiladas, anillo y barras horizontales, indicadores, próximas citas y tablas alternativas. La vista se adapta a móvil y a ambos temas. El cliente API notifica escrituras exitosas; el panel consulta cada 30 segundos cuando está visible, al recuperar foco y al cambiar filtros, cancela peticiones obsoletas y conserva la última lectura ante errores. Se actualizaron pruebas, README.md, AI_LOG.md y esta bitácora.
+
+**Validación:** Backend: 110 aprobadas y una externa omitida, excluyendo concurrencia separada. Frontend: suite final de 104 aprobadas, incluidos cinco casos específicos del dashboard y cobertura del temporizador. Compilación correcta con advertencias previas. La suite final de navegador registró 21 pruebas aprobadas; este último se corrigió por un selector de prueba y por medición de contraste durante la transición de tema. Se verificaron filtros, refresco por notificación, cuatro gráficos, temas claro/oscuro y anchos de 1440 y 390 píxeles, sin desbordamiento ni incidencias automáticas seleccionadas de accesibilidad. Se revisaron capturas de escritorio y móvil.
+
+**Resultado y límites:** Tablero conectado al endpoint de agregación, sin migraciones ni cambios en Supabase. La facturación no representa cobros y el inventario no es histórico. Pruebas backend aisladas en memoria; no se comprobó PostgreSQL real al encontrarse Docker detenido. La actualización automática utiliza consultas periódicas. Sin commits ni publicación en la rama remota.
+
+## Sesión 34 — 11/11/2026 — Tablero exclusivo de Administración
+
+**Objetivo:** Trasladar el dashboard al apartado administrativo y restringir sus datos al rol Administrador.
+
+**Implementación:** AdminConfigView incorpora Dashboard de gestión como nueva pestaña. App.jsx presenta HomeView en la ruta inicial, renombra su enlace lateral a Inicio y mantiene la protección administrativa existente. HomeView ofrece agenda y pacientes; el enlace a Administración depende del rol. Los dos endpoints del dashboard restringen la autorización a Administrador. Se adaptaron las pruebas de autorización y navegador y se actualizaron README.md, AI_LOG.md y esta bitácora. Se conservan los gráficos y filtros existentes.
+
+**Validación:** 111 pruebas backend aprobadas, una externa omitida y concurrencia separada excluida; cobertura de acceso permitido para Administrador, denegación 403 para otros roles y 401 sin autenticación. Las 104 pruebas frontend aprobaron y la compilación finalizó correctamente con advertencias previas. La prueba visual en la pestaña administrativa aprobó en ambos temas y resoluciones de escritorio y móvil, sin desbordamiento ni incidencias automáticas seleccionadas de accesibilidad. Se adaptaron los casos de navegación para comprobar la ausencia del dashboard fuera de Administración.
+
+**Resultado y límites:** Tablero administrativo con autorización también en el servidor. Sin migraciones, modificaciones de Supabase, commits ni push; pruebas backend con almacenamiento aislado en memoria.
+
+**Cierre de pruebas de navegador:** Veinte casos aprobados en la ejecución completa y el restante aprobado en repetición focalizada tras precisar el selector del enlace lateral administrativo, que resultaba ambiguo al incorporarse otro acceso desde Inicio. Los 21 casos quedaron verificados entre ambas ejecuciones.
+
+## Sesión 35 — 11/11/2026 — Restauración del santuario interactivo
+
+**Objetivo:** Recuperar el perro 3D y su entrada de navegación manteniendo separado el dashboard administrativo.
+
+**Implementación:** Se reincorporó VeterinaryPet3D en HomeView con distribución responsiva y colores del proyecto; App.jsx identifica la pantalla como Santuario. Se conservaron los controles originales del compañero y los accesos a módulos. Se ampliaron las pruebas de navegador y se actualizaron AI_LOG.md y esta bitácora.
+
+**Validación y límites:** Compilación correcta y tres pruebas focalizadas de navegador aprobadas: modelo visible, interacción Acariciar, acceso por los tres roles y conservación de las restricciones administrativas. Se ajustó el selector visual del lienzo decorativo tras una primera comprobación. Persisten advertencias previas de face-api.js, tamaño del paquete y THREE.Clock; la reincorporación de Three.js incrementa el paquete principal. Sin cambios de backend, operaciones en Supabase, commits ni push.
+
+## Sesión 36 — 11/11/2026 — Rediseño visual de la bienvenida
+
+**Objetivo:** Mejorar la presentación del santuario mediante una bienvenida compacta y accesos de navegación claros.
+
+**Implementación:** HomeView.jsx incorpora tarjetas con iconos, descripción y enlaces a agenda, pacientes y Administración según el rol. Se separó el panel del compañero 3D para eliminar la alineación vertical que generaba espacio vacío. El nuevo HomeView.css define composición responsiva, jerarquía tipográfica y estilos con variables de tema y reducción de movimiento. Se ampliaron las pruebas de navegador y se actualizaron AI_LOG.md y esta bitácora.
+
+**Validación y alcance:** Compilación correcta y cuatro pruebas focalizadas de navegador aprobadas. Se verificaron resoluciones de 1440 y 390 píxeles, temas claro/oscuro, enlaces, lienzo del perro, interacción y restricciones administrativas. No se detectaron desbordamientos ni incidencias en las comprobaciones automáticas de accesibilidad seleccionadas para la bienvenida. Se revisó visualmente la captura de escritorio oscuro. Permanecen advertencias previas de Three.js, face-api.js y tamaño del paquete. Sin cambios de backend, operaciones en Supabase, commits ni push.
+
+## Sesión 37 — 11/11/2026 — Accesibilidad transversal y auditoría
+
+**Objetivo:** Reforzar la accesibilidad de módulos, formularios, navegación y visualizaciones con evidencia automática y una aceptación manual explícitamente delimitada.
+
+**Implementación:** Se corrigieron jerarquías de encabezados y una región principal anidada, se declararon encabezados de tablas y se añadieron títulos de ruta y foco al contenido. Los modales aíslan el fondo y preservan el foco; el menú móvil y la exportación de auditoría gestionan apertura, recorrido, Escape y retorno. Se reforzaron asociaciones de ayuda y errores, contraste y coincidencia entre nombre visible y accesible. El dashboard incorpora descripciones, tablas identificadas, tramas y números para complementar el color. Las animaciones respetan movimiento reducido y el perro admite pausa. Se actualizaron componentes comunes, vistas, estilos, pruebas, README, informe de accesibilidad, evidencia JSON, AI_LOG y esta bitácora.
+
+**Validación:** 104 pruebas frontend y 25 pruebas de navegador aprobadas, con compilación correcta y advertencias existentes. Axe registró cero incidencias en 28 escenarios completos de siete pantallas y siete secciones administrativas en ambos temas. Los controles de formularios y login también aprobaron. Se verificaron registro automatizado exclusivamente por teclado, errores, Escape, foco, menú móvil, ampliación CSS al 200 % y movimiento reducido. Cuatro casos de cierre, una prueba de exportación con Escape y la auditoría final comprobaron los últimos ajustes. Se corrigieron errores de fixtures y selectores durante las ejecuciones iniciales, junto con los defectos reales detectados.
+
+**Resultado y límites:** Mejoras implementadas y evidencia reproducible documentada en docs/ACCESIBILIDAD.md y AUDITORIA_AXE_2026-11-11.json. La prueba humana con teclado y lector de pantalla y el zoom nativo siguen pendientes; se incluye una pauta de aceptación y no se afirma cumplimiento integral ni certificación. Sin cambios de backend, Supabase, commits ni push.
+
+## Sesión 38 — 11/11/2026 — Avisos y confirmaciones personalizados
+
+**Objetivo:** Reemplazar las ventanas nativas de conflicto y confirmación por componentes coherentes con la interfaz del proyecto.
+
+**Implementación:** Se incorporaron ConflictDialog y su estilo, una notificación central notifyConflict y el montaje único en App. Se reemplazaron ocho llamadas de alerta de siete módulos y la confirmación nativa de recetas. Se conservan mensajes de negocio, temas claro/oscuro y bloqueo de envíos repetidos. ConfirmModal utiliza identificadores únicos; AccessibleDialog recupera el foco en un control del diálogo subyacente si el anterior ya no está disponible. Se actualizaron pruebas, README, documentación de accesibilidad, AI_LOG y esta bitácora.
+
+**Validación:** 104 pruebas frontend aprobadas y compilación correcta con avisos previos. Casos de navegador comprueban conflicto 409, explicación de restricciones, contraste en ambos temas, Escape y retorno del foco, ausencia de ventanas nativas, cancelación de receta sin solicitud y eliminación confirmada única. Se corrigieron el retorno del foco desde un botón deshabilitado y un selector de prueba que debía identificar Volver. No quedan llamadas a alert ni confirm o prompt del navegador en el código revisado.
+
+**Resultado y límites:** Avisos propios de la aplicación y confirmación destructiva explícita. Se registró la comunicación del usuario sobre pruebas manuales de teclado superadas, sin asumir uso de lector de pantalla. Pruebas de navegador con respuestas simuladas, sin cambios de backend ni Supabase, commits o push.
+
+**Cierre:** La suite completa de navegador aprobó sus 27 pruebas y mantuvo sin incidencias los 28 escenarios de auditoría general.
+
+## Sesión 39 — 11/11/2026 — Seis indicadores consultables desde la web
+
+**Objetivo:** Completar los indicadores del dashboard para obtener sus resultados sin operaciones manuales y consultar su definición desde la interfaz.
+
+**Implementación:** El servicio analítico calcula promedio por factura, porcentaje de insumos agotados y participación por especialidad, reutilizando los agregados existentes. Se devuelve null si el denominador está vacío. Nuevas tarjetas muestran promedio e insumos agotados; DashboardIndicatorGuide reúne seis indicadores con pregunta de negocio, fórmula y resultado. Se ajustaron la distribución responsiva, la presentación monetaria del promedio y las pruebas de backend, frontend y navegador. Se actualizaron README, AI_LOG y esta bitácora. Se conserva la exclusividad administrativa y el alcance independiente de los filtros de agenda e inventario.
+
+**Validación y resultado:** Backend: 112 aprobadas y una externa omitida, excluyendo concurrencia separada. Frontend: 105 aprobadas; se corrigió la ambigüedad de un selector por repetición del nombre en tarjeta y tabla. Compilación correcta con avisos previos. Dos casos focalizados de navegador aprobaron, con seis fórmulas y resultados, ambos temas, móvil y 28 escenarios generales sin incidencias. Se revisó la captura de escritorio oscuro.
+
+**Límites:** Sin cambios de esquema ni Supabase; almacenamiento en memoria en las pruebas backend y datos interceptados en navegador. No se verificó PostgreSQL real. Sin commits ni push.
+
+## Sesión 40 — 11/11/2026 — Indicadores derivados compatibles con respuestas anteriores
+
+**Objetivo:** Evitar No calculable cuando existen totales suficientes pero la respuesta no contiene los campos derivados.
+
+**Implementación:** dashboardData.js normaliza la respuesta antes de mostrarla, conservando cálculos válidos y derivando los ausentes desde los totales del mismo conjunto filtrado. Se distingue cero agotados de ausencia de inventario y se conserva el tratamiento de denominadores vacíos. DashboardView comparte los datos normalizados con las tarjetas y la guía. Se actualizaron pruebas, README, AI_LOG y esta bitácora.
+
+**Validación:** 106 pruebas frontend aprobadas, compilación correcta con avisos previos y un caso de navegador aprobado con los valores de la captura: promedio $37.088,33 y agotados 0 %. La prueba también verifica selección de 30 días y participación por especialidad. El escenario sin denominador continúa aprobado.
+
+**Alcance:** La causa es compatible con campos derivados ausentes en una instancia previa de la API; no se inspeccionó la respuesta real del usuario ni se reinició su servidor. Sin consultas adicionales, cambios de backend o Supabase, commits ni push.
+
+## Sesión 41 — 12/11/2026 — Verificación técnica y corrección de brechas de evaluación
+
+**Objetivo:** Verificar criterios de implementación de Evaluacion3_LPWII y subsanar incumplimientos demostrables sin producir informes académicos ni intervenir Supabase.
+
+**Implementación:** Se añadieron tres reportes administrativos filtrados y paginados, sus exportaciones CSV/XLSX/PDF y preparación de impresión, con registro de auditoría y autorización administrativa. Se separaron consultas y estrategias de formato mediante ReportService e IReportFormat. Se incorporó análisis HTTP externo de IA configurable sobre agregados, con validación, límite de respuesta, timeout y tratamiento seguro de fallos. Se implementó el flujo de estados de citas en interfaz, backend y disparadores SQL, junto con restricciones e índices versionados. Se reforzaron errores relacionales, OpenAPI Bearer, arranque seguro sin cuentas de demostración por defecto en producción y verificación exclusiva de contraseñas con hash. Se añadieron datos iniciales sintéticos y se corrigió la coherencia de montos e IVA para nuevas facturas de demostración, preservando las existentes.
+
+Se incorporó una carga histórica idempotente de 500 registros por entidad principal a lo largo de doce meses, con confirmación administrativa. Se agregaron orden/paginación visual a listados, página 404, pestaña Reportes y pruebas asociadas. Se extendieron Docker Compose, imágenes fijadas, plantilla sin secretos, CI y scripts de respaldo/restauración y validación aislada. Se conservaron los cambios anteriores y se actualizan simultáneamente AI_LOG y esta bitácora; no se elaboraron informes, presentaciones o documentos académicos.
+
+**Componentes:** Endpoints y servicios de reportes, IA y datos históricos; autenticación, validación de negocio, middleware de excepciones, integridad del modelo, migraciones RefuerzoIntegridad y FlujoCitasSql, Program y SwaggerAuthorizationFilter; ReportesView, HistoricalSeedPanel, TablePagination, vistas principales y navegación; contenedores, Compose, .env.example, CI, scripts y suites técnicas.
+
+**Validación:** Backend: 135 aprobadas y una integración externa omitida; frontend: 106 aprobadas y build correcto con advertencias de paquetes. Navegador: 28 escenarios generales aprobados y un escenario nuevo de reportes aprobado tras corregir el selector de prueba; otra prueba con backend/PostgreSQL reales en Docker comprobó login, recarga, tres reportes y descarga PDF. Axe no detectó incidencias en las comprobaciones seleccionadas en ambos temas; npm audit de producción reportó cero vulnerabilidades conocidas. OpenAPI contiene las rutas nuevas y seguridad Bearer. Las pruebas de IA usan proveedor simulado, incluyendo respuesta inválida, ausencia de configuración y timeout.
+
+En vetclinic-review, los tres contenedores quedaron saludables y las migraciones se aplicaron localmente. Se verificaron doce meses, 500 registros históricos por entidad, repetición sin duplicados, rechazo SQL de stock negativo y transición inválida, nueve exportaciones y apertura mediante pypdf/openpyxl —con gráfico gerencial nativo—. Se comprobó respaldo/restauración temporal conservando 506 pacientes, 505 citas y 503 facturas. El escenario de veinte usuarios concurrentes emplea InMemory; no acredita rendimiento productivo.
+
+**Pendientes y alcance:** Sin cambios en Supabase, commits ni push. Las migraciones requieren revisión antes de aplicarlas a datos reales. Pendientes llamada real de IA, ejecución/publicación de CI en GitHub, lector de pantalla humano, inspección completa de impresión y paginación SQL uniforme. Las cuentas heredadas con contraseña en texto plano necesitan restablecimiento. Se identificaron credenciales en diferencias históricas de Git, sin comprobar vigencia ni sanear el historial; corresponde rotarlas y planificar su limpieza. No se certifica cumplimiento integral de WCAG, OWASP o tiempos de producción. No se modificaron retrospectivamente registros de desarrollo anteriores.
+
+## Sesión 42 — 12/11/2026 — Corrección de exportación y auditoría compatible
+
+**Objetivo:** Permitir generar reportes con el CHECK de auditoría existente sin eliminar la trazabilidad ni modificar Supabase.
+
+**Implementación:** Se corrigió la acción persistida por las exportaciones a CREAR, asociada a Reportes y con Operacion=EXPORTAR en metadatos. La consulta y detalle de auditoría presentan estos eventos como EXPORTAR, incluyendo filtros, búsqueda y resumen. Se permite consultar únicamente los campos seguros del detalle de reporte.
+
+**Componentes:** ReportesApi, AuditoriaApi, SafeAuditValues, ReviewComplianceTests, AI_LOG y BITACORA.
+
+**Validación:** 135 pruebas backend aprobadas y una integración externa omitida. Se verificaron los tres reportes, acción compatible, metadatos y consulta/detalle de exportaciones. La causa concuerda con la restricción CHECK del esquema compartido. Sin intervención sobre Supabase, commits o push.
+
+**Comprobación relacional adicional:** En PostgreSQL Docker aislado se impuso temporalmente un CHECK equivalente para nuevos eventos, conservando los anteriores. Las nueve exportaciones se completaron; también pasó la consulta filtrada y agregada como EXPORTAR. La restricción temporal fue retirada al finalizar. No se modificó Supabase.
+
+
+## Sesión 43 — 12/11/2026 — Organización visual de reportes administrativos
+
+**Objetivo:** Compactar el panel de filtros y mejorar la presentación de las acciones de exportación conforme al diseño de VetClinic.
+
+**Implementación:** Encabezado con icono y formatos disponibles, tarjeta de filtros adaptable a tres/dos/una columnas, barra de descarga con iconos e impresión destacada y mejoras de espaciado, superficies y paginación. Se mantienen los temas y los estilos de impresión existentes.
+
+**Componentes:** ReportesView.jsx, ReportesView.css, accesibilidad.spec.js y ambas bitácoras.
+
+**Validación:** Build correcto con avisos previos. Caso de navegador aprobado para filtros, paginación, descarga, manejo del error de IA, columnas de escritorio/móvil, ausencia de desbordamiento y axe sin incidencias en claro/oscuro. Capturas generadas a 1440 y 360 px; inspección visual de escritorio oscuro realizada. Prueba ejecutada en 5187 sin alterar el servidor del usuario en 5173. Sin modificaciones de backend, Supabase, commits o push.
+
+## Sesión 44 — 12/11/2026 — Retiro de análisis externo de IA
+
+**Objetivo:** Suprimir la integración externa de análisis de reportes solicitada por el usuario, manteniendo el reconocimiento facial y las exportaciones existentes.
+
+**Implementación:** Eliminación del servicio HTTP, endpoint, registro DI, limitador dedicado, variables de configuración y controles de análisis. Se retiraron sus cuatro pruebas específicas y se ajustó la prueba de interfaz para comprobar que el botón ya no existe. Se conservaron los registros históricos de desarrollo.
+
+**Componentes:** Program, InsightsService e Insights retirados, ReportesView, Compose, .env.example, pruebas backend/navegador y ambas bitácoras.
+
+**Validación:** Backend: 131 pruebas aprobadas y una integración externa omitida; compilación frontend correcta con avisos previos y escenario de reportes aprobado en ambos temas y resoluciones. Sin referencias activas restantes al servicio retirado en los componentes examinados. Sin cambios en Supabase, despliegues, commits o push. Las instancias ya ejecutándose necesitan reinicio o reconstrucción para incorporar el cambio.

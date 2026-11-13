@@ -376,3 +376,19 @@ Para detalles exhaustivos de evaluación, consulta los siguientes documentos:
 - 🤖 **[AI_LOG.md](AI_LOG.md)**: Registro histórico de IA y actualización de las intervenciones realizadas con Codex; requerimientos, cambios, pruebas y decisiones de alcance.
 - 📓 **[BITACORA.md](BITACORA.md)**: Registro cronológico de actividades, sesiones de trabajo e hitos del proyecto.
 
+# Panel de gestión
+
+Los conflictos que antes utilizaban alertas nativas del navegador se muestran mediante diálogos personalizados, con el motivo recibido de la API, temas claro/oscuro y cierre mediante Entendido o Escape. Las eliminaciones mantienen confirmación explícita; la eliminación de recetas también utiliza el componente de confirmación del proyecto. Los avisos no autorizan ni reintentan por sí mismos operaciones rechazadas.
+
+La implementación y evidencia de accesibilidad, junto con la revisión manual pendiente, se detallan en [docs/ACCESIBILIDAD.md](docs/ACCESIBILIDAD.md). La auditoría automática registrada incluye 28 escenarios completos sin incidencias; no sustituye la aceptación con lector de pantalla.
+
+El panel está disponible en **Administración → Dashboard de gestión**, exclusivamente para el rol Administrador. Tanto `GET /api/v1/dashboard/analitica` como el resumen anterior `GET /api/v1/dashboard` requieren JWT y rol Administrador; los demás roles reciben 403. Incluye cuatro visualizaciones: evolución de montos facturados (línea), citas por fecha y estado (barras apiladas), participación por especialidad (anillo) y existencias de insumos (barras horizontales). Cada gráfico ofrece una tabla alternativa de datos. La pantalla de inicio ofrece accesos a agenda y pacientes sin consultar indicadores administrativos.
+
+El período predeterminado comprende los últimos 30 días; se puede seleccionar un rango de hasta 366 días y agrupar por día, semana o mes. Los filtros de especialidad, veterinario y estado afectan a la agenda. Categoría y existencias permiten filtrar el inventario, que representa el stock actual y no un histórico. Los montos corresponden a facturas emitidas, no a pagos ni ganancias.
+
+Los seis indicadores pueden consultarse directamente: total facturado, promedio por factura, cantidad de citas, porcentaje de cancelaciones, participación de citas por especialidad y porcentaje de insumos agotados. El promedio utiliza el total con impuestos dividido entre la cantidad de facturas del período. El porcentaje de agotados utiliza todos los insumos de la categoría, independientemente del selector que limita las barras. La participación se devuelve para cada especialidad de las citas filtradas. Los promedios y porcentajes sin denominador se devuelven como null y se presentan como No calculable. El desplegable **Cómo se calculan los seis indicadores** ofrece una tabla con pregunta de negocio, fórmula y resultado actualizado. Se conserva adicionalmente el indicador de alertas de inventario.
+
+Si una instancia anterior de la API aún no devuelve los campos derivados, la interfaz los calcula a partir de los agregados de esa misma respuesta. No utiliza las vistas previas acotadas de facturas o insumos como denominador. Cero agotados entre insumos existentes representa 0 %, mientras que un denominador vacío conserva No calculable.
+
+Los datos se consultan al abrir la pantalla, cambiar filtros, regresar a la ventana y cada 30 segundos mientras está visible. Las operaciones exitosas de escritura realizadas mediante el cliente API notifican al panel para actualizarlo. Las solicitudes se cancelan al cambiar filtros o abandonar la vista; los errores conservan la última lectura e informan al usuario. El backend agrega los datos antes de enviarlos y limita las vistas previas a cinco citas próximas y doce insumos. No requiere modificaciones del esquema de PostgreSQL.
+

@@ -62,6 +62,7 @@ export const LoginView = () => {
 
   return (
     <main
+      tabIndex={-1}
       style={{
         minHeight: '100vh',
         display: 'flex',

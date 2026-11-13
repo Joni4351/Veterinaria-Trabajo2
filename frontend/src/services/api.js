@@ -22,7 +22,11 @@ api.interceptors.request.use((config) => {
 
 // Interceptor para manejo global de respuestas (401 y 403)
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (['post', 'put', 'patch', 'delete'].includes(response.config?.method?.toLowerCase()))
+      window.dispatchEvent(new Event('vet:datachanged'));
+    return response;
+  },
   (error) => {
     if (axios.isCancel(error) || error.code === 'ERR_CANCELED') return Promise.reject(error);
     error.userMessage = getApiErrorMessage(error);

@@ -1,6 +1,7 @@
 import '@testing-library/jest-dom';
 import { afterEach } from 'vitest';
-import { cleanup } from '@testing-library/react';
+import { cleanup, configure } from '@testing-library/react';
+configure({ asyncUtilTimeout: 5000 });
 
 // Mock seguro de getContext para Canvas en entorno JSDOM
 if (typeof HTMLCanvasElement !== 'undefined') {

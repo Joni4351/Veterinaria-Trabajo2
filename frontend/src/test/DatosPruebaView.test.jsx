@@ -19,7 +19,7 @@ beforeEach(() => {
 it('requiere confirmación y muestra el resumen de los registros generados', async () => {
   mount(); const generate = await screen.findByRole('button', { name: 'Generar datos de prueba', exact: true });
   expect(generate).toBeDisabled();
-  fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.click(screen.getByRole('checkbox', { name: /Confirmo que deseo agregar registros ficticios/ }));
   fireEvent.click(generate);
   expect(api.post).not.toHaveBeenCalled();
   fireEvent.click(screen.getByRole('button', { name: 'Sí, generar datos' }));
@@ -30,7 +30,7 @@ it('requiere confirmación y muestra el resumen de los registros generados', asy
 it('indica cuando no se han creado duplicados', async () => {
   api.post.mockResolvedValue({ data: { creados: { clientes: 0, pacientes: 0 } } });
   mount(); await screen.findByRole('button', { name: 'Generar datos de prueba', exact: true });
-  fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.click(screen.getByRole('checkbox', { name: /Confirmo que deseo agregar registros ficticios/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Generar datos de prueba', exact: true }));
   fireEvent.click(screen.getByRole('button', { name: 'Sí, generar datos' }));
   expect(await screen.findByText('El lote ya estaba cargado. No se crearon registros duplicados.')).toBeInTheDocument();
@@ -53,7 +53,7 @@ it('permite reintentar si falla la vista previa inicial', async () => {
 it('muestra conflictos del servidor sin anunciar éxito y permite cancelar', async () => {
   api.post.mockRejectedValue({ response: { data: { message: 'Lote modificado. Revise los registros.' } } });
   mount(); await screen.findByRole('button', { name: 'Generar datos de prueba', exact: true });
-  fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.click(screen.getByRole('checkbox', { name: /Confirmo que deseo agregar registros ficticios/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Generar datos de prueba', exact: true }));
   fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
   expect(api.post).not.toHaveBeenCalled();
@@ -67,7 +67,7 @@ it('no envía otra carga al pulsar dos veces mientras el servidor responde', asy
   let complete;
   api.post.mockImplementation(() => new Promise(resolve => { complete = resolve; }));
   mount(); await screen.findByRole('button', { name: 'Generar datos de prueba', exact: true });
-  fireEvent.click(screen.getByRole('checkbox'));
+  fireEvent.click(screen.getByRole('checkbox', { name: /Confirmo que deseo agregar registros ficticios/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Generar datos de prueba', exact: true }));
   const confirm = screen.getByRole('button', { name: 'Sí, generar datos' });
   fireEvent.click(confirm); fireEvent.click(confirm);

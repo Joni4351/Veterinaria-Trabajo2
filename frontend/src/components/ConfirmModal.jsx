@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useId, useRef } from 'react';
 import { AccessibleDialog } from './AccessibleDialog';
 import { AlertTriangle, X } from 'lucide-react';
 import { useAsyncActionLock } from '../hooks/useAsyncActionLock';
@@ -18,6 +18,7 @@ export const ConfirmModal = ({
   danger = true
 }) => {
   const cancelButtonRef = useRef(null);
+  const id = useId();
   const { pending, run } = useAsyncActionLock();
   const busy = loading || pending;
 
@@ -26,7 +27,7 @@ export const ConfirmModal = ({
   return (
     <AccessibleDialog
       className="modal-overlay"
-      aria-labelledby="confirm-modal-title" aria-describedby="confirm-modal-desc" aria-busy={busy} initialFocus={cancelButtonRef} onClose={busy ? undefined : onCancel}
+      aria-labelledby={`${id}-title`} aria-describedby={`${id}-desc`} aria-busy={busy} initialFocus={cancelButtonRef} onClose={busy ? undefined : onCancel}
       onClick={(e) => {
         if (e.target === e.currentTarget && !busy) onCancel();
       }}
@@ -57,16 +58,16 @@ export const ConfirmModal = ({
             <AlertTriangle size={22} />
           </div>
           <div>
-            <h3
-              id="confirm-modal-title"
+            <h2
+              id={`${id}-title`}
               style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--gray-900)' }}
             >
               {title}
-            </h3>
+            </h2>
           </div>
         </div>
 
-        <p id="confirm-modal-desc" style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+        <p id={`${id}-desc`} style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
           {message}
         </p>
 

@@ -1,8 +1,9 @@
+import { TablePagination, pageRows } from '../components/TablePagination';
 import { NumericInput } from '../components/NumericInput';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
 import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
-import { notifySuccess } from '../services/notifications';
+import { notifySuccess, notifyConflict } from '../services/notifications';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -16,6 +17,7 @@ export const InsumosView = () => {
   const canDelete = isAdmin;
 
   const [insumos, setInsumos] = useState([]);
+  const [tablePage, setTablePage] = useState(1), [tableOrder, setTableOrder] = useState('asc');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -39,6 +41,8 @@ export const InsumosView = () => {
     precioMin: '',
     precioMax: ''
   });
+  useEffect(() => setTablePage(1), [filters]);
+
 
   const [formData, setFormData] = useState({
     nombreProducto: '',
@@ -169,7 +173,7 @@ export const InsumosView = () => {
       setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false });
       fetchInsumos();
     } catch (err) {
-      alert(err.userMessage || err.response?.data?.message || 'No se pudo eliminar el insumo. Verifique si está asociado a recetas o atenciones clínicas.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'No se pudo eliminar el insumo. Verifique si está asociado a recetas o atenciones clínicas.');
       setDeleteConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
@@ -179,10 +183,10 @@ export const InsumosView = () => {
       <div className="card">
         <div className="card-header">
           <div>
-            <h2 className="card-title">
+            <h1 className="card-title">
               <Package size={24} color="var(--teal-text)" />
               Gestión de Insumos y Medicamentos
-            </h2>
+            </h1>
             </div>
           {canCreateOrEdit && (
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
@@ -259,19 +263,19 @@ export const InsumosView = () => {
             No se encontraron insumos con los filtros seleccionados.
           </p>
         ) : (
-          <div className="table-responsive">
+          <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
             <table className="custom-table">
               <thead>
                 <tr>
-                  <th>Producto / Insumo</th>
-                  <th>Categoría</th>
-                  <th>Stock Actual</th>
-                  <th>Precio Unitario</th>
-                  <th style={{ textAlign: 'right' }}>Acciones</th>
+                  <th scope="col">Producto / Insumo</th>
+                  <th scope="col">Categoría</th>
+                  <th scope="col">Stock Actual</th>
+                  <th scope="col">Precio Unitario</th>
+                  <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
-                {insumos.map((i) => (
+                {pageRows(insumos, tablePage, tableOrder).map((i) => (
                   <tr key={i.id}>
                     <td data-label="Producto">
                       <strong style={{ color: 'var(--gray-900)' }}>{i.nombreProducto}</strong>
@@ -313,6 +317,7 @@ export const InsumosView = () => {
                 ))}
               </tbody>
             </table>
+<TablePagination total={insumos.length} page={tablePage} order={tableOrder} onPage={setTablePage} onOrder={setTableOrder} />
           </div>
         )}
       </div>
@@ -328,9 +333,9 @@ export const InsumosView = () => {
                   <Package size={22} />
                 </div>
                 <div>
-                  <h3 id="modal-insumo-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
+                  <h2 id="modal-insumo-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? 'Editar Insumo / Producto' : 'Registrar Nuevo Insumo'}
-                  </h3>
+                  </h2>
                   <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Actualice el stock, categoría o precio de venta' : 'Ingrese los datos del insumo o producto para inventario'}
                   </span>

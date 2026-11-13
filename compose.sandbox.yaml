@@ -2,6 +2,8 @@
 services:
   api:
     environment:
+      Demo__Enabled: "true"
+      Database__MigrateOnStartup: "true"
       ConnectionStrings__miconexion: "Host=database;Port=5432;Database=vetclinic;Username=vetclinic;Password=${SANDBOX_DB_PASSWORD:?Complete SANDBOX_DB_PASSWORD};SSL Mode=Disable"
     depends_on:
       database:

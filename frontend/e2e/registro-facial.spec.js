@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
+import { dashboardFixture } from '../src/test/dashboardFixture.js';
 
 test('dashboard usa el resumen y no descarga los seis listados completos', async ({ page }) => {
   await page.addInitScript(() => {
@@ -9,18 +10,24 @@ test('dashboard usa el resumen y no descarga los seis listados completos', async
   const paths = [];
   await page.route('**/api/**', route => {
     const path = new URL(route.request().url()).pathname; paths.push(path);
-    return route.fulfill({ json: path === '/api/v1/dashboard' ? {
-      estadisticas: { pacientes: 120, clientes: 50, citas: 30, facturas: 10, insumos: 45, consultas: 25 },
-      citasRecientes: [{ id: 1, estado: 'Confirmada', paciente: { nombre: 'Luna', cliente: { nombreCompleto: 'Dueño de prueba', documentoIdentidad: '12.345.678-5' } } }],
-      insumosBajoStock: [{ id: 1, nombreProducto: 'Insumo de prueba', stockActual: 2 }]
-    } : [] });
+    return route.fulfill({ json: path === '/api/v1/dashboard/analitica' ? dashboardFixture : [] });
   });
   await page.goto('/dashboard');
+  await expect(page.getByRole('heading', { name: 'Bienvenido a VetClinic' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Santuario', exact: true })).toBeVisible();
+  await expect(page.locator('canvas[aria-label="Modelo 3D interactivo de mascota canina de la clínica veterinaria"]')).toBeVisible();
+  await page.getByRole('button', { name: 'Acariciar', exact: true }).click();
+  await expect(page.getByText('¡Mueve la colita alegremente! ❤️')).toBeVisible();
+  expect(paths).toHaveLength(0);
+  await page.goto('/admin');
+  await page.getByRole('button', { name: 'Dashboard de gestión', exact: true }).waitFor();
+  paths.length = 0;
+  await page.getByRole('button', { name: 'Dashboard de gestión', exact: true }).click();
   await expect(page.getByText('Luna', { exact: true })).toBeVisible();
-  await expect(page.getByText('Insumo de prueba', { exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: /120 Pacientes Registrados/ })).toBeVisible();
+  await expect(page.getByText('Insumo limitado', { exact: true })).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Evolución de facturación' })).toBeVisible();
   expect(paths.length).toBeGreaterThan(0);
-  expect(paths.every(path => path === '/api/v1/dashboard')).toBeTruthy();
+  expect(paths.every(path => path === '/api/v1/dashboard/analitica')).toBeTruthy();
 });
 
 test('clientes confirma registro, modificación y eliminación sin anunciar éxito ante errores', async ({ page }) => {
@@ -117,7 +124,7 @@ test('los listados comparten el estilo compacto en claro, oscuro y móvil', asyn
     especialidades: [{ id: 1, nombre: 'Medicina General', costoBase: 25000 }],
     citas: [{ id: 1, pacienteId: 1, paciente, usuario: { nombreCompleto: 'Profesional de prueba' }, especialidad: { nombre: 'Medicina General' }, fechaHora: '2026-11-09T15:00:00', estado: 'Confirmada' }],
     consultas: [{ id: 1, pacienteId: 1, paciente, motivo: 'Control general', diagnostico: 'Paciente saludable' }],
-    insumos: [{ id: 1, nombreProducto: 'Insumo de prueba', tipo: 'Medicamento', stockActual: 10, precioUnitario: 1500 }],
+    insumos: [{ id: 1, nombreProducto: 'Insumo limitado', tipo: 'Medicamento', stockActual: 10, precioUnitario: 1500 }],
     facturas: [{ id: 1, clienteId: 1, cliente, fechaEmision: '2026-11-08', montoTotal: 25000, montoImpuestos: 3992 }]
   };
   await page.route('**/api/**', route => route.fulfill({ json: data[new URL(route.request().url()).pathname.split('/').filter(Boolean).at(-1)] || [] }));
@@ -168,7 +175,7 @@ test('login facial pendiente no entrega sesión y una cuenta sin rostro entra di
   facialRequired = false;
   await page.getByLabel(/Contraseña/).fill('Password123!');
   await page.getByRole('button', { name: 'Iniciar Sesión', exact: true }).click();
-  await expect(page.locator('a[href="/admin"]')).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Administración', exact: true })).toBeVisible();
   expect(await page.evaluate(() => localStorage.getItem('vet_token'))).toBeTruthy();
 });
 
@@ -193,6 +200,10 @@ test('administrador consulta el historial y sus valores antes y después', async
   await page.locator('.audit-panel').screenshot({ path: 'test-results/audit-dark.png' });
   await page.evaluate(() => { document.documentElement.dataset.theme = 'light'; });
   await page.getByRole('button', { name: 'Exportar (CSV / PDF)' }).click();
+  await expect(page.getByRole('button', { name: 'Descargar CSV' })).toBeFocused();
+  await page.keyboard.press('Escape');
+  await expect(page.getByRole('button', { name: 'Exportar (CSV / PDF)' })).toBeFocused();
+  await page.keyboard.press('Enter');
   const downloadPromise = page.waitForEvent('download');
   await page.getByRole('button', { name: 'Descargar CSV' }).click();
   const download = await downloadPromise;
@@ -258,7 +269,7 @@ test('datos de prueba requieren doble confirmación y muestran el resumen', asyn
   await page.getByRole('button', { name: 'Datos de prueba', exact: true }).click();
   const generate = page.getByRole('button', { name: 'Generar datos de prueba', exact: true });
   await expect(generate).toBeDisabled();
-  await page.getByRole('checkbox').check();
+  await page.getByRole('checkbox', { name: /Confirmo que deseo agregar registros ficticios/ }).check();
   await generate.click();
   expect(calls).toBe(0);
   await page.getByRole('button', { name: 'Sí, generar datos' }).click();
@@ -276,9 +287,14 @@ for (const role of ['Veterinario', 'Recepcionista']) {
       localStorage.setItem('vet_user', JSON.stringify({ id: 2, name: 'Usuario de prueba', role }));
     }, role);
     await page.route('**/api/**', route => route.fulfill({ json: [] }));
+    await page.goto('/dashboard');
+    await expect(page.getByRole('heading', { name: 'Bienvenido a VetClinic' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Acariciar', exact: true })).toBeVisible();
+    await expect(page.locator('.dash-chart-card')).toHaveCount(0);
     await page.goto('/admin');
     await expect(page.locator('a[href="/admin"]')).toHaveCount(0);
     await expect(page.getByRole('button', { name: 'Nuevo usuario' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Dashboard de gestión', exact: true })).toHaveCount(0);
     await expect(page.getByText(/Acceso (Denegado|Restringido)/i).first()).toBeVisible();
   });
 }
@@ -339,7 +355,7 @@ test('modelos locales y registro real desde foto, sin subir imagen', async ({ pa
   await page.getByRole('button', { name: 'Registro Facial', exact: true }).click();
   await page.getByRole('button', { name: /Usuario de prueba/ }).click();
   await expect(page.getByLabel('Fotografía del usuario')).toBeDisabled();
-  await page.getByRole('checkbox').check();
+  await page.getByRole('checkbox', { name: /ha sido informado/ }).check();
 
   const blank = await page.evaluate(() => {
     const canvas = document.createElement('canvas'); canvas.width = 400; canvas.height = 400;

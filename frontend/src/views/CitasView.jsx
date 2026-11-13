@@ -1,7 +1,8 @@
+import { TablePagination, pageRows } from '../components/TablePagination';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
 import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
-import { notifySuccess } from '../services/notifications';
+import { notifySuccess, notifyConflict } from '../services/notifications';
 import React, { useState, useEffect, useMemo } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +26,7 @@ export const CitasView = () => {
   const veterinarios = useMemo(() => {
     return usuarios.filter(u => (u.rol || '').trim().toLowerCase() === 'veterinario');
   }, [usuarios]);
+  const [tablePage, setTablePage] = useState(1), [tableOrder, setTableOrder] = useState('asc');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -48,6 +50,8 @@ export const CitasView = () => {
     fechaDesde: '',
     fechaHasta: ''
   });
+  useEffect(() => setTablePage(1), [filters, searchDueno]);
+
 
   const [formData, setFormData] = useState({
     pacienteId: '',
@@ -204,7 +208,7 @@ export const CitasView = () => {
       setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false });
       fetchCitas();
     } catch (err) {
-      alert(err.userMessage || err.response?.data?.message || 'Error al eliminar la cita.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'Error al eliminar la cita.');
       setDeleteConfirm((prev) => ({ ...prev, loading: false }));
     }
   };
@@ -214,10 +218,10 @@ export const CitasView = () => {
       <div className="card">
         <div className="card-header">
           <div>
-            <h2 className="card-title">
+            <h1 className="card-title">
               <Calendar size={24} color="#8b5cf6" />
               Agenda y Control de Citas
-            </h2>
+            </h1>
             </div>
           {canCreateOrEdit && (
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
@@ -323,21 +327,21 @@ export const CitasView = () => {
             );
           }
           return (
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Paciente</th>
-                    <th>Dueño / Cliente</th>
-                    <th>Especialidad</th>
-                    <th>Profesional</th>
-                    <th>Fecha y Hora</th>
-                    <th>Estado</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th scope="col">Paciente</th>
+                    <th scope="col">Dueño / Cliente</th>
+                    <th scope="col">Especialidad</th>
+                    <th scope="col">Profesional</th>
+                    <th scope="col">Fecha y Hora</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedCitas.map((c) => (
+                  {pageRows(displayedCitas, tablePage, tableOrder).map((c) => (
                     <tr key={c.id}>
                       <td data-label="Paciente">
                         <strong style={{ color: 'var(--gray-900)' }}>{c.paciente?.nombre || 'Paciente'}</strong>
@@ -395,6 +399,7 @@ export const CitasView = () => {
                   ))}
                 </tbody>
               </table>
+<TablePagination total={displayedCitas.length} page={tablePage} order={tableOrder} onPage={setTablePage} onOrder={setTableOrder} />
             </div>
           );
         })()}
@@ -411,9 +416,9 @@ export const CitasView = () => {
                   <Calendar size={22} />
                 </div>
                 <div>
-                  <h3 id="modal-cita-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
+                  <h2 id="modal-cita-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? 'Editar Cita Médica' : 'Agendar Nueva Cita'}
-                  </h3>
+                  </h2>
                   <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Modifique los detalles y estado de la cita médica' : 'Seleccione paciente, profesional, especialidad y horario'}
                   </span>
@@ -560,11 +565,11 @@ export const CitasView = () => {
                       value={formData.estado}
                       onChange={(e) => setFormData({ ...formData, estado: e.target.value })} required
                     >
-                      <option value="Pendiente">Pendiente</option>
-                      <option value="Confirmada">Confirmada</option>
-                      <option value="En Curso">En Curso</option>
-                      <option value="Completada">Completada</option>
-                      <option value="Cancelada">Cancelada</option>
+                      {['Pendiente', 'Confirmada', 'En Curso', 'Completada', 'Atendida', 'Cancelada'].filter(s => {
+                        if (!editingId) return s === 'Pendiente' || s === 'Confirmada';
+                        const original = citas.find(c => c.id === editingId)?.estado;
+                        return s === original || ({ Pendiente: ['Confirmada', 'Cancelada'], Confirmada: ['En Curso', 'Cancelada'], 'En Curso': ['Completada', 'Atendida'] }[original] || []).includes(s);
+                      }).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                 </div>

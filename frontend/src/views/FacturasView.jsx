@@ -1,10 +1,11 @@
+import { TablePagination, pageRows } from '../components/TablePagination';
 import { NumericInput } from '../components/NumericInput';
 import { todayInChile } from '../schemas/dateValidation';
 import './FacturasView.css';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
 import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
-import { notifySuccess } from '../services/notifications';
+import { notifySuccess, notifyConflict } from '../services/notifications';
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import api from '../services/api';
@@ -39,6 +40,7 @@ export const FacturasView = () => {
   const [selectedInsumoId, setSelectedInsumoId] = useState('');
   const [insumoCantidad, setInsumoCantidad] = useState(1);
   const [itemError, setItemError] = useState('');
+  const [tablePage, setTablePage] = useState(1), [tableOrder, setTableOrder] = useState('asc');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -54,6 +56,8 @@ export const FacturasView = () => {
     montoMin: '',
     montoMax: ''
   });
+  useEffect(() => setTablePage(1), [filters, searchRut]);
+
 
   // Ver detalle
   const [selectedFactura, setSelectedFactura] = useState(null);
@@ -459,7 +463,7 @@ export const FacturasView = () => {
       fetchFacturas();
     } catch (err) {
       setDeleteConfirm(prev => ({ ...prev, loading: false }));
-      alert(err.userMessage || err.response?.data?.message || 'Error al eliminar factura.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'Error al eliminar factura.');
     }
   };
 
@@ -536,7 +540,7 @@ export const FacturasView = () => {
       setDeleteDetalleConfirm({ isOpen: false, id: null, loading: false });
     } catch (err) {
       setDeleteDetalleConfirm(prev => ({ ...prev, loading: false }));
-      alert('Error al eliminar línea.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'No se pudo eliminar la línea de factura.');
     }
   };
 
@@ -549,10 +553,10 @@ export const FacturasView = () => {
       <div className="card">
         <div className="card-header">
           <div>
-            <h2 className="card-title">
+            <h1 className="card-title">
               <DollarSign size={24} color="#10b981" />
               Gestión de Facturación y Cobros
-            </h2>
+            </h1>
             </div>
           {canCreateOrEdit && (
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
@@ -668,20 +672,20 @@ export const FacturasView = () => {
             );
           }
           return (
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Cliente / Dueño</th>
-                    <th>RUT / Documento</th>
-                    <th>Fecha Emisión</th>
-                    <th>Impuestos</th>
-                    <th>Total Facturado</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th scope="col">Cliente / Dueño</th>
+                    <th scope="col">RUT / Documento</th>
+                    <th scope="col">Fecha Emisión</th>
+                    <th scope="col">Impuestos</th>
+                    <th scope="col">Total Facturado</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedFacturas.map((f) => {
+                  {pageRows(displayedFacturas, tablePage, tableOrder).map((f) => {
                     const cliente = clientes.find(c => c.id === f.clienteId);
                     return (
                       <tr key={f.id}>
@@ -729,6 +733,7 @@ export const FacturasView = () => {
                   })}
                 </tbody>
               </table>
+<TablePagination total={displayedFacturas.length} page={tablePage} order={tableOrder} onPage={setTablePage} onOrder={setTableOrder} />
             </div>
           );
         })()}
@@ -749,9 +754,9 @@ export const FacturasView = () => {
                     <DollarSign size={24} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                       {editingId ? 'Editar Factura' : 'Emitir Factura de Atención y Cobro'}
-                    </h3>
+                    </h2>
                     <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                       Cálculo automático de IVA (19%), desglose de servicios e insumos con control de inventario
                     </span>
@@ -784,9 +789,9 @@ export const FacturasView = () => {
                   <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                       <FileText size={18} color="var(--teal-text)" />
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
+                      <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                         1. Información Principal del Cliente y Fecha
-                      </h4>
+                      </h3>
                     </div>
 
                     <div className="form-grid">
@@ -800,6 +805,7 @@ export const FacturasView = () => {
                           placeholder="Buscar por nombre o RUT..."
                           className={`form-input ${fieldErrors.clienteId ? 'border-red-500' : ''}`}
                           value={clientSearch ?? (clientes.find(c => String(c.id) === formData.clienteId) ? clientLabel(clientes.find(c => String(c.id) === formData.clienteId)) : '')}
+                          onKeyDown={e => { if (e.key === 'Escape' && clientSearch?.trim()) { e.stopPropagation(); setClientSearch(null); } }}
                           onChange={(e) => {
                             setClientSearch(e.target.value);
                             setSelectedCitaId('');
@@ -856,9 +862,9 @@ export const FacturasView = () => {
                   <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--info-border)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
                       <Calendar size={18} color="var(--blue-text)" />
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
+                      <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                         2. Selección de Cita Médica Registrada (Agenda de Citas)
-                      </h4>
+                      </h3>
                     </div>
                     <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '0.75rem' }}>
                       Seleccione una cita previamente agendada en el sistema. Una vez seleccionada, no podrá seleccionar otra hasta que la quite del detalle.
@@ -921,9 +927,9 @@ export const FacturasView = () => {
                   <div style={{ background: 'var(--bg-surface)', border: '1px solid #bbf7d0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
                       <ShoppingBag size={18} color="#10b981" />
-                      <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
+                      <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                         3. Insumos y Medicamentos del Inventario
-                      </h4>
+                      </h3>
                     </div>
                     <p style={{ fontSize: '0.8rem', color: 'var(--gray-500)', marginBottom: '0.75rem' }}>
                       Seleccione insumos con stock disponible. Al confirmar la factura, se descontarán automáticamente del inventario.
@@ -996,9 +1002,9 @@ export const FacturasView = () => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <FileText size={18} color="#6366f1" />
-                        <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
+                        <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                           4. Detalle de Conceptos Facturados ({itemsFactura.length})
-                        </h4>
+                        </h3>
                       </div>
                       {itemsFactura.length > 0 && (
                         <span style={{ fontSize: '0.82rem', color: 'var(--teal-text)', fontWeight: 700, background: 'var(--primary-light)', border: '1px solid var(--primary-border)', padding: '0.25rem 0.65rem', borderRadius: '9999px' }}>
@@ -1016,12 +1022,12 @@ export const FacturasView = () => {
                         <table className="custom-table" style={{ margin: 0 }}>
                           <thead style={{ background: 'var(--gray-100)' }}>
                             <tr>
-                              <th>Tipo</th>
-                              <th>Descripción / Concepto</th>
-                              <th style={{ textAlign: 'center' }}>Cantidad</th>
-                              <th style={{ textAlign: 'right' }}>Precio Unit.</th>
-                              <th style={{ textAlign: 'right' }}>Subtotal Neto</th>
-                              <th style={{ textAlign: 'center', width: '60px' }}>Acción</th>
+                              <th scope="col">Tipo</th>
+                              <th scope="col">Descripción / Concepto</th>
+                              <th scope="col" style={{ textAlign: 'center' }}>Cantidad</th>
+                              <th scope="col" style={{ textAlign: 'right' }}>Precio Unit.</th>
+                              <th scope="col" style={{ textAlign: 'right' }}>Subtotal Neto</th>
+                              <th scope="col" style={{ textAlign: 'center', width: '60px' }}>Acción</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -1104,9 +1110,9 @@ export const FacturasView = () => {
 
                   {/* 5. Resumen Financiero e Impuestos (Tarjeta Visual) */}
                   <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-300)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                    <h4 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-900)', marginBottom: '0.75rem' }}>
+                    <h3 style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--gray-900)', marginBottom: '0.75rem' }}>
                       5. Resumen Financiero e Impuestos (Normativa Tributaria Chilena)
-                    </h4>
+                    </h3>
 
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '0.75rem' }}>
                       <div style={{ background: 'var(--gray-50)', border: '1px solid var(--gray-200)', borderRadius: '0.5rem', padding: '0.75rem 1rem' }}>
@@ -1196,9 +1202,9 @@ export const FacturasView = () => {
                   <FileText size={24} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     Detalles de Factura #{selectedFactura.id}
-                  </h3>
+                  </h2>
                   <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     Cliente: <strong>{clientes.find(c => c.id === selectedFactura.clienteId)?.nombreCompleto || 'Cliente'}</strong> (RUT: {clientes.find(c => c.id === selectedFactura.clienteId)?.documentoIdentidad || '—'}) — Fecha: {selectedFactura.fechaEmision}
                   </span>
@@ -1221,9 +1227,9 @@ export const FacturasView = () => {
               <div style={{ background: 'var(--bg-surface)', padding: '1.1rem 1.35rem', borderRadius: '0.85rem', marginBottom: '0.85rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                   <Plus size={18} color="var(--teal-text)" />
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                     Añadir Ítem / Concepto al Detalle
-                  </h4>
+                  </h3>
                 </div>
 
                 <AccessibleForm onSubmit={handleAgregarDetalle} noValidate style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '0.75rem', alignItems: 'end' }}>
@@ -1319,9 +1325,9 @@ export const FacturasView = () => {
               {/* Tarjeta Visual: Líneas Registradas de la Factura */}
               <div style={{ background: 'var(--bg-surface)', padding: '1.1rem 1.35rem', borderRadius: '0.85rem', marginBottom: '0.85rem', border: '1px solid var(--gray-200)', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <h4 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
+                  <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--gray-800)', margin: 0 }}>
                     Líneas Registradas de la Factura ({facturaDetalles.length})
-                  </h4>
+                  </h3>
                   <strong style={{ fontSize: '0.92rem', color: 'var(--gray-900)' }}>
                     Total Factura: ${Number(selectedFactura?.montoTotal || 0).toLocaleString('es-CL')} CLP
                   </strong>
@@ -1336,9 +1342,9 @@ export const FacturasView = () => {
                     <table className="custom-table" style={{ margin: 0 }}>
                       <thead style={{ background: 'var(--gray-100)' }}>
                         <tr>
-                          <th>Concepto / Tipo</th>
-                          <th>Subtotal</th>
-                          <th style={{ textAlign: 'right' }}>Acción</th>
+                          <th scope="col">Concepto / Tipo</th>
+                          <th scope="col">Subtotal</th>
+                          <th scope="col" style={{ textAlign: 'right' }}>Acción</th>
                         </tr>
                       </thead>
                       <tbody>

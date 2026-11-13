@@ -1,7 +1,7 @@
 .facial-module { padding: 1.5rem; color: var(--text-primary, var(--gray-800)); }
 .facial-heading { display: flex; align-items: center; gap: 1rem; margin-bottom: 1.5rem; }
 .facial-heading svg { color: var(--primary); flex-shrink: 0; }
-.facial-heading h3 { font-size: 1.25rem; margin-bottom: .35rem; }
+.facial-heading h2 { font-size: 1.25rem; margin-bottom: .35rem; }
 .facial-heading p, .facial-help, .facial-placeholder p { color: var(--gray-600); font-size: .9rem; }
 .facial-layout { display: grid; grid-template-columns: minmax(240px, 1fr) minmax(0, 2fr); gap: 1.5rem; }
 .facial-users, .facial-detail { border: 1px solid var(--gray-200); border-radius: 1rem; padding: 1.25rem; min-width: 0; background: var(--bg-surface); }
@@ -11,7 +11,7 @@
 .facial-user.selected { border-color: var(--primary); background: var(--primary-light); }
 .facial-user span { font-size: .85rem; }
 .facial-user-status { color: var(--teal-text); font-weight: 600; }
-.facial-detail h4 { font-size: 1.15rem; margin-bottom: .4rem; }
+.facial-detail h3 { font-size: 1.15rem; margin-bottom: .4rem; }
 .facial-detail p { overflow-wrap: anywhere; }
 .facial-metadata { display: flex; flex-wrap: wrap; gap: 1rem; padding: 1rem; background: var(--gray-50); border-radius: .6rem; margin: 1rem 0; }
 .facial-metadata dt { color: var(--gray-600); font-size: .8rem; }

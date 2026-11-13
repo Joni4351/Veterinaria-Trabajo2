@@ -1,7 +1,7 @@
 import { NumericInput } from '../components/NumericInput';
 import { AccessibleDialog } from "../components/AccessibleDialog";
 import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
-import { notifySuccess } from '../services/notifications';
+import { notifySuccess, notifyConflict } from '../services/notifications';
 import React, { useState, useEffect, useId } from 'react';
 import pacientesService from '../services/pacientesService';
 import clientesService from '../services/clientesService';
@@ -221,7 +221,7 @@ export const PacientesView = () => {
       setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false });
       fetchPacientes();
     } catch (err) {
-      alert(err.userMessage || err.response?.data?.message || 'No se pudo eliminar el paciente. Puede poseer citas o consultas asociadas.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'No se pudo eliminar el paciente. Puede poseer citas o consultas asociadas.');
       setDeleteConfirm(prev => ({ ...prev, loading: false }));
     }
   };
@@ -231,7 +231,7 @@ export const PacientesView = () => {
   const paginatedPacientes = pacientes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
-    <main role="main" aria-label="Gestión de Pacientes">
+    <section aria-label="Gestión de Pacientes">
       <div className="card">
         {/* Encabezado semántico */}
         <header className="card-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
@@ -321,7 +321,6 @@ export const PacientesView = () => {
                 className="btn btn-secondary"
                 style={{ width: '100%', minHeight: '44px' }}
                 onClick={handleResetFilters}
-                aria-label="Restablecer todos los filtros de búsqueda"
               >
                 <RotateCcw size={15} aria-hidden="true" /> Limpiar Filtros
               </button>
@@ -371,7 +370,7 @@ export const PacientesView = () => {
         {/* 4. Estado con Datos: Tabla Accesible y Responsiva */}
         {!loading && !error && pacientes.length > 0 && (
           <>
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table" aria-label="Listado de mascotas y pacientes">
                 <thead>
                   <tr>
@@ -821,7 +820,7 @@ export const PacientesView = () => {
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false })}
       />
-    </main>
+    </section>
   );
 };
 

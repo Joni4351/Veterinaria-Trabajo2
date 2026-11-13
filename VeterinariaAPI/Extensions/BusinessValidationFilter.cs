@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using VeterinariaAPI.Endpoints;
 using VeterinariaAPI.Models;
+using VeterinariaAPI.Services;
 
 namespace VeterinariaAPI.Extensions;
 
@@ -48,6 +49,12 @@ public class BusinessValidationFilter(VeterinariodbContext db) : IEndpointFilter
                     if (!await db.Especialidades.AnyAsync(x => x.Id == dto.EspecialidadId)) Error("especialidadId", "La especialidad seleccionada no existe.");
                     if (dto.FechaHora == default) Error("fechaHora", "Indique una fecha y hora válidas.");
                     var state = dto.Estado?.Trim();
+                    if (id == 0 && state is not ("Pendiente" or "Confirmada")) Error("estado", "Una cita nueva debe comenzar como Pendiente o Confirmada.");
+                    if (id > 0) {
+                        var originalState = await db.Citas.AsNoTracking().Where(x => x.Id == id).Select(x => x.Estado).FirstOrDefaultAsync();
+                        if (originalState != null && !AppointmentStates.CanTransition(originalState, state ?? ""))
+                            Error("estado", $"La cita no puede pasar de {originalState} a {state}.");
+                    }
                     if (state is not ("Pendiente" or "Confirmada" or "En Curso" or "Completada" or "Atendida" or "Cancelada"))
                         Error("estado", "Seleccione un estado de cita válido.");
                     if (state != "Cancelada" && dto.FechaHora != default)

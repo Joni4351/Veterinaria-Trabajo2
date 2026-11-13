@@ -21,6 +21,12 @@ public static class DatosPruebaApi
             return await next(context);
         });
         group.MapGet("/", (DemoSeederService service) => service.Preview());
+        group.MapGet("/historico", (HistoricalSeederService service) => service.Preview());
+        group.MapPost("/historico", async (DemoRequest dto, HistoricalSeederService service, CancellationToken ct) => {
+            if (dto.Dataset != HistoricalSeederService.Dataset || !dto.Confirmado) return Results.BadRequest(new { message = "Confirme expresamente el lote histórico de 500 pacientes y doce meses." });
+            try { return Results.Ok(new { dataset = HistoricalSeederService.Dataset, creados = await service.Generate(ct) }); }
+            catch (InvalidOperationException ex) { return Results.Conflict(new { message = ex.Message }); }
+        });
         group.MapPost("/", async (DemoRequest dto, DemoSeederService service) =>
         {
             if (dto.Dataset != DemoSeederService.Dataset || !dto.Confirmado)

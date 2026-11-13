@@ -1,0 +1,9 @@
+.conflict-overlay { z-index: 2200; }
+.conflict-dialog { width: min(460px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow-y: auto; background: var(--bg-surface); border: 1px solid var(--border-color); border-radius: 20px; padding: 26px; box-shadow: var(--shadow-xl); }
+.conflict-dialog header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.conflict-symbol { display: grid; place-items: center; width: 50px; height: 50px; border-radius: 15px; background: var(--warning-light); color: var(--warning-text); }
+.conflict-dialog h2 { font-size: 20px; line-height: 1.35; color: var(--gray-900); margin-bottom: 12px; }
+.conflict-dialog p { font-size: 14px; line-height: 1.75; color: var(--gray-600); overflow-wrap: anywhere; }
+.conflict-dialog footer { display: flex; justify-content: flex-end; margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 18px; }
+.conflict-dialog button { min-height: 44px; }
+@media (max-width: 480px) { .conflict-dialog { padding: 22px; }.conflict-dialog footer .btn { width: 100%; } }

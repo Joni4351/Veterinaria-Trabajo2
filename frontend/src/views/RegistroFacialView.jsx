@@ -125,7 +125,7 @@ function RegistroFacialPanel() {
     <section className="facial-module" aria-labelledby="facial-title">
       <div className="facial-heading">
         <ScanFace size={28} aria-hidden="true" />
-        <div><h3 id="facial-title">Registro Facial</h3></div>
+        <div><h2 id="facial-title">Registro Facial</h2></div>
       </div>
       {message && <div className={`facial-notice ${message.error ? 'facial-error' : ''}`} role={message.error ? 'alert' : 'status'}>{message.text}</div>}
       <div className="facial-layout">
@@ -150,9 +150,9 @@ function RegistroFacialPanel() {
           <button type="button" className="btn btn-secondary btn-sm" disabled={loading || busy} onClick={() => setRefresh(v => v + 1)}>Actualizar listado</button>
         </aside>
         <div className="facial-detail">
-          {!selected ? <div className="facial-placeholder"><ShieldCheck size={42} aria-hidden="true" /><h4>Seleccione un usuario</h4><p>Busque una cuenta para consultar o registrar sus datos faciales.</p></div>
+          {!selected ? <div className="facial-placeholder"><ShieldCheck size={42} aria-hidden="true" /><h3>Seleccione un usuario</h3><p>Busque una cuenta para consultar o registrar sus datos faciales.</p></div>
             : detailLoading ? <p role="status">Consultando registro facial…</p> : <>
-              <h4>{selected.nombreCompleto}</h4><p>{selected.email} · {selected.rol}</p>
+              <h3>{selected.nombreCompleto}</h3><p>{selected.email} · {selected.rol}</p>
               <dl className="facial-metadata"><div><dt>Estado</dt><dd>{record ? (record.activo ? 'Registrado · Activo' : 'Registrado · Inactivo') : 'Sin registro facial'}</dd></div>
                 {record && <><div><dt>Fecha de registro</dt><dd>{date(record.fechaRegistro)}</dd></div><div><dt>Última actualización</dt><dd>{date(record.fechaActualizacion)}</dd></div></>}
               </dl>

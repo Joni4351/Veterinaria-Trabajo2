@@ -35,7 +35,7 @@ export function UserCreateForm({ roles, onCreated }) {
     {success && <p role="status" className="alert alert-success">{success}</p>}
     <button type="button" className="btn btn-primary" aria-expanded={open} onClick={() => { setOpen(v => !v); setError(''); setSuccess(''); setFieldErrors({}); }} disabled={saving}>Nuevo usuario</button>
     {open && <AccessibleForm onSubmit={submit} noValidate className="filter-panel" style={{ marginTop: '1rem' }} aria-label="Crear usuario">
-      <h4 style={{ marginBottom: '1rem' }}>Crear usuario</h4>
+      <h3 style={{ marginBottom: '1rem' }}>Crear usuario</h3>
       {error && <p role="alert" className="alert alert-danger">{error}</p>}
       <div className="filter-grid" style={{ alignItems: 'start' }}>
         <div className="form-group"><label htmlFor="new-user-name" className="form-label">Nombre completo <RequiredIndicator /></label>

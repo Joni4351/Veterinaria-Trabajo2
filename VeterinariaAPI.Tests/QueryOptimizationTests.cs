@@ -40,8 +40,9 @@ public class QueryOptimizationTests
 
     [Theory]
     [InlineData(null, 401)]
-    [InlineData("Recepcionista", 200)]
-    [InlineData("Veterinario", 200)]
+    [InlineData("Administrador", 200)]
+    [InlineData("Recepcionista", 403)]
+    [InlineData("Veterinario", 403)]
     public async Task DashboardPreservesAccessRules(string? role, int expected)
     {
         using var factory = new FacialFactory(); using var client = factory.Client(role);
@@ -80,14 +81,16 @@ public class QueryOptimizationTests
     public async Task SqlDuplicateChecksKeepRutAndEmailNormalization()
     {
         using var factory = new FacialFactory(); using var client = factory.Client();
-        var rut = await client.PostAsJsonAsync("/api/v1/clientes", new { documentoIdentidad = "18765432-7", nombreCompleto = "Duplicado de prueba", telefono = "+56912345678", email = "unique@example.invalid" });
+        using var scope = factory.Services.CreateScope();
+        var seed = await scope.ServiceProvider.GetRequiredService<VeterinariodbContext>().Clientes.FindAsync(1);
+        var rut = await client.PostAsJsonAsync("/api/v1/clientes", new { documentoIdentidad = seed!.DocumentoIdentidad.Replace(".", ""), nombreCompleto = "Duplicado de prueba", telefono = "+56912345678", email = "unique@example.invalid" });
         Assert.Equal(HttpStatusCode.BadRequest, rut.StatusCode);
         Assert.Contains("DocumentoIdentidad", await rut.Content.ReadAsStringAsync());
-        var email = await client.PostAsJsonAsync("/api/v1/clientes", new { documentoIdentidad = "22.222.222-2", nombreCompleto = "Duplicado de prueba", telefono = "+56912345678", email = "JONI@GMAIL.COM" });
+        var email = await client.PostAsJsonAsync("/api/v1/clientes", new { documentoIdentidad = "22.222.222-2", nombreCompleto = "Duplicado de prueba", telefono = "+56912345678", email = "CLIENTE1@EXAMPLE.INVALID" });
         Assert.Equal(HttpStatusCode.BadRequest, email.StatusCode);
         Assert.Contains("Email", await email.Content.ReadAsStringAsync());
         Assert.Contains("ya se encuentra registrado", await email.Content.ReadAsStringAsync());
-        var unchanged = await client.PutAsJsonAsync("/api/v1/clientes/1", new { documentoIdentidad = "18.765.432-7", nombreCompleto = "Jonathan actualizado", telefono = "+56912345678", email = "joni@gmail.com" });
+        var unchanged = await client.PutAsJsonAsync("/api/v1/clientes/1", new { documentoIdentidad = seed.DocumentoIdentidad, nombreCompleto = "Cliente sintético actualizado", telefono = "+56912345678", email = "cliente1@example.invalid" });
         Assert.Equal(HttpStatusCode.OK, unchanged.StatusCode);
     }
 }

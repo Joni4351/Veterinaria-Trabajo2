@@ -103,7 +103,7 @@ describe('E2E Full Flow Integration Test: Login -> Crear Recurso -> Listar Recur
 
     // Debe autenticarse y cargar el Topbar y Sidebar del Dashboard
     await waitFor(() => {
-      expect(screen.getByText('Administrador Principal')).toBeInTheDocument();
+      expect(screen.getByTitle('Administrador Principal')).toBeInTheDocument();
       expect(screen.getByText('Rol: Administrador')).toBeInTheDocument();
     });
 

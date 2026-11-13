@@ -1,9 +1,10 @@
+import { TablePagination, pageRows } from '../components/TablePagination';
 import { NumericInput } from '../components/NumericInput';
 import { todayInChile } from '../schemas/dateValidation';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
 import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
-import { notifySuccess } from '../services/notifications';
+import { notifySuccess, notifyConflict } from '../services/notifications';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -21,6 +22,7 @@ export const ConsultasView = () => {
   const [clientes, setClientes] = useState([]);
   const [citas, setCitas] = useState([]);
   const [insumos, setInsumos] = useState([]);
+  const [tablePage, setTablePage] = useState(1), [tableOrder, setTableOrder] = useState('asc');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -41,9 +43,12 @@ export const ConsultasView = () => {
     motivo: '',
     diagnostico: ''
   });
+  useEffect(() => setTablePage(1), [filters, searchDueno]);
+
 
   // Sub-modal Receta
   const [isRecetaModalOpen, setIsRecetaModalOpen] = useState(false);
+  const [deleteRecetaConfirm, setDeleteRecetaConfirm] = useState(false);
   const [selectedConsulta, setSelectedConsulta] = useState(null);
   const [existingReceta, setExistingReceta] = useState(null);
   const [existingDetalle, setExistingDetalle] = useState(null);
@@ -220,7 +225,7 @@ export const ConsultasView = () => {
       fetchConsultas();
     } catch (err) {
       setDeleteConfirm(prev => ({ ...prev, loading: false }));
-      alert(err.userMessage || err.response?.data?.message || 'No se pudo eliminar la consulta.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'No se pudo eliminar la consulta.');
     }
   };
 
@@ -384,9 +389,6 @@ export const ConsultasView = () => {
 
   const handleDeleteReceta = async () => {
     if (!existingReceta) return;
-    if (!window.confirm('¿Está seguro de que desea eliminar la receta médica vinculada a esta consulta? Esta acción no se puede deshacer.')) {
-      return;
-    }
 
     setRecetaLoading(true);
     setRecetaError('');
@@ -413,10 +415,10 @@ export const ConsultasView = () => {
       <div className="card">
         <div className="card-header">
           <div>
-            <h2 className="card-title">
+            <h1 className="card-title">
               <Stethoscope size={24} color="#10b981" />
               Historial de Consultas Médicas y Diagnósticos
-            </h2>
+            </h1>
             </div>
           {canCreateOrEdit && (
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
@@ -514,20 +516,20 @@ export const ConsultasView = () => {
             );
           }
           return (
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Paciente</th>
-                    <th>Dueño / RUT</th>
-                    <th>Atención / Cita</th>
-                    <th>Motivo de Consulta</th>
-                    <th>Diagnóstico</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th scope="col">Paciente</th>
+                    <th scope="col">Dueño / RUT</th>
+                    <th scope="col">Atención / Cita</th>
+                    <th scope="col">Motivo de Consulta</th>
+                    <th scope="col">Diagnóstico</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedConsultas.map((c) => {
+                  {pageRows(displayedConsultas, tablePage, tableOrder).map((c) => {
                     const paciente = c.paciente || pacientes.find(p => p.id === c.pacienteId);
                     const cliente = paciente?.cliente || clientes.find(cl => cl.id === paciente?.clienteId);
                     return (
@@ -598,6 +600,7 @@ export const ConsultasView = () => {
                   })}
                 </tbody>
               </table>
+<TablePagination total={displayedConsultas.length} page={tablePage} order={tableOrder} onPage={setTablePage} onOrder={setTableOrder} />
             </div>
           );
         })()}
@@ -614,9 +617,9 @@ export const ConsultasView = () => {
                   <Stethoscope size={22} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? 'Editar Consulta' : 'Registrar Consulta Médica'}
-                  </h3>
+                  </h2>
                   <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Actualice el diagnóstico clínico y motivo de atención' : 'Complete la ficha de atención clínica veterinaria'}
                   </span>
@@ -641,6 +644,7 @@ export const ConsultasView = () => {
                     <label className="form-label" htmlFor="consulta-paciente">Paciente Atendido <RequiredIndicator /></label>
                     <input
                       id="consulta-paciente"
+                      onKeyDown={e => { if (e.key === 'Escape' && showPatients) { e.stopPropagation(); setShowPatients(false); } }}
                       type="search"
                       autoComplete="off"
                       className="form-input"
@@ -772,9 +776,9 @@ export const ConsultasView = () => {
                     <Pill size={22} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                       {existingReceta ? 'Actualizar Receta Médica' : 'Emitir Receta Médica'} — {pac?.nombre || 'Paciente'}
-                    </h3>
+                    </h2>
                     <span style={{ fontSize: '0.8rem', color: existingReceta ? 'var(--success-text)' : 'var(--gray-500)', fontWeight: existingReceta ? 600 : 400 }}>
                       {existingReceta ? `Receta registrada (Folio #${existingReceta.id})` : 'Prescripción de medicamentos e indicaciones posológicas'}
                     </span>
@@ -960,7 +964,7 @@ export const ConsultasView = () => {
                     <button
                       type="button"
                       className="btn btn-danger"
-                      onClick={handleDeleteReceta}
+                      onClick={() => setDeleteRecetaConfirm(true)}
                       disabled={recetaLoading}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#ef4444', borderColor: '#ef4444', color: '#fff' }}
                     >
@@ -984,6 +988,8 @@ export const ConsultasView = () => {
       ); })()}
 
       {/* ConfirmModal para eliminar consulta */}
+      <ConfirmModal isOpen={deleteRecetaConfirm} title="Eliminar receta médica" message="¿Desea eliminar la receta médica vinculada a esta consulta? Esta acción no se puede deshacer."
+        loading={recetaLoading} onCancel={() => setDeleteRecetaConfirm(false)} onConfirm={async () => { await handleDeleteReceta(); setDeleteRecetaConfirm(false); }} />
       <ConfirmModal
         isOpen={deleteConfirm.isOpen}
         title="Eliminar Registro de Consulta Médica"

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { Heart, Sparkles, Award, Stethoscope } from 'lucide-react';
 
 /**
@@ -12,6 +13,8 @@ import { Heart, Sparkles, Award, Stethoscope } from 'lucide-react';
  * - Botones interactivos: Acariciar (corazones), Dar Premio (hueso animado), Chequeo Clínico (escaneo vital).
  */
 export default function VeterinaryPet3D() {
+  const reducedMotion = useReducedMotion();
+  const [paused, setPaused] = useState(false);
   const mountRef = useRef(null);
   const [petMood, setPetMood] = useState('¡Feliz de verte!');
   const [petHearts, setPetHearts] = useState([]);
@@ -255,6 +258,7 @@ export default function VeterinaryPet3D() {
     let clock = new THREE.Clock();
 
     const animate = () => {
+      if (reducedMotion || paused) { renderer.render(scene, camera); return; }
       animationId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
 
@@ -334,7 +338,7 @@ export default function VeterinaryPet3D() {
         mount.removeChild(renderer.domElement);
       }
     };
-  }, []);
+  }, [reducedMotion, paused]);
 
   // Interacción 1: Acariciar al perrito
   const handlePet = () => {
@@ -359,7 +363,7 @@ export default function VeterinaryPet3D() {
 
   // Interacción 3: Chequeo médico
   const handleScan = () => {
-    setIsScanning(true);
+    setIsScanning(!reducedMotion && !paused);
     petActionRef.current = { action: 'scan', time: performance.now() / 1000 };
     setPetMood('🩺 Escaneo Clínico: Signos vitales 100% óptimos.');
   };
@@ -449,8 +453,11 @@ export default function VeterinaryPet3D() {
         }}
       />
 
-      {/* Estado de ánimo dinámico */}
+      <button type="button" className="btn btn-secondary btn-sm" style={{ marginBottom: 8 }} aria-pressed={paused} onClick={() => { setPaused(value => !value); setIsScanning(false); }} disabled={reducedMotion}>
+        {reducedMotion ? 'Movimiento reducido activado' : paused ? 'Reanudar animación' : 'Pausar animación'}
+      </button>
       <div
+        role="status"
         style={{
           fontSize: '0.85rem',
           fontWeight: 600,

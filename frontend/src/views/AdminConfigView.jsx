@@ -4,14 +4,16 @@ import { AccessibleDialog } from "../components/AccessibleDialog";
 import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Award, Shield, UserCheck, Plus, Trash2, Edit2, X, AlertCircle, Filter, RotateCcw, History, FlaskConical, Users } from 'lucide-react';
+import { Award, Shield, UserCheck, Plus, Trash2, Edit2, X, AlertCircle, Filter, RotateCcw, History, FlaskConical, Users, LayoutDashboard } from 'lucide-react';
 import { especialidadSchema, rolSchema } from '../schemas/adminSchema';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { RegistroFacialView } from './RegistroFacialView';
 import { UserCreateForm } from '../components/UserCreateForm';
 import { DatosPruebaView } from './DatosPruebaView';
 import { AuditoriaView } from './AuditoriaView';
-import { notifySuccess } from '../services/notifications';
+import { DashboardView } from './DashboardView';
+import { ReportesView } from './ReportesView';
+import { notifySuccess, notifyConflict } from '../services/notifications';
 import './AdminConfigView.css';
 
 export const AdminConfigView = () => {
@@ -234,7 +236,7 @@ export const AdminConfigView = () => {
       setDeleteConfirm({ isOpen: false, type: null, id: null, title: '', message: '', loading: false });
     } catch (err) {
       setDeleteConfirm(prev => ({ ...prev, loading: false }));
-      alert(err.userMessage || err.response?.data?.message || 'No se pudo eliminar el registro.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'No se pudo eliminar el registro.');
     }
   };
 
@@ -243,13 +245,15 @@ export const AdminConfigView = () => {
       <div className="card">
         <div className="card-header">
           <div>
-            <h2 className="card-title">Panel de Control de Administración</h2>
+            <h1 className="card-title">Panel de Control de Administración</h1>
             </div>
         </div>
 
         {/* Pestañas de Navegación */}
         <nav className="admin-sections" aria-label="Secciones de administración">
           {[
+            ['dashboard', 'Dashboard de gestión', LayoutDashboard],
+            ['reportes', 'Reportes', History],
             ['auditoria', 'Historial de cambios', History],
             ['datos-prueba', 'Datos de prueba', FlaskConical],
             ['facial', 'Registro Facial', UserCheck],
@@ -261,11 +265,12 @@ export const AdminConfigView = () => {
               onClick={() => setActiveTab(key)} aria-label={label} aria-pressed={activeTab === key}>
               <Icon size={15} aria-hidden="true" />
               <span>{label}</span>
-              {key === 'datos-prueba' && <span className="admin-sandbox" title="Datos de demostración en la base de datos configurada">Sandbox</span>}
-              {activeTab === key && <span className="admin-active-badge" aria-hidden="true">Activo</span>}
+              {activeTab === key && <span className="admin-active-badge" aria-hidden="true" title="Sección activa">✓</span>}
             </button>
           ))}
         </nav>
+        {activeTab === 'dashboard' && <div style={{ padding: '1.5rem', minWidth: 0 }}><DashboardView /></div>}
+        {activeTab === 'reportes' && <ReportesView />}
         {activeTab === 'facial' && <RegistroFacialView />}
         {activeTab === 'datos-prueba' && <DatosPruebaView />}
         {activeTab === 'auditoria' && <AuditoriaView />}
@@ -273,7 +278,7 @@ export const AdminConfigView = () => {
         {activeTab === 'especialidades' && (
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Catálogo de Especialidades</h3>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Catálogo de Especialidades</h2>
               <button className="btn btn-primary" onClick={() => handleOpenEspModal()}>
                 <Plus size={16} /> Nueva Especialidad
               </button>
@@ -323,13 +328,13 @@ export const AdminConfigView = () => {
               </div>
             </div>
 
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Nombre de Especialidad</th>
-                    <th>Costo Base Consulta</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th scope="col">Nombre de Especialidad</th>
+                    <th scope="col">Costo Base Consulta</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -357,7 +362,7 @@ export const AdminConfigView = () => {
         {activeTab === 'roles' && (
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Roles de Seguridad del Sistema</h3>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Roles de Seguridad del Sistema</h2>
               <button className="btn btn-primary" onClick={() => handleOpenRolModal()}>
                 <Plus size={16} /> Nuevo Rol
               </button>
@@ -399,13 +404,13 @@ export const AdminConfigView = () => {
               </div>
             </div>
 
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Rol</th>
-                    <th>Nivel de Acceso</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th scope="col">Rol</th>
+                    <th scope="col">Nivel de Acceso</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -438,7 +443,7 @@ export const AdminConfigView = () => {
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Usuarios Registrados</h3>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Usuarios Registrados</h2>
               </div>
             </div>
 
@@ -490,14 +495,14 @@ export const AdminConfigView = () => {
               </div>
             </div>
 
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Nombre Completo</th>
-                    <th>Correo Electrónico</th>
-                    <th>Rol Asignado</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th scope="col">Nombre Completo</th>
+                    <th scope="col">Correo Electrónico</th>
+                    <th scope="col">Rol Asignado</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -533,9 +538,9 @@ export const AdminConfigView = () => {
                   <Award size={22} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {espForm.id ? 'Editar Especialidad' : 'Nueva Especialidad Médica'}
-                  </h3>
+                  </h2>
                   <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {espForm.id ? 'Modifique el costo base o nombre de la especialidad' : 'Registre una nueva especialidad para atención clínica'}
                   </span>
@@ -616,9 +621,9 @@ export const AdminConfigView = () => {
                   <Shield size={22} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {rolForm.id ? 'Editar Rol' : 'Nuevo Rol de Usuario'}
-                  </h3>
+                  </h2>
                   <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {rolForm.id ? 'Configure los permisos asignados a este rol' : 'Defina un rol con permisos de acceso al sistema'}
                   </span>

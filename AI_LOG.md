@@ -967,3 +967,167 @@ backend ni Supabase en esta intervención; sus pruebas no se volvieron a ejecuta
 **Intervención:** La revisión automática rechazó inicialmente el push por el riesgo de credenciales en ApiIntegrationTests.cs. Se retiraron de Test_Supabase_Connection la URI y la selección de host y usuario incrustados. La prueba utiliza ahora exclusivamente VETCLINIC_TEST_POSTGRES_CONNECTION y una consulta SELECT 1. ExternalDatabaseFactAttribute omite su ejecución cuando esa variable no está configurada, evitando conexiones externas implícitas. Se actualizaron ambas bitácoras y la documentación de pruebas. La corrección se incorpora al commit local aún no publicado.
 
 **Validación:** Suite backend con concurrencia separada excluida: 99 aprobadas y una prueba externa omitida, sin conexiones a Supabase. La comprobación de patrones de conexión con credenciales literales en el archivo resultó negativa. La revisión de espacios no detectó errores. La eliminación de la conexión del estado actual no retira valores presentes en commits históricos ni constituye rotación de credenciales.
+
+
+## 30. Panel analítico de gestión clínica con agregación y actualización periódica
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Incorporar en la pantalla principal un tablero de gestión con cuatro visualizaciones pertinentes al negocio, filtros interactivos y actualización de información mediante un servicio autenticado de agregación.
+
+**Intervención y decisiones técnicas:** Se implementó GET /api/v1/dashboard/analitica para los tres roles autorizados. El servicio agrega facturas por fecha, citas por fecha y estado, citas por especialidad y existencias de insumos, utilizando consultas sin seguimiento, proyecciones y vistas previas acotadas. El intervalo admite hasta 366 días y agrupación diaria, semanal o mensual. Las fechas corresponden al contexto horario de Chile. Los filtros de agenda no alteran la facturación; el inventario refleja existencias actuales. Se conservaron el endpoint anterior y sus contratos. La interfaz incorpora línea de facturación, barras apiladas de citas, anillo de especialidades, barras horizontales de inventario, indicadores, próximas citas y tablas alternativas. Se sustituyó la presentación anterior del dashboard y se aplicó la paleta y los temas existentes con distribución responsiva. La actualización se produce al abrir la vista, modificar filtros, recuperar visibilidad y cada 30 segundos mientras está visible; el cliente API emite notificaciones tras escrituras exitosas. Se cancelan solicitudes obsoletas y se informa de errores conservando la última lectura.
+
+**Componentes afectados:** Dashboard.cs, nuevo DashboardAnalytics.cs, DashboardView.jsx, DashboardView.css, DashboardCharts.jsx, services/api.js, pruebas DashboardAnalyticsTests.cs y DashboardQueries.test.jsx, fixture de interfaz, pruebas de navegador, README.md y ambas bitácoras.
+
+**Validación:** 110 pruebas backend aprobadas y una prueba externa omitida, con concurrencia separada excluida. Suite frontend final: 104 aprobadas, incluidos cinco casos focalizados del dashboard y la prueba de temporización. Compilación de producción correcta, con advertencias existentes de face-api.js y tamaño de paquetes. La suite final de navegador registró 21 casos aprobados. El caso nuevo del dashboard aprobó tras corregir un selector de la prueba y desactivar transiciones durante la medición del tema: cuatro gráficos, cambio de filtro, notificación de actualización, resoluciones de 1440 y 390 píxeles y temas claro/oscuro, sin desbordamiento ni incidencias en las reglas automáticas de accesibilidad seleccionadas. Se inspeccionaron capturas de escritorio oscuro y móvil claro.
+
+**Alcance y limitaciones:** Las pruebas backend usan almacenamiento aislado en memoria; no se verificó esta intervención contra PostgreSQL real porque Docker estaba detenido. No se modificó Supabase ni el esquema de datos. El refresco es periódico, no transmisión en tiempo real. Los totales representan facturación emitida, no recaudación ni utilidad. Las comprobaciones automáticas no equivalen a certificación de accesibilidad. No se efectuaron commits ni push.
+
+## 31. Restricción del tablero analítico al ámbito administrativo
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Reubicar las visualizaciones de gestión en Administración y asegurar que únicamente el rol Administrador pueda visualizar y consultar sus datos.
+
+**Intervención y decisiones técnicas:** Se incorporó la pestaña Dashboard de gestión en AdminConfigView, dentro de la ruta administrativa previamente protegida. La ruta inicial conserva su dirección y presenta HomeView, con accesos a agenda y pacientes y un acceso administrativo condicionado al rol. El menú identifica esa pantalla como Inicio. Los endpoints de resumen y analítica del dashboard exigen ahora exclusivamente el rol Administrador, evitando el acceso directo a los datos desde otros roles. Se conservan los gráficos, filtros, estilos y actualización automática del tablero; al abandonar su pestaña se desmonta el componente y se limpian sus consultas y temporizador.
+
+**Componentes afectados:** App.jsx, AdminConfigView.jsx, nuevo HomeView.jsx, Dashboard.cs, DashboardAnalytics.cs, DashboardAnalyticsTests.cs, QueryOptimizationTests.cs, pruebas de navegador, README.md y ambas bitácoras.
+
+**Validación:** 111 pruebas backend aprobadas y una externa omitida, excluyendo concurrencia separada. Se verificaron respuestas 200 para Administrador, 403 para Veterinario y Recepcionista y 401 sin autenticación en ambos endpoints. Suite frontend: 104 aprobadas. Compilación correcta con advertencias preexistentes. El caso visual del tablero dentro de Administración aprobó en escritorio y móvil, temas claro y oscuro, sin desbordamiento ni incidencias en las reglas automáticas de accesibilidad seleccionadas. La prueba administrativa verifica que Inicio no consulta indicadores y que los roles no administrativos no acceden al tablero.
+
+**Alcance:** Sin cambios del esquema ni operaciones en Supabase. Las pruebas backend utilizan almacenamiento aislado en memoria. No se realizaron commits ni push.
+
+**Resultado de navegador:** Veinte casos aprobaron en la ejecución completa. Un caso de login detectó ambigüedad en su selector por los dos accesos administrativos; se precisó el nombre accesible del enlace lateral y la repetición focalizada aprobó. Los 21 casos quedaron comprobados entre ambas ejecuciones, incluidos los bloqueos para roles no administrativos.
+
+## 32. Restitución del santuario canino interactivo
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Restituir el compañero canino tridimensional en la pantalla inicial y recuperar la identificación del santuario en la navegación, conservando el tablero de gestión exclusivamente en Administración.
+
+**Intervención:** HomeView integra nuevamente el componente existente VeterinaryPet3D en una presentación responsiva de dos columnas con la paleta de la aplicación. Se mantienen las interacciones originales del perro y los accesos de inicio; el menú lateral se denomina Santuario. No se restablecen indicadores administrativos en la pantalla inicial. Componentes afectados: HomeView.jsx, App.jsx, registro-facial.spec.js y ambas bitácoras.
+
+**Validación:** Compilación de producción correcta, con avisos existentes de face-api.js y tamaño del paquete, incrementado al reincorporar Three.js. Tres pruebas focalizadas de navegador aprobaron: lienzo 3D visible, interacción Acariciar y cambio del estado de ánimo, acceso al santuario para los tres roles, ausencia de consultas administrativas desde Inicio y bloqueo de Administración para Veterinario y Recepcionista. Se corrigió el selector de prueba del lienzo porque el modelo decorativo está excluido del árbol accesible. Se conserva el aviso previo de obsolescencia THREE.Clock. No se ejecutaron pruebas backend ni se modificó Supabase; sin commits ni push.
+
+## 33. Rediseño de la bienvenida y accesos del santuario
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Mejorar la jerarquía visual y distribución de la pantalla de bienvenida, reduciendo espacios vacíos y facilitando el acceso a los módulos mediante una composición coherente con los temas del proyecto.
+
+**Intervención:** HomeView.jsx organiza la bienvenida y el compañero 3D en paneles independientes. La sección inicial incorpora saludo, título, texto breve y tarjetas de navegación con iconos, descripción y señal de enlace. El acceso administrativo conserva su condición por rol. HomeView.css centraliza el estilo, colores mediante variables de tema, distribución de dos columnas en escritorio y una en pantallas menores, foco heredado y reducción de movimiento en las transiciones. El perro y sus controles existentes se conservan. Se amplió accesibilidad.spec.js y se actualizaron ambas bitácoras.
+
+**Validación y límites:** Compilación correcta con advertencias existentes de face-api.js y tamaño del paquete. Cuatro pruebas focalizadas de navegador aprobadas: temas claro/oscuro a 1440 y 390 píxeles, tres accesos para Administrador, lienzo 3D visible, navegación hacia citas, ausencia de desbordamiento horizontal y de incidencias en las reglas automáticas seleccionadas para el panel de bienvenida. También se verificaron la interacción Acariciar y las restricciones administrativas de otros roles. Se inspeccionó la captura de escritorio oscuro. Persisten avisos previos de THREE.Clock. Sin cambios de backend, Supabase, commits ni push; no se ejecutó una auditoría integral de accesibilidad.
+
+## 34. Refuerzo transversal de accesibilidad y evidencia verificable
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Fortalecer la accesibilidad de la interfaz mediante semántica coherente, navegación por teclado, gestión del foco, alternativas textuales, contraste y preferencias de movimiento, acompañando la implementación de una auditoría reproducible y distinguiendo la aceptación manual pendiente.
+
+**Intervención y decisiones técnicas:** Se normalizaron encabezados de módulos, subsecciones y formularios, se retiró una región main anidada y se explicitaron encabezados de columna. PageAccessibility actualiza el título de cada ruta y dirige el foco al contenido tras navegar. AccessibleDialog aísla el fondo mediante inert, conserva el estado previo, bloquea el desplazamiento exterior, filtra controles ocultos y mantiene Escape y retorno del foco. El menú móvil gestiona foco inicial, recorrido y cierre con Escape. Exportación de auditoría gestiona entrada, salida y retorno del foco; la ayuda y el error de cantidad del PDF se asocian al campo. Los buscadores pueden descartar sugerencias desde su campo sin cerrar el diálogo. Se corrigieron contrastes del enlace activo, botón superior, marcas y límites de controles, y nombres accesibles inconsistentes con el texto visible. Se conservaron las etiquetas, errores textuales anunciados y el enlace de salto existentes.
+
+**Gráficos y movimiento:** Las secciones del dashboard enlazan título y descripción; las visualizaciones incluyen resúmenes y tablas con caption, encabezados y desplazamiento accesible, también ante datos vacíos. Los estados incorporan tramas y las especialidades números y porcentajes además de color. useReducedMotion responde a cambios de preferencia y detiene las animaciones continuas de partículas y perro; se añadió pausa explícita del compañero y anuncio de su estado. Se mantienen sus controles operativos sin animación.
+
+**Componentes afectados:** App.jsx, PageAccessibility.jsx, AccessibleDialog.jsx, DashboardCharts.jsx, UserCreateForm.jsx, AuraParticleBackground.jsx, VeterinaryPet3D.jsx, useReducedMotion.js, vistas de módulos y sus estilos afectados, accessibility.css, pruebas de navegador y selector de FlowIntegration.test.jsx, README.md, docs/ACCESIBILIDAD.md, evidencia JSON y ambas bitácoras.
+
+**Validación:** 104 pruebas frontend y 25 pruebas de navegador aprobadas; compilación correcta con advertencias previas. Una auditoría axe con todas sus reglas en 28 escenarios completos de ambos temas registró cero incidencias, incluidas críticas. Se conservaron los controles automatizados de formularios y login. El recorrido automatizado de registro por teclado verificó salto, validación, asociación de errores, Escape, retorno del foco, ingreso y persistencia simulada. Se probaron menú móvil, preferencia de movimiento y ampliación CSS al 200 % en ocho rutas. Tras ajustes finales aprobaron cuatro comprobaciones focalizadas, una de exportación con Escape y la nueva auditoría. Durante el desarrollo se corrigieron respuestas simuladas incompletas y selectores de pruebas, además de incidencias reales de contraste, nombres accesibles, regiones y encabezados.
+
+**Límites y pendientes:** No se ejecutó una prueba humana con teclado y NVDA o VoiceOver ni una revisión manual del zoom nativo. No se encontró NVDA en las ubicaciones habituales examinadas; no se instaló software. Se documentó la pauta y se mantiene pendiente la aceptación completa del requerimiento. La ampliación CSS y el recorrido automatizado no se presentan como sustitutos de esas pruebas. El informe no constituye certificación WCAG ni medición exhaustiva del contraste no textual. No se modificó el backend ni Supabase; no se ejecutaron sus pruebas en esta intervención. Sin commits ni push.
+
+## 35. Sustitución de alertas nativas por diálogos de conflicto del proyecto
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Uniformar la presentación de conflictos y confirmaciones destructivas mediante componentes visuales propios, conservando los motivos de rechazo y la interacción accesible.
+
+**Intervención:** Se creó ConflictDialog y su hoja de estilos, con cola de mensajes, iconografía, colores de tema, título y descripción asociados y controles Entendido y cierre. notifyConflict publica los avisos desde los ocho puntos que utilizaban alert en clientes, pacientes, citas, consultas, insumos, facturas y administración. El componente se integra una sola vez al final de App. Se sustituyó window.confirm en la eliminación de recetas por ConfirmModal, con cancelación sin solicitud y bloqueo de envíos repetidos. ConfirmModal utiliza identificadores únicos y encabezado de nivel dos. AccessibleDialog incorpora retorno al diálogo subyacente cuando el control previamente activo desaparece o está deshabilitado. Los avisos conservan el mensaje normalizado de la API; el fallo al eliminar una línea de factura deja de ocultar su motivo tras un texto genérico.
+
+**Componentes afectados:** ConflictDialog.jsx y ConflictDialog.css, App.jsx, notifications.js, AccessibleDialog.jsx, ConfirmModal.jsx, siete vistas de módulos, accesibilidad.spec.js, README.md, docs/ACCESIBILIDAD.md y ambas bitácoras.
+
+**Validación:** 104 pruebas frontend aprobadas y compilación de producción correcta con advertencias existentes. Las pruebas nuevas verifican respuesta 409 al eliminar un cliente relacionado, mensaje de negocio, contraste en ambos temas, ausencia de ventanas nativas, Escape y retorno del foco. Se verifican cancelación de eliminación de receta sin solicitud y confirmación con una única eliminación. La búsqueda en frontend/src no encontró llamadas a alert ni window.confirm o window.prompt. En una ejecución inicial se detectó pérdida de foco al abrir el aviso desde un botón deshabilitado; se añadió el retorno alternativo y se corrigió el selector de la prueba para el botón Volver existente.
+
+**Registro comunicado y límites:** El usuario informó que superó las pruebas manuales de teclado explicadas en el chat; se incorporó esa comunicación al documento sin atribuirla al asistente ni inferir una revisión con lector de pantalla. Sin modificaciones de backend, base de datos, commits ni push; las solicitudes de navegador utilizan respuestas simuladas.
+
+**Cierre de verificación:** Suite completa de navegador: 27 pruebas aprobadas, incluidos los dos nuevos casos y la auditoría general sin incidencias en sus 28 escenarios.
+
+## 36. Disponibilidad de seis indicadores de negocio en el dashboard
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Facilitar la consulta directa de seis indicadores de gestión, incluyendo los cálculos faltantes y sus definiciones, preguntas de negocio y resultados en la interfaz administrativa.
+
+**Intervención:** DashboardAnalytics.cs calcula promedioPorFactura con dos decimales, porcentajeInsumosAgotados con un decimal y participación por especialidad sobre las citas filtradas, reutilizando agregados existentes sin consultas adicionales. Los promedios y porcentajes con denominador vacío se devuelven como null, incluida la tasa de cancelación. DashboardView muestra el promedio y la proporción de agotados en nuevas tarjetas, mantiene los indicadores y gráficos anteriores y reorganiza las tarjetas en tres columnas con adaptación responsiva. DashboardIndicatorGuide incorpora un desplegable con seis preguntas, fórmulas y resultados. El promedio conserva hasta dos decimales al presentar CLP. Se explicita que inventario es actual y que su denominador corresponde a la categoría completa, no a las doce barras ni al filtro de existencias. El tablero conserva el acceso exclusivo de Administrador.
+
+**Componentes afectados:** DashboardAnalytics.cs, DashboardAnalyticsTests.cs, DashboardView.jsx y CSS, DashboardCharts.jsx, nuevo DashboardIndicatorGuide.jsx, fixtures y pruebas frontend y de navegador, README y ambas bitácoras.
+
+**Validación:** 112 pruebas backend aprobadas y una externa omitida, excluyendo concurrencia separada; se comprobaron promedio, porcentajes, filtros, participación y casos sin denominador. Suite frontend: 105 aprobadas, tras precisar selectores que encontraban el mismo indicador en la tarjeta y en la tabla. Compilación correcta con avisos existentes de face-api.js y tamaño del paquete. Dos pruebas focalizadas de navegador aprobadas, incluida la auditoría de 28 escenarios completos en ambos temas, las seis filas de la guía, valores calculados, presentación móvil y ausencia de desbordamiento. Se inspeccionó la captura de escritorio oscuro.
+
+**Alcance:** Sin migraciones ni cambios de Supabase. Las pruebas backend utilizan almacenamiento aislado en memoria y las de navegador datos simulados; no se probaron los nuevos campos contra PostgreSQL real. Los porcentajes se redondean a un decimal. Sin commits ni push.
+
+## 37. Recuperación de indicadores derivados ante respuestas parciales
+
+**Fecha:** 11/11/2026.
+
+**Requerimiento reformulado:** Corregir la presentación de indicadores no calculables cuando existen agregados suficientes de facturación e inventario en el período consultado.
+
+**Intervención:** Se incorporó dashboardData.js como normalizador de la respuesta analítica antes de actualizar el estado de DashboardView. Si los campos derivados no llegan o son nulos pero existen agregados válidos, calcula promedio, proporción de agotados, cancelaciones y participación por especialidad a partir de la misma respuesta. Conserva valores numéricos válidos y distingue numerador cero de denominador vacío. No usa listas de vistas previas ni realiza consultas adicionales. Se aplica a tarjetas y guía de fórmulas. La captura es compatible con una respuesta que no incluye los nuevos campos, pero no se inspeccionó directamente la respuesta de la instancia del usuario para confirmar su versión.
+
+**Componentes y validación:** dashboardData.js, DashboardView.jsx, DashboardQueries.test.jsx, accesibilidad.spec.js, README y ambas bitácoras. Suite frontend: 106 aprobadas; compilación correcta con advertencias preexistentes. Una prueba de navegador reproduce 111265 facturados en tres facturas y cero agotados entre nueve insumos: presenta $37.088,33 y 0 %, y verifica la participación en la guía. El caso sin denominador existente continúa aprobado. Se comprobó la selección de 30 días con respuesta simulada.
+
+**Límites:** Pruebas de navegador con datos interceptados. No se conectó a la base de datos ni se reinició el backend del usuario. Sin cambios de backend, Supabase, commits o push.
+
+## 38. Revisión técnica y refuerzo de cumplimiento de la evaluación
+
+**Fecha:** 12/11/2026.
+
+**Requerimiento reformulado:** Contrastar la implementación de VetClinic con los criterios técnicos de Evaluacion3_LPWII, corregir brechas verificables y comprobar el comportamiento mediante pruebas automatizadas y un entorno PostgreSQL aislado, sin elaborar entregables académicos ni intervenir la base de datos en la nube.
+
+**Intervención asistida y decisiones técnicas:** Se incorporaron tres reportes administrativos —agenda operativa, resumen gerencial e historial por período— con filtros, páginas, formatos CSV UTF-8, XLSX tipado con totales y gráfico gerencial, PDF con texto seleccionable y páginas numeradas, preparación de impresión y auditoría de exportaciones. ReportService separa las consultas; IReportFormat implementa Strategy y complementa Repository y la inyección de dependencias existentes. Se añadió un servicio HTTP de IA configurable que transmite exclusivamente agregados financieros, valida entradas y respuestas, limita tamaño y tiempo de espera y evita exponer errores del proveedor. Su funcionamiento externo no se presume: se probaron respuestas simuladas, ausencia de configuración y timeout.
+
+Se definió una máquina de estados para citas en frontend y backend, se añadieron restricciones e índices mediante RefuerzoIntegridad y disparadores mediante FlujoCitasSql, y se armonizaron errores relacionales con respuestas HTTP seguras. Se eliminó la aceptación de contraseñas importadas en texto plano; estas cuentas requieren restablecer su contraseña si no disponen de hash válido. Los datos y cuentas de demostración quedaron condicionados al entorno de desarrollo, pruebas o habilitación explícita; se añadió inicialización administrativa configurable para producción. Se sustituyeron identificadores personales de la nueva carga inicial por datos sintéticos y se corrigieron los montos e IVA de sus facturas para que correspondan a sus detalles, sin reescribir registros existentes.
+
+Se implementó una carga histórica explícita e idempotente de 500 pacientes, citas, consultas y facturas, distribuida en doce meses y vinculada con clientes sintéticos. Se añadieron orden y paginación visual a los listados principales, página 404 y la pestaña administrativa Reportes. Se amplió Compose con PostgreSQL local opcional, redes y volumen; se fijaron las imágenes por digest y se agregó .env.example sin secretos. Se configuró CI para compilación, pruebas, contenedores y publicación de imágenes condicionada al éxito. Se añadieron scripts de validación local y respaldo/restauración. Los cambios previos de interfaz, accesibilidad, dashboard, README y otros documentos presentes al iniciar la revisión se conservaron; esta intervención no elaboró informes o presentaciones.
+
+**Componentes afectados:** Program.cs; endpoints Reportes, Insights, Auditoria y DatosPrueba; servicios ReportService, ReportFormats, XlsxChartParts, InsightsService, HistoricalSeederService, AppointmentStates, AuthService y SwaggerAuthorizationFilter; BusinessValidationFilter; GlobalExceptionMiddleware; modelo de integridad, dos migraciones y snapshot; ReportesView, HistoricalSeedPanel, TablePagination, vistas de listados, navegación y configuración de pruebas; Dockerfiles, Compose, .env.example, flujo CI, scripts técnicos y pruebas ReviewComplianceTests, BusinessValidationTests, QueryOptimizationTests y navegador. Se actualizan AI_LOG y BITACORA dentro de la misma intervención.
+
+**Validación ejecutada:** Backend Release: 135 aprobadas y una integración externa omitida por falta de VETCLINIC_TEST_POSTGRES_CONNECTION; incluye el escenario de veinte usuarios concurrentes sobre InMemory, que no constituye una prueba de carga de PostgreSQL o producción. Frontend: 106 pruebas aprobadas y compilación correcta, con advertencias de tamaño de paquetes y compatibilidad de face-api.js. Navegador: 28 escenarios generales aprobados y el nuevo escenario de reportes aprobado tras corregir su selector de prueba; se comprobaron filtros, páginas, descarga, error de IA, adaptación a 360/1440 y axe en ambos temas. Una prueba adicional conectada a Docker comprobó inicio de sesión, restauración de sesión, tres reportes y descarga PDF. Las comprobaciones axe seleccionadas no detectaron incidencias; esto no equivale a certificar WCAG íntegramente. npm audit de dependencias de producción: cero vulnerabilidades conocidas reportadas.
+
+En el proyecto Docker aislado vetclinic-review se construyeron e iniciaron frontend, API y PostgreSQL con estado saludable, aplicando las migraciones exclusivamente allí. La carga histórica y su repetición verificaron doce meses y ausencia de duplicados; los conteos finales incluyeron 506 pacientes, 505 citas y 503 facturas. Se descargaron las nueve exportaciones; pypdf verificó texto extraíble y 1/28/28 páginas, y openpyxl abrió los tres XLSX y reconoció el gráfico gerencial. PostgreSQL rechazó stock negativo y el retroceso de una cita completada. pg_dump y pg_restore conservaron los conteos al restaurar en una base temporal, eliminada al finalizar. OpenAPI incluye reportes y seguridad Bearer según prueba automatizada.
+
+**Limitaciones y pendientes:** No se modificó Supabase ni se aplicaron allí las migraciones nuevas; requieren revisar previamente la compatibilidad de los datos existentes. No se ejecutó una llamada real al proveedor de IA, CI/publicación remota, lector de pantalla humano o inspección completa de la impresión física. La paginación de varios listados sigue siendo del cliente; no se implementó paginación SQL general. No se acreditan tiempos de respuesta de producción, auditoría integral OWASP ni revocación general de JWT. Se detectaron cadenas de conexión con credenciales en diferencias históricas de Git; no se comprobó su vigencia ni se modificó el historial y queda pendiente su rotación y saneamiento autorizado. No se realizaron commits ni push.
+
+## 39. Compatibilidad de exportaciones con restricciones de auditoría existentes
+
+**Fecha:** 12/11/2026.
+
+**Requerimiento reformulado:** Restablecer la exportación de reportes en instalaciones cuya tabla Auditoria restringe Accion a CREAR, MODIFICAR y ELIMINAR, conservando trazabilidad sin requerir cambios del esquema en Supabase.
+
+**Diagnóstico e intervención:** El esquema SQL compartido por el usuario contiene una restricción CHECK que excluye EXPORTAR, mientras el endpoint nuevo intentaba persistir dicho valor antes de responder con el archivo. Se cambió la persistencia a CREAR para la entidad Reportes, con Operacion=EXPORTAR y metadatos explícitos en ValoresNuevos. La API de auditoría normaliza estos eventos a EXPORTAR antes de buscar, filtrar, agrupar y presentar resultados, manteniendo compatibilidad con exportaciones anteriores. Se habilitó una lista explícita de campos de reporte para consultar su detalle sin exponer otros valores.
+
+**Componentes:** Endpoints/Reportes.cs, Endpoints/Auditoria.cs, Models/VeterinariodbContext.Audit.cs, ReviewComplianceTests.cs y ambas bitácoras.
+
+**Validación:** Suite backend Release: 135 aprobadas y una integración externa omitida. Las pruebas de los tres reportes verifican exportaciones, acción CRUD persistida, metadatos de exportación, filtro EXPORTAR y detalle de auditoría. La restricción de Supabase se identificó en el esquema previamente proporcionado; no se consultó ni modificó la instancia del usuario.
+
+**Comprobación relacional adicional:** En PostgreSQL Docker aislado se impuso temporalmente un CHECK equivalente para nuevos eventos, conservando los anteriores. Las nueve exportaciones se completaron; también pasó la consulta filtrada y agregada como EXPORTAR. La restricción temporal fue retirada al finalizar. No se modificó Supabase.
+
+
+## 40. Rediseño visual de los controles de reportes
+
+**Fecha:** 12/11/2026.
+
+**Requerimiento reformulado:** Mejorar la jerarquía visual y el aprovechamiento del espacio del panel de reportes, manteniendo coherencia con la paleta, accesibilidad y comportamiento existentes.
+
+**Intervención:** Se reorganizaron los filtros en una tarjeta con encabezado e iconografía, tres columnas en escritorio, dos en pantallas intermedias y una en móvil. Se separó la barra de descarga e impresión, se incorporaron iconos decorativos accesibles y una nota breve de trazabilidad, y se ajustaron encabezados, superficies, espaciado y paginación mediante variables de los temas existentes. Los estilos nuevos se limitan a pantalla para preservar la impresión.
+
+**Componentes y validación:** ReportesView.jsx, ReportesView.css y el escenario de reportes de accesibilidad.spec.js; AI_LOG y BITACORA. Compilación correcta con advertencias preexistentes de dependencias y tamaño de paquetes. Prueba de navegador aprobada: filtros, páginas, descarga CSV, error controlado de IA, tres columnas a 1440 px, una a 360 px, ausencia de desbordamiento y axe sin incidencias en ambos temas. Se generaron capturas de escritorio y móvil y se inspeccionó visualmente la captura de escritorio oscuro. El servidor del usuario en 5173 se conservó y la verificación utilizó 5187. Sin cambios de backend, base de datos, commits o push.
+
+## 41. Retiro de integración de análisis mediante IA externa
+
+**Fecha:** 12/11/2026.
+
+**Requerimiento reformulado:** Eliminar la dependencia de un proveedor externo de IA para el análisis de reportes, conservando las funcionalidades de gestión y reconocimiento facial.
+
+**Intervención:** Se retiraron InsightsService, el endpoint de análisis, su registro de dependencias y limitador exclusivo, las variables AI de Compose y .env.example y los controles/estado asociados en ReportesView. Se eliminaron las cuatro pruebas específicas de la funcionalidad retirada y se ajustó la prueba de reportes para verificar la ausencia del botón de IA. Los reportes, gráficos, exportaciones y face-api.js se conservan. No se altera el historial de intervenciones previas.
+
+**Validación y componentes:** Program.cs, servicios/endpoints retirados, ReportesView.jsx, compose.yaml, .env.example, ReviewComplianceTests.cs, accesibilidad.spec.js y ambas bitácoras. Backend: 131 aprobadas, una integración externa omitida. Frontend: build correcto con avisos preexistentes y prueba de reportes aprobada con filtros, páginas, descarga, accesibilidad y adaptación en ambos temas. Búsqueda de referencias activas al endpoint, servicio y variables retiradas sin coincidencias. No se modificó Supabase ni se reiniciaron o reconstruyeron los contenedores del usuario. Sin commits o push.

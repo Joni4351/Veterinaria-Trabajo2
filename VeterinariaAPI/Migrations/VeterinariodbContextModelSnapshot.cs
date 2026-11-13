@@ -100,11 +100,18 @@ namespace VeterinariaAPI.Migrations
 
                     b.HasIndex("EspecialidadId");
 
-                    b.HasIndex("PacienteId");
+                    b.HasIndex("PacienteId", "FechaHora")
+                        .IsUnique()
+                        .HasFilter("\"Estado\" <> 'Cancelada'");
 
-                    b.HasIndex("UsuarioId");
+                    b.HasIndex("UsuarioId", "FechaHora")
+                        .IsUnique()
+                        .HasFilter("\"Estado\" <> 'Cancelada'");
 
-                    b.ToTable("Citas");
+                    b.ToTable("Citas", t =>
+                        {
+                            t.HasCheckConstraint("CK_Citas_Estado", "\"Estado\" IN ('Pendiente','Confirmada','En Curso','Completada','Atendida','Cancelada')");
+                        });
                 });
 
             modelBuilder.Entity("VeterinariaAPI.Models.Cliente", b =>
@@ -202,7 +209,10 @@ namespace VeterinariaAPI.Migrations
 
                     b.HasIndex("InsumoId");
 
-                    b.ToTable("DetallesFactura", (string)null);
+                    b.ToTable("DetallesFactura", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DetallesFacturas_Subtotal", "\"Subtotal\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("VeterinariaAPI.Models.DetallesRecetum", b =>
@@ -234,7 +244,10 @@ namespace VeterinariaAPI.Migrations
 
                     b.HasIndex("RecetaId");
 
-                    b.ToTable("DetallesReceta");
+                    b.ToTable("DetallesReceta", t =>
+                        {
+                            t.HasCheckConstraint("CK_DetallesReceta_Duracion", "\"DuracionDias\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("VeterinariaAPI.Models.Especialidade", b =>
@@ -256,7 +269,10 @@ namespace VeterinariaAPI.Migrations
                     b.HasKey("Id")
                         .HasName("PK__Especial__3214EC0723BFF743");
 
-                    b.ToTable("Especialidades");
+                    b.ToTable("Especialidades", t =>
+                        {
+                            t.HasCheckConstraint("CK_Especialidades_Costo", "\"CostoBase\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("VeterinariaAPI.Models.Factura", b =>
@@ -286,7 +302,12 @@ namespace VeterinariaAPI.Migrations
 
                     b.HasIndex("ClienteId");
 
-                    b.ToTable("Facturas");
+                    b.HasIndex("FechaEmision");
+
+                    b.ToTable("Facturas", t =>
+                        {
+                            t.HasCheckConstraint("CK_Facturas_Montos", "\"MontoTotal\" >= 0 AND \"MontoImpuestos\" >= 0 AND \"MontoImpuestos\" <= \"MontoTotal\"");
+                        });
                 });
 
             modelBuilder.Entity("VeterinariaAPI.Models.Insumo", b =>
@@ -316,7 +337,12 @@ namespace VeterinariaAPI.Migrations
                     b.HasKey("Id")
                         .HasName("PK__Insumos__3214EC0728749262");
 
-                    b.ToTable("Insumos");
+                    b.ToTable("Insumos", t =>
+                        {
+                            t.HasCheckConstraint("CK_Insumos_Precio", "\"PrecioUnitario\" >= 0");
+
+                            t.HasCheckConstraint("CK_Insumos_Stock", "\"StockActual\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("VeterinariaAPI.Models.Paciente", b =>
@@ -355,7 +381,10 @@ namespace VeterinariaAPI.Migrations
 
                     b.HasIndex("ClienteId");
 
-                    b.ToTable("Pacientes");
+                    b.ToTable("Pacientes", t =>
+                        {
+                            t.HasCheckConstraint("CK_Pacientes_Peso", "\"Peso\" > 0");
+                        });
                 });
 
             modelBuilder.Entity("VeterinariaAPI.Models.Receta", b =>
@@ -381,7 +410,10 @@ namespace VeterinariaAPI.Migrations
                     b.HasIndex(new[] { "ConsultaId" }, "UQ__Recetas__7D0B7DCDF5A12854")
                         .IsUnique();
 
-                    b.ToTable("Recetas");
+                    b.ToTable("Recetas", t =>
+                        {
+                            t.HasCheckConstraint("CK_Recetas_Fechas", "\"ValidaHasta\" >= \"FechaEmision\"");
+                        });
                 });
 
             modelBuilder.Entity("VeterinariaAPI.Models.ReconocimientoFacial", b =>

@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { LoginView } from './views/LoginView';
-import { DashboardView } from './views/DashboardView';
+import { HomeView } from './views/HomeView';
+import { NotFoundView } from './views/NotFoundView';
 import { PacientesView } from './views/PacientesView';
 import { ClientesView } from './views/ClientesView';
 import { CitasView } from './views/CitasView';
@@ -16,6 +17,8 @@ import { ErrorNotification } from './components/ErrorNotification';
 import { AccessDeniedView } from './views/AccessDeniedView';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ConflictDialog } from './components/ConflictDialog';
+import { PageAccessibility } from './components/PageAccessibility';
 import AuraParticleBackground from './components/AuraParticleBackground';
 
 import { 
@@ -33,6 +36,24 @@ function MainLayout() {
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
   const sidebarToggle = useRef(null);
   const sidebarVisible = isDesktop ? !isSidebarCollapsed : isMobileMenuOpen;
+  useEffect(() => {
+    if (isDesktop || !isMobileMenuOpen) return;
+    const sidebar = document.getElementById('main-sidebar');
+    const main = document.getElementById('main-content');
+    const priorInert = main?.inert;
+    if (main) main.inert = true;
+    const items = () => [...sidebar.querySelectorAll('a[href], button:not(:disabled)')];
+    items()[0]?.focus();
+    const trap = event => {
+      if (event.key !== 'Tab') return;
+      const list = [...items(), sidebarToggle.current].filter(Boolean);
+      const index = list.indexOf(document.activeElement);
+      if (event.shiftKey && index <= 0) { event.preventDefault(); list.at(-1)?.focus(); }
+      else if (!event.shiftKey && (index === list.length - 1 || index < 0)) { event.preventDefault(); list[0]?.focus(); }
+    };
+    document.addEventListener('keydown', trap);
+    return () => { if (main) main.inert = priorInert; document.removeEventListener('keydown', trap); };
+  }, [isDesktop, isMobileMenuOpen]);
   useEffect(() => {
     if (!window.matchMedia) return;
     const media = window.matchMedia('(min-width: 1024px)');
@@ -74,7 +95,7 @@ function MainLayout() {
   const navItems = [
     { 
       path: '/dashboard', 
-      label: 'Santuario / Dashboard', 
+      label: 'Santuario',
       icon: LayoutDashboard,
       roles: ['Administrador', 'Veterinario', 'Recepcionista'] 
     },
@@ -508,7 +529,7 @@ function MainLayout() {
               path="/dashboard" 
               element={
                 <ProtectedRoute allowedRoles={['Administrador', 'Veterinario', 'Recepcionista']}>
-                  <DashboardView />
+                  <HomeView />
                 </ProtectedRoute>
               } 
             />
@@ -569,7 +590,7 @@ function MainLayout() {
               } 
             />
             <Route path="/403" element={<AccessDeniedView />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<NotFoundView />} />
           </Routes>
           </ErrorBoundary>
         </main>
@@ -620,6 +641,7 @@ function App() {
   return (
     <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: 'var(--gray-50)' }}>
       {/* Fondo de Partículas Suaves Interactivas */}
+      <PageAccessibility />
       <AuraParticleBackground />
 
       <Routes>
@@ -632,6 +654,7 @@ function App() {
           element={user ? <MainLayout /> : <Navigate to="/login" replace />} 
         />
       </Routes>
+      <ConflictDialog />
     </div>
   );
 }

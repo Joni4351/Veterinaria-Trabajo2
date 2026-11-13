@@ -17,6 +17,7 @@ public static class DashboardApi
 
     public static void MapDashboardApi(this WebApplication app)
     {
+        app.MapDashboardAnalyticsApi();
         app.MapGet("/api/v1/dashboard", async (VeterinariodbContext db, CancellationToken cancellationToken) =>
         {
             // PostgreSQL returns all six scalar counts in a single round trip.
@@ -41,7 +42,7 @@ public static class DashboardApi
             var insumosBajoStock = await db.Insumos.AsNoTracking().Where(x => x.StockActual <= 10).OrderBy(x => x.Id).Take(5)
                 .Select(x => new { x.Id, x.NombreProducto, x.StockActual }).ToListAsync(cancellationToken);
             return Results.Ok(new { estadisticas, citasRecientes, insumosBajoStock });
-        }).WithTags("Dashboard").RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
+        }).WithTags("Dashboard").RequireAuthorization(policy => policy.RequireRole("Administrador"));
     }
 
     public sealed class DashboardTotals

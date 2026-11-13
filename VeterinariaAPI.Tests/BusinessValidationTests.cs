@@ -149,9 +149,12 @@ public class BusinessValidationTests(FacialFactory factory) : IClassFixture<Faci
     {
         var data = await Seed("Cancelada"); using var client = factory.Client();
         var response = await client.PostAsJsonAsync("/api/v1/citas", new {
-            pacienteId = data.patient, usuarioId = 2, especialidadId = 1, fechaHora = data.time, estado = state
+            pacienteId = data.patient, usuarioId = 2, especialidadId = 1, fechaHora = data.time, estado = "Confirmada"
         });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
+        var created = (await response.Content.ReadFromJsonAsync<Cita>())!;
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/v1/citas/{created.Id}", new { pacienteId = data.patient, usuarioId = 2, especialidadId = 1, fechaHora = data.time, estado = "En Curso" })).StatusCode);
+        if (state != "En Curso") Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/v1/citas/{created.Id}", new { pacienteId = data.patient, usuarioId = 2, especialidadId = 1, fechaHora = data.time, estado = state })).StatusCode);
     }
 
     [Fact]

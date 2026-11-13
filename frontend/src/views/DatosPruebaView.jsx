@@ -3,10 +3,11 @@ import { Database, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { ProtectedRoute } from '../components/ProtectedRoute';
+import { HistoricalSeedPanel } from '../components/HistoricalSeedPanel';
 
 const labels = { usuarios: 'Cuenta veterinaria de demostración', roles: 'Rol veterinario si falta', especialidades: 'Especialidades', insumos: 'Insumos', clientes: 'Clientes', pacientes: 'Mascotas', citas: 'Citas', consultas: 'Consultas', recetas: 'Recetas', detallesReceta: 'Líneas de receta', facturas: 'Facturas', detallesFactura: 'Líneas de factura' };
 
-export const DatosPruebaView = () => <ProtectedRoute allowedRoles={['Administrador']}><DatosPruebaPanel /></ProtectedRoute>;
+export const DatosPruebaView = () => <ProtectedRoute allowedRoles={['Administrador']}><DatosPruebaPanel /><HistoricalSeedPanel /></ProtectedRoute>;
 
 function DatosPruebaPanel() {
   const [plan, setPlan] = useState(null);
@@ -39,15 +40,15 @@ function DatosPruebaPanel() {
   }
 
   return <section style={{ padding: '1.5rem' }} aria-labelledby="demo-heading">
-    <h3 id="demo-heading" style={{ display: 'flex', gap: '.6rem', alignItems: 'center' }}><Database size={24} aria-hidden="true" /> Datos de prueba</h3>
+    <h2 id="demo-heading" style={{ display: 'flex', gap: '.6rem', alignItems: 'center' }}><Database size={24} aria-hidden="true" /> Datos de prueba</h2>
 
     {error && <div className="alert alert-danger" role="alert">{error}</div>}
     {error && !plan && !loading && <button type="button" className="btn btn-secondary" disabled={saving} onClick={load}>Reintentar vista previa</button>}
     {loading ? <p role="status">Cargando vista previa…</p> : plan && <>
       <p style={{ marginBottom: '1rem', color: 'var(--gray-600)' }}>{plan.descripcion}</p>
-      <div className="table-responsive"><table className="custom-table">
+      <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros"><table className="custom-table">
         <caption style={{ textAlign: 'left', paddingBottom: '.75rem', color: 'var(--gray-700)' }}>Composición del lote completo. Los registros existentes se reutilizan.</caption>
-        <thead><tr><th>Tipo de registro</th><th>Cantidad prevista</th>{result && <th>Creados en esta ejecución</th>}</tr></thead>
+        <thead><tr><th scope="col">Tipo de registro</th><th scope="col">Cantidad prevista</th>{result && <th scope="col">Creados en esta ejecución</th>}</tr></thead>
         <tbody>{Object.entries(plan.previstos).map(([key, count]) => <tr key={key}><td>{labels[key] || key}</td><td>{count}</td>{result && <td>{result[key] ?? 0}</td>}</tr>)}</tbody>
       </table></div>
       <p style={{ margin: '1rem 0' }}>Clientes de demostración detectados: <strong>{plan.clientesExistentes}</strong>.</p>

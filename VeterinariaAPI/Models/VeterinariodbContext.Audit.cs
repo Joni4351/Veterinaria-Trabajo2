@@ -32,7 +32,8 @@ public partial class VeterinariodbContext
 
     public static JsonElement? SafeAuditValues(string table, string? json)
     {
-        var allowed = AuditedTypes.Values.FirstOrDefault(x => x.Table == table).Fields;
+        var allowed = table == "Reportes" ? new[] { "Operacion", "tipo", "formato", "Filtros", "Registros" }
+            : AuditedTypes.Values.FirstOrDefault(x => x.Table == table).Fields;
         if (allowed == null || json == null) return null;
         try
         {

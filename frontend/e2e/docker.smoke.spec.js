@@ -24,4 +24,15 @@ test('Docker sirve la SPA, conecta con la API real y conserva la sesión al reca
   expect((await clients).status()).toBe(200);
   await expect(page.getByRole('button', { name: 'Nuevo Cliente' })).toBeVisible();
   await expect(page.locator('.custom-table tbody tr').first()).toBeVisible();
+  await page.goto('/admin');
+  await page.getByRole('button', { name: 'Reportes', exact: true }).click();
+  const panel = page.locator('.reports-panel');
+  for (const type of ['operativo', 'gerencial', 'periodo']) {
+    await panel.getByRole('combobox', { name: 'Reporte', exact: true }).selectOption(type);
+    await expect(panel.locator('tbody tr').first()).toBeVisible();
+    await expect(panel.getByRole('button', { name: 'Exportar PDF' })).toBeEnabled();
+  }
+  const download = page.waitForEvent('download');
+  await panel.getByRole('button', { name: 'Exportar PDF' }).click();
+  expect((await download).suggestedFilename()).toContain('periodo');
 });

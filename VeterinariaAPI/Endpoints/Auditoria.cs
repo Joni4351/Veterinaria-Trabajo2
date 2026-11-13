@@ -26,15 +26,20 @@ public static class AuditoriaApi
                 !await db.Usuarios.AnyAsync(x => x.Id == id && x.Rol.Nombre == "Administrador")) return Results.Forbid();
             return await next(context);
         });
-        group.MapGet("/entidades", () => Results.Ok(VeterinariodbContext.AuditTables));
+        group.MapGet("/entidades", () => Results.Ok(VeterinariodbContext.AuditTables.Append("Reportes").OrderBy(x => x)));
         group.MapGet("/", async (VeterinariodbContext db, string? entidad, string? accion, string? origen,
             string? usuario, string? buscar, DateOnly? desde, DateOnly? hasta, Guid? operacionId, int pagina = 1, int tamano = 25) =>
         {
             if (pagina < 1 || pagina > 100000 || tamano < 1 || tamano > 100 || desde.HasValue && hasta.HasValue && desde > hasta)
                 return Results.BadRequest(new { message = "Revise el rango de fechas y la paginación (1 a 100 resultados por página)." });
-            if (accion != null && accion is not ("CREAR" or "MODIFICAR" or "ELIMINAR") || origen != null && origen is not ("API" or "SISTEMA" or "SQL"))
+            if (accion != null && accion is not ("CREAR" or "MODIFICAR" or "ELIMINAR" or "EXPORTAR") || origen != null && origen is not ("API" or "SISTEMA" or "SQL"))
                 return Results.BadRequest(new { message = "Seleccione una acción y un origen válidos." });
-            var query = db.Auditorias.AsNoTracking();
+            // Normalize report creation events before filtering/counting, including legacy exports.
+            var query = db.Auditorias.AsNoTracking().Select(x => new {
+                x.Id, x.FechaHora, x.UsuarioId, x.UsuarioNombre,
+                Accion = x.Entidad == "Reportes" && x.Accion == "CREAR" ? "EXPORTAR" : x.Accion,
+                x.Entidad, x.RegistroId, x.Origen, x.OperacionId
+            });
             if (!string.IsNullOrWhiteSpace(buscar))
             {
                 var term = buscar.Trim().ToLower();
@@ -74,7 +79,9 @@ public static class AuditoriaApi
             var row = await db.Auditorias.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
             return row == null ? Results.NotFound() : Results.Ok(new
             {
-                row.Id, row.FechaHora, row.UsuarioId, row.UsuarioNombre, row.Accion, row.Entidad, row.RegistroId, row.Origen, row.OperacionId,
+                row.Id, row.FechaHora, row.UsuarioId, row.UsuarioNombre,
+                Accion = row.Entidad == "Reportes" && row.Accion == "CREAR" ? "EXPORTAR" : row.Accion,
+                row.Entidad, row.RegistroId, row.Origen, row.OperacionId,
                 valoresAnteriores = VeterinariodbContext.SafeAuditValues(row.Entidad, row.ValoresAnteriores),
                 valoresNuevos = VeterinariodbContext.SafeAuditValues(row.Entidad, row.ValoresNuevos)
             });

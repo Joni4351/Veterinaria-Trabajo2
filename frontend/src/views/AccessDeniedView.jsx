@@ -63,7 +63,7 @@ export const AccessDeniedView = ({ requiredRoles = [], onGoBack }) => {
           ERROR 403 - FORBIDDEN
         </div>
 
-        <h2 style={{
+        <h1 style={{
           fontSize: '1.45rem',
           fontWeight: 800,
           color: 'var(--gray-900)',
@@ -71,7 +71,7 @@ export const AccessDeniedView = ({ requiredRoles = [], onGoBack }) => {
           lineHeight: 1.2
         }}>
           Acceso Denegado
-        </h2>
+        </h1>
 
         <p style={{
           color: 'var(--gray-500)',
