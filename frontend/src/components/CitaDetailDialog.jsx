@@ -18,7 +18,7 @@ export function CitaDetailDialog({ cita, pacientes = [], clientes = [], onClose 
     <div className="modal-content" style={{ maxWidth: 680, width: '95%' }}>
       <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <Calendar size={24} color="var(--teal-text)" aria-hidden="true" />
-        <h2 id="cita-detail-title" style={{ flex: 1, fontSize: 20 }}>Detalle de cita</h2>
+        <h2 id="cita-detail-title" style={{ flex: 1, fontSize: 20, color: 'var(--gray-900)' }}>Detalle de cita</h2>
         <button type="button" className="btn-icon" onClick={onClose} aria-label="Cerrar detalle de cita"><X size={20} aria-hidden="true" /></button>
       </header>
       <dl style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '20px 24px' }}>
@@ -33,3 +33,4 @@ export function CitaDetailDialog({ cita, pacientes = [], clientes = [], onClose 
     </div>
   </AccessibleDialog>;
 }
+

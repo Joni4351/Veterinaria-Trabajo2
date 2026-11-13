@@ -8,6 +8,7 @@ async function applyTheme(page, theme) {
     document.documentElement.dataset.theme = value;
     document.documentElement.style.colorScheme = value;
     await document.fonts.ready;
+    await Promise.all(document.getAnimations().filter(animation => animation.effect?.getComputedTiming().iterations !== Infinity).map(animation => animation.finished.catch(() => {})));
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
   }, theme);
 }
@@ -522,4 +523,5 @@ test('se puede saltar la navegación y mantener el contenido accesible con texto
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });
+
 
