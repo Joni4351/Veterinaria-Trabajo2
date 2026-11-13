@@ -995,3 +995,11 @@ En vetclinic-review, los tres contenedores quedaron saludables y las migraciones
 **Componentes:** Program, InsightsService e Insights retirados, ReportesView, Compose, .env.example, pruebas backend/navegador y ambas bitácoras.
 
 **Validación:** Backend: 131 pruebas aprobadas y una integración externa omitida; compilación frontend correcta con avisos previos y escenario de reportes aprobado en ambos temas y resoluciones. Sin referencias activas restantes al servicio retirado en los componentes examinados. Sin cambios en Supabase, despliegues, commits o push. Las instancias ya ejecutándose necesitan reinicio o reconstrucción para incorporar el cambio.
+
+## Sesión 45 — 12/11/2026 — Ejecución real del pipeline y ajustes de pruebas
+
+**Objetivo:** Subir los avances y verificar la automatización en GitHub Actions.
+
+**Implementación:** Publicación inicial f86e979; análisis de la ejecución 43334918483. Se corrigió la firma JWT fija de pruebas para leer la configuración efectiva, se sincronizó el cambio de tema antes de axe y se precisó el selector del aviso de registro facial. Se conservan todas las comprobaciones de contraste y autorización.
+
+**Validación:** Contenedores aprobados en la primera ejecución remota; las fallas de pruebas impidieron publicar imágenes. Correcciones comprobadas localmente: 131 pruebas backend aprobadas con clave aleatoria, una integración externa omitida y 29 pruebas de navegador aprobadas. La ejecución remota del ajuste queda en comprobación al guardar esta entrada; no se atribuye un resultado futuro. Sin cambios en Supabase o autenticación de producción. Se actualizan AI_LOG y BITACORA conjuntamente.

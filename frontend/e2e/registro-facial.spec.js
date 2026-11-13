@@ -391,7 +391,7 @@ test('modelos locales y registro real desde foto, sin subir imagen', async ({ pa
   await page.getByRole('button', { name: 'Confirmar registro facial' }).click();
   expect(saved).toBeNull();
   await page.getByRole('button', { name: 'Confirmar', exact: true }).click();
-  await expect(page.getByRole('status')).toContainText('Registro facial guardado correctamente');
+  await expect(page.locator('.facial-notice[role="status"]')).toContainText('Registro facial guardado correctamente');
   expect(saved.descriptor).toHaveLength(128);
   expect(saved.descriptor.every(Number.isFinite)).toBeTruthy();
   expect(Object.keys(saved).sort()).toEqual(['consentimiento', 'consentimientoVersion', 'descriptor', 'fechaActualizacion']);

@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using VeterinariaAPI.Models;
 using Xunit;
@@ -97,7 +98,8 @@ namespace VeterinariaAPI.Tests
         private string GenerateTestJwt(string role = "Administrador")
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes("Mi_super-claveultra-secreta1234:)");
+            var config = _factory.Services.GetRequiredService<IConfiguration>();
+            var key = Encoding.UTF8.GetBytes(config["Jwt:Key"] ?? throw new InvalidOperationException("Falta la clave JWT del servidor de pruebas."));
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
@@ -106,8 +108,8 @@ namespace VeterinariaAPI.Tests
                     new Claim(ClaimTypes.Role, role)
                 }),
                 Expires = DateTime.UtcNow.AddHours(1),
-                Issuer = "VeterinarioApi",
-                Audience = "VeterinarioApiUsuarios",
+                Issuer = config["Jwt:Issuer"],
+                Audience = config["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);

@@ -3,6 +3,15 @@ import AxeBuilder from '@axe-core/playwright';
 import { writeFile } from 'node:fs/promises';
 import { dashboardFixture } from '../src/test/dashboardFixture.js';
 
+async function applyTheme(page, theme) {
+  await page.evaluate(async value => {
+    document.documentElement.dataset.theme = value;
+    document.documentElement.style.colorScheme = value;
+    await document.fonts.ready;
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+  }, theme);
+}
+
 test('reportes filtran, paginan, exportan y conservan accesibilidad en ambos temas', async ({ page }, testInfo) => {
   await prepare(page);
   const requests = [];
@@ -27,7 +36,7 @@ test('reportes filtran, paginan, exportan y conservan accesibilidad en ambos tem
   await expect(panel.getByRole('button', { name: 'Analizar con IA' })).toHaveCount(0);
   await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
   for (const theme of ['light', 'dark']) {
-    await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+    await applyTheme(page, theme);
     await page.setViewportSize({ width: 1440, height: 900 });
     expect(await panel.locator('.reports-filter-grid').evaluate(el => getComputedStyle(el).gridTemplateColumns.split(' ').length)).toBe(3);
     await page.screenshot({ path: testInfo.outputPath(`reportes-${theme}-desktop.png`), fullPage: true });
@@ -76,7 +85,7 @@ test('conflictos usan un diálogo personalizado y mantienen el registro y el foc
   await expect(conflict.getByRole('button', { name: 'Entendido' })).toBeFocused();
   await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
   for (const theme of ['light', 'dark']) {
-    await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+    await applyTheme(page, theme);
     expect((await new AxeBuilder({ page }).include('.conflict-dialog').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations).toEqual([]);
   }
   await page.keyboard.press('Escape');
@@ -143,13 +152,13 @@ test('auditoría de regiones administrativas y alternativas de gráficos', async
     for (const path of ['/dashboard', '/clientes', '/pacientes', '/citas', '/consultas', '/insumos', '/facturas']) {
       await page.goto(path);
       await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
-      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+      await applyTheme(page, theme);
       await expect(page.locator('#main-content h1')).toBeVisible();
       report.push({ theme, section: path, violations: (await new AxeBuilder({ page }).analyze()).violations });
     }
     await page.goto('/admin');
     await page.addStyleTag({ content: '*, *::before, *::after { transition: none !important; }' });
-    await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+    await applyTheme(page, theme);
     for (const name of ['Dashboard de gestión', 'Historial de cambios', 'Datos de prueba', 'Registro Facial', 'Especialidades Médicas', 'Roles de Seguridad (RBAC)', 'Cuentas de Usuarios']) {
       await page.getByRole('button', { name, exact: true }).click();
       if (name === 'Dashboard de gestión') {
@@ -224,7 +233,7 @@ test('santuario presenta accesos y compañero en ambos temas y móvil', async ({
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     for (const theme of ['light', 'dark']) {
-      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+      await applyTheme(page, theme);
       expect((await new AxeBuilder({ page }).include('.sanctuary-welcome').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations).toEqual([]);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
       await page.screenshot({ path: testInfo.outputPath(`santuario-${width}-${theme}.png`), fullPage: true });
@@ -255,7 +264,7 @@ test('dashboard presenta cuatro gráficos accesibles sin desbordar en escritorio
   for (const width of [1440, 390]) {
     await page.setViewportSize({ width, height: 1000 });
     for (const theme of ['light', 'dark']) {
-      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+      await applyTheme(page, theme);
       const result = await new AxeBuilder({ page }).include('.dashboard-analytics').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
       expect(result.violations).toEqual([]);
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -399,7 +408,7 @@ test('formularios y listados cumplen las comprobaciones automáticas seleccionad
     for (const [path, button] of [['/clientes', 'Nuevo Cliente'], ['/pacientes', 'Registrar un nuevo paciente'], ['/citas', 'Agendar Nueva Cita'], ['/consultas', 'Nueva Consulta'], ['/insumos', 'Nuevo Insumo'], ['/facturas', 'Emitir Factura']]) {
       await page.goto(path); await page.getByRole('button', { name: button, exact: true }).waitFor();
       await expect(page.locator('.custom-table tbody tr').first()).toBeVisible();
-      await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+      await applyTheme(page, theme);
       await check(`${path} ${theme}`, '#main-content');
       await page.getByRole('button', { name: button, exact: true }).click();
       const dialog = page.getByRole('dialog'); await expect(dialog).toBeVisible();
@@ -411,7 +420,7 @@ test('formularios y listados cumplen las comprobaciones automáticas seleccionad
     }
     await page.goto('/admin');
     await page.getByRole('button', { name: 'Nueva Especialidad', exact: true }).waitFor();
-    await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+    await applyTheme(page, theme);
     for (const [tab, open] of [['Especialidades Médicas', 'Nueva Especialidad'], ['Roles de Seguridad (RBAC)', 'Nuevo Rol'], ['Cuentas de Usuarios', 'Nuevo usuario']]) {
       await page.getByRole('button', { name: tab, exact: true }).click();
       await page.getByRole('button', { name: open, exact: true }).click();
@@ -453,7 +462,7 @@ test('un fallo del servidor en una consulta muestra una explicación segura y pe
 test('login conserva contraste y mensajes asociados en ambos temas', async ({ page }) => {
   for (const theme of ['light', 'dark']) {
     await page.goto('/login');
-    await page.evaluate(theme => { document.documentElement.dataset.theme = theme; }, theme);
+    await applyTheme(page, theme);
     await page.getByRole('button', { name: 'Iniciar Sesión', exact: true }).click();
     await expect(page.locator('input[type=email]')).toBeFocused();
     const results = await new AxeBuilder({ page }).include('main').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
@@ -472,3 +481,4 @@ test('se puede saltar la navegación y mantener el contenido accesible con texto
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
 });
+

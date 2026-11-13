@@ -1131,3 +1131,13 @@ En el proyecto Docker aislado vetclinic-review se construyeron e iniciaron front
 **Intervención:** Se retiraron InsightsService, el endpoint de análisis, su registro de dependencias y limitador exclusivo, las variables AI de Compose y .env.example y los controles/estado asociados en ReportesView. Se eliminaron las cuatro pruebas específicas de la funcionalidad retirada y se ajustó la prueba de reportes para verificar la ausencia del botón de IA. Los reportes, gráficos, exportaciones y face-api.js se conservan. No se altera el historial de intervenciones previas.
 
 **Validación y componentes:** Program.cs, servicios/endpoints retirados, ReportesView.jsx, compose.yaml, .env.example, ReviewComplianceTests.cs, accesibilidad.spec.js y ambas bitácoras. Backend: 131 aprobadas, una integración externa omitida. Frontend: build correcto con avisos preexistentes y prueba de reportes aprobada con filtros, páginas, descarga, accesibilidad y adaptación en ambos temas. Búsqueda de referencias activas al endpoint, servicio y variables retiradas sin coincidencias. No se modificó Supabase ni se reiniciaron o reconstruyeron los contenedores del usuario. Sin commits o push.
+
+## 42. Validación remota y estabilización de pruebas en GitHub Actions
+
+**Fecha:** 12/11/2026.
+
+**Requerimiento reformulado:** Publicar los avances en feature/FaceAPI y comprobar el pipeline real, corrigiendo diferencias entre la ejecución local y el entorno automatizado.
+
+**Intervención:** Se publicó f86e979 y se consultó la ejecución 43334918483. La etapa de contenedores aprobó, mientras backend y navegador detectaron dependencias de configuración y sincronización en pruebas. ApiIntegrationTests ahora firma los tokens con la clave, emisor y audiencia efectivos del servidor de pruebas, eliminando la clave fija incompatible con los secretos efímeros de CI. La auditoría visual espera fuentes y dos ciclos de renderizado después del cambio de tema antes de medir contraste, sin deshabilitar reglas axe. La confirmación facial utiliza su aviso específico, evitando ambigüedad con el estado de carga de usuarios.
+
+**Componentes y validación:** ApiIntegrationTests.cs, accesibilidad.spec.js, registro-facial.spec.js y ambas bitácoras. Backend local con clave JWT aleatoria: 131 aprobadas y una integración externa omitida. Navegador local: 29 aprobadas. La primera ejecución remota bloqueó la publicación al fallar las pruebas, conforme a las dependencias definidas. Se prepara una segunda ejecución con los ajustes; su resultado aún no se presume en esta entrada. No se modificó Supabase ni la autenticación de producción. El archivo gráfico personal no relacionado permanece fuera del commit.
