@@ -19,9 +19,9 @@ export const EmptyState = ({
         justifyContent: 'center',
         padding: '3.5rem 1.5rem',
         textAlign: 'center',
-        backgroundColor: '#f8fafc',
+        backgroundColor: 'var(--gray-50)',
         borderRadius: '12px',
-        border: '1px dashed #cbd5e1',
+        border: '1px dashed var(--gray-300)',
         margin: '1rem 0'
       }}
     >
@@ -30,8 +30,8 @@ export const EmptyState = ({
           width: '54px',
           height: '54px',
           borderRadius: '50%',
-          backgroundColor: '#e2e8f0',
-          color: '#64748b',
+          backgroundColor: 'var(--gray-200)',
+          color: 'var(--gray-500)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -42,10 +42,10 @@ export const EmptyState = ({
         <Icon size={28} />
       </div>
 
-      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: '#334155', marginBottom: '0.4rem' }}>
+      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--gray-700)', marginBottom: '0.4rem' }}>
         {title}
       </h3>
-      <p style={{ color: '#64748b', fontSize: '0.88rem', maxWidth: '380px', marginBottom: actionLabel ? '1.25rem' : '0', lineHeight: 1.5 }}>
+      <p style={{ color: 'var(--gray-500)', fontSize: '0.88rem', maxWidth: '380px', marginBottom: actionLabel ? '1.25rem' : '0', lineHeight: 1.5 }}>
         {description}
       </p>
 

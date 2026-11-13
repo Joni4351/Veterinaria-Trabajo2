@@ -1,3 +1,7 @@
+import { NumericInput } from '../components/NumericInput';
+import { AccessibleDialog } from "../components/AccessibleDialog";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
+import { notifySuccess, notifyConflict } from '../services/notifications';
 import React, { useState, useEffect, useId } from 'react';
 import pacientesService from '../services/pacientesService';
 import clientesService from '../services/clientesService';
@@ -13,7 +17,8 @@ import {
 
 export const PacientesView = () => {
   const { hasRole, isAdmin } = useAuth();
-  const canCreateOrEdit = typeof hasRole === 'function' ? hasRole(['Administrador', 'Veterinario']) : false;
+  const canCreateOrEdit = typeof hasRole === 'function' ? hasRole(['Administrador', 'Veterinario', 'Recepcionista']) : false;
+  const canEdit = canCreateOrEdit || (typeof hasRole === 'function' && hasRole(['Recepcionista']));
   const canDelete = isAdmin || (typeof hasRole === 'function' && hasRole(['Administrador']));
 
   // Estados de datos
@@ -89,7 +94,7 @@ export const PacientesView = () => {
       const data = await pacientesService.getAll(filters);
       setPacientes(data || []);
     } catch (err) {
-      setError(err.response?.data?.message || 'Error al conectar con el servidor para obtener los pacientes.');
+      setError(err.userMessage || err.response?.data?.message || 'Error al conectar con el servidor para obtener los pacientes.');
     } finally {
       setLoading(false);
     }
@@ -178,6 +183,7 @@ export const PacientesView = () => {
       } else {
         await pacientesService.create(payload);
       }
+      notifySuccess(editingId ? 'Paciente actualizado correctamente.' : 'Paciente registrado correctamente.');
       setIsModalOpen(false);
       fetchPacientes();
     } catch (err) {
@@ -191,7 +197,7 @@ export const PacientesView = () => {
         setFieldErrors(serverErrors);
         setFormGlobalError('El servidor rechazó los datos ingresados debido a errores de validación.');
       } else {
-        setFormGlobalError(err.response?.data?.message || 'Error al guardar el paciente. Verifique su conexión y permisos.');
+        setFormGlobalError(err.userMessage || err.response?.data?.message || 'Error al guardar el paciente. Verifique su conexión y permisos.');
       }
     } finally {
       setSubmitting(false);
@@ -212,10 +218,11 @@ export const PacientesView = () => {
     setDeleteConfirm(prev => ({ ...prev, loading: true }));
     try {
       await pacientesService.delete(deleteConfirm.id);
+      notifySuccess('Paciente eliminado correctamente.');
       setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false });
       fetchPacientes();
     } catch (err) {
-      alert(err.response?.data?.message || 'No se pudo eliminar el paciente. Puede poseer citas o consultas asociadas.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'No se pudo eliminar el paciente. Puede poseer citas o consultas asociadas.');
       setDeleteConfirm(prev => ({ ...prev, loading: false }));
     }
   };
@@ -225,19 +232,16 @@ export const PacientesView = () => {
   const paginatedPacientes = pacientes.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
-    <main role="main" aria-label="Gestión de Pacientes">
+    <section aria-label="Gestión de Pacientes">
       <div className="card">
         {/* Encabezado semántico */}
         <header className="card-header" style={{ flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <h1 className="card-title" style={{ fontSize: '1.4rem' }}>
-              <Dog size={26} color="#0284c7" aria-hidden="true" />
+              <Dog size={26} color="var(--blue-text)" aria-hidden="true" />
               Gestión de Pacientes (Mascotas)
             </h1>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.25rem' }}>
-              Operación completa CRUD del recurso principal consumiendo `/api/v1/pacientes`
-            </p>
-          </div>
+            </div>
           {canCreateOrEdit && (
             <button
               type="button"
@@ -254,7 +258,7 @@ export const PacientesView = () => {
 
         {/* Panel de Filtros de Búsqueda */}
         <section className="filter-panel" aria-label="Filtros de búsqueda de pacientes">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: '#334155' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--gray-700)' }}>
             <Filter size={16} aria-hidden="true" />
             <span>Filtros de Búsqueda de Pacientes</span>
           </div>
@@ -318,7 +322,6 @@ export const PacientesView = () => {
                 className="btn btn-secondary"
                 style={{ width: '100%', minHeight: '44px' }}
                 onClick={handleResetFilters}
-                aria-label="Restablecer todos los filtros de búsqueda"
               >
                 <RotateCcw size={15} aria-hidden="true" /> Limpiar Filtros
               </button>
@@ -368,7 +371,7 @@ export const PacientesView = () => {
         {/* 4. Estado con Datos: Tabla Accesible y Responsiva */}
         {!loading && !error && pacientes.length > 0 && (
           <>
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table" aria-label="Listado de mascotas y pacientes">
                 <thead>
                   <tr>
@@ -387,7 +390,7 @@ export const PacientesView = () => {
                     return (
                       <tr key={p.id}>
                         <td data-label="Nombre">
-                          <strong style={{ color: '#0f172a' }}>{p.nombre}</strong>
+                          <strong style={{ color: 'var(--gray-900)' }}>{p.nombre}</strong>
                         </td>
                         <td data-label="Especie">
                           <span className="badge badge-primary">{p.especie}</span>
@@ -397,18 +400,18 @@ export const PacientesView = () => {
                         <td data-label="Dueño Responsable">
                           {cliente ? (
                             <div>
-                              <strong style={{ color: '#0f172a' }}>{cliente.nombreCompleto}</strong>
-                              <div style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 600 }}>RUT: {cliente.documentoIdentidad}</div>
+                              <strong style={{ color: 'var(--gray-900)' }}>{cliente.nombreCompleto}</strong>
+                              <div style={{ fontSize: '0.78rem', color: 'var(--blue-text)', fontWeight: 600 }}>RUT: {cliente.documentoIdentidad}</div>
                             </div>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>Sin dueño asignado</span>
+                            <span style={{ color: 'var(--gray-400)' }}>Sin dueño asignado</span>
                           )}
                         </td>
                         <td data-label="Alergias">
                           {p.alergias ? (
                             <span className="badge badge-danger">{p.alergias}</span>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>Ninguna</span>
+                            <span style={{ color: 'var(--gray-400)' }}>Ninguna</span>
                           )}
                         </td>
                         <td data-label="Acciones" style={{ textAlign: 'right' }}>
@@ -426,7 +429,7 @@ export const PacientesView = () => {
                             </button>
 
                             {/* Editar */}
-                            {canCreateOrEdit && (
+                            {canEdit && (
                               <button
                                 type="button"
                                 className="btn-icon"
@@ -469,13 +472,13 @@ export const PacientesView = () => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 padding: '1rem 0.5rem 0.5rem',
-                borderTop: '1px solid #e2e8f0',
+                borderTop: '1px solid var(--gray-200)',
                 marginTop: '1rem',
                 flexWrap: 'wrap',
                 gap: '0.75rem'
               }}
             >
-              <span style={{ fontSize: '0.85rem', color: '#64748b' }}>
+              <span style={{ fontSize: '0.85rem', color: 'var(--gray-500)' }}>
                 Mostrando <strong>{paginatedPacientes.length}</strong> de <strong>{pacientes.length}</strong> pacientes (Página {currentPage} de {totalPages})
               </span>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
@@ -509,24 +512,24 @@ export const PacientesView = () => {
           MODAL DETALLE DE PACIENTE (Lectura en Tarjetas Visuales)
           ========================================================================= */}
       {isDetailOpen && detailPaciente && (
-        <div
+        <AccessibleDialog
           className="modal-overlay"
           role="presentation"
           onClick={(e) => {
             if (e.target === e.currentTarget) setIsDetailOpen(false);
           }}
-        >
+         aria-labelledby="detail-modal-title" aria-label="Detalles del paciente" onClose={() => setIsDetailOpen(false)}>
           <div
             className="modal-content"
-            role="dialog"
-            aria-modal="true"
+
+
             aria-labelledby="detail-modal-title"
             style={{ maxWidth: '520px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}
           >
             {/* Tarjeta Visual Cabecera Ficha */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <h2 id="detail-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
-                <Dog size={22} color="#0284c7" aria-hidden="true" />
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <h2 id="detail-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', display: 'flex', alignItems: 'center', gap: '0.5rem', margin: 0 }}>
+                <Dog size={22} color="var(--blue-text)" aria-hidden="true" />
                 Ficha Clínica: {detailPaciente.nombre}
               </h2>
               <button
@@ -540,7 +543,7 @@ export const PacientesView = () => {
               </button>
             </div>
             {/* Tarjeta Visual Datos Clínicos */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', lineHeight: 1.8 }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', lineHeight: 1.8 }}>
               <p><strong>Nombre del Paciente:</strong> {detailPaciente.nombre}</p>
               <p><strong>Especie:</strong> {detailPaciente.especie}</p>
               <p><strong>Raza:</strong> {detailPaciente.raza || 'No especificada'}</p>
@@ -554,13 +557,13 @@ export const PacientesView = () => {
               </p>
               <p>
                 <strong>Alergias o Observaciones:</strong>{' '}
-                <span style={{ color: detailPaciente.alergias ? '#dc2626' : '#64748b' }}>
+                <span style={{ color: detailPaciente.alergias ? 'var(--danger-text)' : 'var(--gray-500)' }}>
                   {detailPaciente.alergias || 'Sin alergias conocidas'}
                 </span>
               </p>
             </div>
             {/* Tarjeta Visual Pie */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end' }}>
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -571,38 +574,38 @@ export const PacientesView = () => {
               </button>
             </div>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* =========================================================================
           MODAL CREAR / EDITAR PACIENTE (Formulario con validación Zod)
           ========================================================================= */}
       {isModalOpen && (
-        <div
+        <AccessibleDialog
           className="modal-overlay"
           role="presentation"
           onClick={(e) => {
             if (e.target === e.currentTarget && !submitting) setIsModalOpen(false);
           }}
-        >
+         aria-labelledby="form-modal-title" aria-label="Paciente veterinario" onClose={submitting ? undefined : () => setIsModalOpen(false)}>
           <div
             className="modal-content"
-            role="dialog"
-            aria-modal="true"
+
+
             aria-labelledby="form-modal-title"
             style={{ maxWidth: '640px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}
           >
             {/* Tarjeta Visual Cabecera Formulario */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : 'var(--success-text)', flexShrink: 0 }}>
                   <Dog size={22} />
                 </div>
                 <div>
-                  <h2 id="form-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h2 id="form-modal-title" style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? `Editar Paciente: ${formData.nombre}` : 'Registrar Nuevo Paciente'}
                   </h2>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Actualice la información médica y tutor de la mascota' : 'Ingrese los datos clínicos y asocie un cliente responsable'}
                   </span>
                 </div>
@@ -619,8 +622,8 @@ export const PacientesView = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate>
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <AccessibleForm onSubmit={handleSubmit} noValidate>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {formGlobalError && (
                   <div
                     role="alert"
@@ -636,7 +639,7 @@ export const PacientesView = () => {
                 {/* Campo Dueño */}
                 <div className="form-group">
                   <label htmlFor={`${formId}-clienteId`} className="form-label">
-                    Dueño / Cliente Responsable <span style={{ color: '#ef4444' }}>*</span>
+                    Dueño / Cliente Responsable <RequiredIndicator />
                   </label>
                   <select
                     id={`${formId}-clienteId`}
@@ -656,7 +659,7 @@ export const PacientesView = () => {
                     ))}
                   </select>
                   {fieldErrors.clienteId && (
-                    <span id={`${formId}-clienteId-error`} role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id={`${formId}-clienteId-error`} role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                       {fieldErrors.clienteId}
                     </span>
                   )}
@@ -666,7 +669,7 @@ export const PacientesView = () => {
                   {/* Campo Nombre */}
                   <div className="form-group">
                     <label htmlFor={`${formId}-nombre`} className="form-label">
-                      Nombre del Paciente <span style={{ color: '#ef4444' }}>*</span>
+                      Nombre del Paciente <RequiredIndicator />
                     </label>
                     <input
                       id={`${formId}-nombre`}
@@ -681,7 +684,7 @@ export const PacientesView = () => {
                       required
                     />
                     {fieldErrors.nombre && (
-                      <span id={`${formId}-nombre-error`} role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id={`${formId}-nombre-error`} role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                         {fieldErrors.nombre}
                       </span>
                     )}
@@ -690,7 +693,7 @@ export const PacientesView = () => {
                   {/* Campo Especie */}
                   <div className="form-group">
                     <label htmlFor={`${formId}-especie`} className="form-label">
-                      Especie <span style={{ color: '#ef4444' }}>*</span>
+                      Especie <RequiredIndicator />
                     </label>
                     <select
                       id={`${formId}-especie`}
@@ -709,7 +712,7 @@ export const PacientesView = () => {
                       <option value="Otro">Otro</option>
                     </select>
                     {fieldErrors.especie && (
-                      <span id={`${formId}-especie-error`} role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id={`${formId}-especie-error`} role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                         {fieldErrors.especie}
                       </span>
                     )}
@@ -732,7 +735,7 @@ export const PacientesView = () => {
                       style={{ minHeight: '44px' }}
                     />
                     {fieldErrors.raza && (
-                      <span id={`${formId}-raza-error`} role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id={`${formId}-raza-error`} role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                         {fieldErrors.raza}
                       </span>
                     )}
@@ -740,8 +743,8 @@ export const PacientesView = () => {
 
                   {/* Campo Peso */}
                   <div className="form-group">
-                    <label htmlFor={`${formId}-peso`} className="form-label">Peso (kg)</label>
-                    <input
+                    <label htmlFor={`${formId}-peso`} className="form-label">Peso (kg) <RequiredIndicator /></label>
+                    <NumericInput
                       id={`${formId}-peso`}
                       type="number"
                       step="0.1"
@@ -751,10 +754,10 @@ export const PacientesView = () => {
                       onChange={(e) => setFormData({ ...formData, peso: e.target.value })}
                       aria-invalid={!!fieldErrors.peso}
                       aria-describedby={fieldErrors.peso ? `${formId}-peso-error` : undefined}
-                      style={{ minHeight: '44px' }}
+                      style={{ minHeight: '44px' }} required
                     />
                     {fieldErrors.peso && (
-                      <span id={`${formId}-peso-error`} role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id={`${formId}-peso-error`} role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                         {fieldErrors.peso}
                       </span>
                     )}
@@ -775,7 +778,7 @@ export const PacientesView = () => {
                     aria-describedby={fieldErrors.alergias ? `${formId}-alergias-error` : undefined}
                   />
                   {fieldErrors.alergias && (
-                    <span id={`${formId}-alergias-error`} role="alert" style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id={`${formId}-alergias-error`} role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                       {fieldErrors.alergias}
                     </span>
                   )}
@@ -783,7 +786,7 @@ export const PacientesView = () => {
               </div>
 
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button
                   type="button"
                   className="btn btn-secondary"
@@ -793,18 +796,18 @@ export const PacientesView = () => {
                 >
                   Cancelar
                 </button>
-                <button
+                <SubmitButton
                   type="submit"
                   className="btn btn-primary"
                   disabled={submitting}
                   style={{ minHeight: '44px', minWidth: '44px' }}
                 >
                   {submitting ? 'Guardando...' : (editingId ? 'Guardar Cambios' : 'Registrar Paciente')}
-                </button>
+                </SubmitButton>
               </div>
-            </form>
+            </AccessibleForm>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Modal accesible de confirmación para eliminación */}
@@ -818,7 +821,7 @@ export const PacientesView = () => {
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteConfirm({ isOpen: false, id: null, nombre: '', loading: false })}
       />
-    </main>
+    </section>
   );
 };
 

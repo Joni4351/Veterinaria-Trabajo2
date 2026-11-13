@@ -20,7 +20,7 @@ namespace VeterinariaAPI.Endpoints
                 string? telefono,
                 IRepository<Cliente> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (!string.IsNullOrWhiteSpace(documento))
                 {
@@ -57,9 +57,8 @@ namespace VeterinariaAPI.Endpoints
 
                 // Normalización de RUT para validación de unicidad
                 var rutClean = dto.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper();
-                var clientesActuales = await repo.ObtenerTodosAsync();
 
-                var rutDuplicado = clientesActuales.Any(c => 
+                var rutDuplicado = await repo.Query().AnyAsync(c =>
                     c.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper() == rutClean);
 
                 if (rutDuplicado)
@@ -73,8 +72,8 @@ namespace VeterinariaAPI.Endpoints
                 if (!string.IsNullOrWhiteSpace(dto.Email))
                 {
                     var emailNormalizado = dto.Email.Trim().ToLower();
-                    var emailDuplicado = clientesActuales.Any(c => 
-                        !string.IsNullOrWhiteSpace(c.Email) && c.Email.Trim().ToLower() == emailNormalizado);
+                    var emailDuplicado = await repo.Query().AnyAsync(c =>
+                        c.Email != null && c.Email.Trim().ToLower() == emailNormalizado);
 
                     if (emailDuplicado)
                     {
@@ -87,17 +86,17 @@ namespace VeterinariaAPI.Endpoints
 
                 var nuevoCliente = new Cliente
                 {
-                    DocumentoIdentidad = dto.DocumentoIdentidad,
-                    NombreCompleto = dto.NombreCompleto,
-                    Telefono = dto.Telefono,
-                    Email = dto.Email
+                    DocumentoIdentidad = dto.DocumentoIdentidad.Trim(),
+                    NombreCompleto = dto.NombreCompleto.Trim(),
+                    Telefono = dto.Telefono.Trim(),
+                    Email = dto.Email.Trim().ToLowerInvariant()
                 };
 
                 await repo.CrearAsync(nuevoCliente);
                 await repo.GuardarCambiosAsync();
 
                 return Results.Created($"/api/v1/clientes/{nuevoCliente.Id}", nuevoCliente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
             // API para editar un cliente por ID
             clientes.MapPut("/{id:int}", async (int id, ClienteCreateDto dto, IRepository<Cliente> repo) =>
@@ -112,9 +111,8 @@ namespace VeterinariaAPI.Endpoints
                 if (clienteExistente is null) return Results.NotFound();
 
                 var rutClean = dto.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper();
-                var clientesActuales = await repo.ObtenerTodosAsync();
 
-                var rutDuplicado = clientesActuales.Any(c => 
+                var rutDuplicado = await repo.Query().AnyAsync(c =>
                     c.Id != id && c.DocumentoIdentidad.Replace(".", "").Replace("-", "").Trim().ToUpper() == rutClean);
 
                 if (rutDuplicado)
@@ -128,8 +126,8 @@ namespace VeterinariaAPI.Endpoints
                 if (!string.IsNullOrWhiteSpace(dto.Email))
                 {
                     var emailNormalizado = dto.Email.Trim().ToLower();
-                    var emailDuplicado = clientesActuales.Any(c => 
-                        c.Id != id && !string.IsNullOrWhiteSpace(c.Email) && c.Email.Trim().ToLower() == emailNormalizado);
+                    var emailDuplicado = await repo.Query().AnyAsync(c =>
+                        c.Id != id && c.Email != null && c.Email.Trim().ToLower() == emailNormalizado);
 
                     if (emailDuplicado)
                     {
@@ -140,14 +138,14 @@ namespace VeterinariaAPI.Endpoints
                     }
                 }
 
-                clienteExistente.DocumentoIdentidad = dto.DocumentoIdentidad;
-                clienteExistente.NombreCompleto = dto.NombreCompleto;
-                clienteExistente.Telefono = dto.Telefono;
-                clienteExistente.Email = dto.Email;
+                clienteExistente.DocumentoIdentidad = dto.DocumentoIdentidad.Trim();
+                clienteExistente.NombreCompleto = dto.NombreCompleto.Trim();
+                clienteExistente.Telefono = dto.Telefono.Trim();
+                clienteExistente.Email = dto.Email.Trim().ToLowerInvariant();
 
                 await repo.GuardarCambiosAsync();
                 return Results.Ok(clienteExistente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Recepcionista"));
 
             // API para eliminar cliente
             clientes.MapDelete("/{id:int}", async (int id, IRepository<Cliente> repo, VeterinariodbContext db) =>
@@ -186,10 +184,12 @@ namespace VeterinariaAPI.Endpoints
 
             [property: Required(ErrorMessage = "El teléfono es obligatorio.")]
             [property: StringLength(20, MinimumLength = 8, ErrorMessage = "El teléfono debe tener entre 8 y 20 caracteres.")]
+            [property: RegularExpression(@"\+?(?=(?:\D*\d){8,15}\D*$)[0-9() \-]+", ErrorMessage = "El teléfono debe contener entre 8 y 15 dígitos; el signo + solo puede ir al inicio.")]
             string Telefono,
 
             [property: Required(ErrorMessage = "El correo electrónico es obligatorio.")]
             [property: EmailAddress(ErrorMessage = "El formato del correo electrónico no es válido.")]
+            [property: StringLength(150, ErrorMessage = "El correo no puede superar 150 caracteres.")]
             string Email
         );
     }

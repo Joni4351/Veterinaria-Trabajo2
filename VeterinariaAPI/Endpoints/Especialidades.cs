@@ -19,7 +19,7 @@ namespace VeterinariaAPI.Endpoints
                 decimal? costoMax,
                 IRepository<Especialidade> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (!string.IsNullOrWhiteSpace(nombre))
                 {

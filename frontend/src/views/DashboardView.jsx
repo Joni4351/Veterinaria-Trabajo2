@@ -1,437 +1,134 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Calendar, RefreshCw, TrendingUp, Package, Activity, ArrowRight, AlertTriangle, Filter } from 'lucide-react';
 import api from '../services/api';
+import { normalizeDashboardData } from '../services/dashboardData';
 import { useAuth } from '../context/AuthContext';
-import VeterinaryPet3D from '../components/VeterinaryPet3D';
-import { 
-  Users, Dog, Calendar, DollarSign, Package, Stethoscope, 
-  ArrowRight, Sparkles, Heart, Clock, AlertTriangle, 
-  ChevronRight, PlusCircle, CheckCircle2
-} from 'lucide-react';
+import { todayInChile, isCalendarDate } from '../schemas/dateValidation';
+import { RevenueChart, AppointmentChart, SpecialtyChart, InventoryChart, money } from '../components/DashboardCharts';
+import './DashboardView.css';
+import { DashboardIndicatorGuide } from '../components/DashboardIndicatorGuide';
+
+function shiftDate(date, days) {
+  const value = new Date(`${date}T12:00:00Z`); value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+}
+function initialFilters() {
+  const today = todayInChile();
+  return { fechaDesde: shiftDate(today, -29), fechaHasta: today, agrupacion: 'dia', especialidadId: '', veterinarioId: '', estado: '', tipoInsumo: '', stock: 'todos' };
+}
+const states = ['Pendiente', 'Confirmada', 'En Curso', 'Completada', 'Atendida', 'Cancelada'];
+const percentage = value => value == null ? 'No calculable' : `${new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(value)} %`;
+
+function ChartCard({ title, note, icon: Icon, children, action }) {
+  const id = useId();
+  return <section className="dash-chart-card" aria-labelledby={`${id}-title`} aria-describedby={`${id}-description`}><header><div><h3 id={`${id}-title`}><Icon size={18} aria-hidden="true" />{title}</h3><p id={`${id}-description`}>{note}</p></div>{action}</header>{children}</section>;
+}
 
 export const DashboardView = ({ onNavigate }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const handleNav = (target) => {
-    if (onNavigate) {
-      onNavigate(target);
-    } else {
-      navigate('/' + target);
-    }
-  };
-
-  const [stats, setStats] = useState({
-    pacientes: 0,
-    clientes: 0,
-    citas: 0,
-    facturas: 0,
-    insumos: 0,
-    consultas: 0
-  });
-  const [citasRecientes, setCitasRecientes] = useState([]);
-  const [insumosBajoStock, setInsumosBajoStock] = useState([]);
+  const go = name => onNavigate ? onNavigate(name) : navigate(`/${name}`);
+  const [filters, setFilters] = useState(initialFilters);
+  const [revision, setRevision] = useState(0);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [updated, setUpdated] = useState(null);
+  const inFlight = useRef(false);
+  const invalidRange = !isCalendarDate(filters.fechaDesde) || !isCalendarDate(filters.fechaHasta) || filters.fechaDesde > filters.fechaHasta ||
+    (Date.parse(filters.fechaHasta) - Date.parse(filters.fechaDesde)) / 86400000 > 365;
+  const refresh = () => setRevision(value => value + 1);
+  const set = (key, value) => setFilters(current => ({ ...current, [key]: value }));
 
   useEffect(() => {
-    fetchDashboardData();
+    const refreshVisible = () => { if (document.visibilityState === 'visible' && !inFlight.current) refresh(); };
+    const timer = setInterval(refreshVisible, 30000);
+    const changed = () => refresh();
+    window.addEventListener('focus', refreshVisible);
+    document.addEventListener('visibilitychange', refreshVisible);
+    window.addEventListener('vet:datachanged', changed);
+    return () => { clearInterval(timer); window.removeEventListener('focus', refreshVisible); document.removeEventListener('visibilitychange', refreshVisible); window.removeEventListener('vet:datachanged', changed); };
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      const [pacRes, cliRes, citRes, facRes, insRes, conRes] = await Promise.allSettled([
-        api.get('/api/v1/pacientes'),
-        api.get('/api/v1/clientes'),
-        api.get('/api/v1/citas'),
-        api.get('/api/v1/facturas'),
-        api.get('/api/v1/insumos'),
-        api.get('/api/v1/consultas')
-      ]);
+  useEffect(() => {
+    const controller = new AbortController();
+    if (invalidRange) { setLoading(false); return () => controller.abort(); }
+    setLoading(true); setError(''); inFlight.current = true;
+    const load = async () => {
+      try {
+        const response = await api.get('/api/v1/dashboard/analitica', { params: Object.fromEntries(Object.entries(filters).filter(([,v]) => v !== '')), signal: controller.signal });
+        if (!controller.signal.aborted) { setData(normalizeDashboardData(response.data)); setUpdated(new Date()); }
+      } catch (err) {
+        if (!controller.signal.aborted) setError(err.userMessage || 'No se pudo actualizar el dashboard. Intente nuevamente.');
+      } finally { if (!controller.signal.aborted) { setLoading(false); inFlight.current = false; } }
+    };
+    load();
+    return () => { controller.abort(); inFlight.current = false; };
+  }, [filters, revision, invalidRange]);
 
-      const pacientes = pacRes.status === 'fulfilled' ? pacRes.value.data : [];
-      const clientes = cliRes.status === 'fulfilled' ? cliRes.value.data : [];
-      const citas = citRes.status === 'fulfilled' ? citRes.value.data : [];
-      const facturas = facRes.status === 'fulfilled' ? facRes.value.data : [];
-      const insumos = insRes.status === 'fulfilled' ? insRes.value.data : [];
-      const consultas = conRes.status === 'fulfilled' ? conRes.value.data : [];
+  const indicators = data?.indicadores || {};
+  const options = data?.opciones || {};
+  const cards = useMemo(() => [
+    { label: 'Total facturado', value: money(indicators.totalFacturado), detail: `${indicators.facturas || 0} facturas en el período`, icon: TrendingUp, tone: 'teal' },
+    { label: 'Promedio por factura', value: indicators.promedioPorFactura == null ? 'No calculable' : money(indicators.promedioPorFactura, 2), detail: 'Total facturado ÷ cantidad de facturas', icon: TrendingUp, tone: 'teal' },
+    { label: 'Citas del período', value: indicators.citas || 0, detail: 'Según filtros de agenda', icon: Calendar, tone: 'blue' },
+    { label: 'Cancelaciones', value: percentage(indicators.porcentajeCancelacion), detail: `${indicators.canceladas || 0} de ${indicators.citas || 0} citas filtradas`, icon: Activity, tone: 'violet' },
+    { label: 'Insumos agotados', value: percentage(indicators.porcentajeInsumosAgotados), detail: `${indicators.agotados || 0} de ${indicators.insumos || 0} insumos de la categoría · stock actual`, icon: Package, tone: 'amber' },
+    { label: 'Alertas de inventario', value: (indicators.agotados || 0) + (indicators.bajoStock || 0), detail: `${indicators.agotados || 0} agotados · ${indicators.bajoStock || 0} con stock bajo`, icon: Package, tone: 'amber' }
+  ], [data]);
 
-      setStats({
-        pacientes: Array.isArray(pacientes) ? pacientes.length : 0,
-        clientes: Array.isArray(clientes) ? clientes.length : 0,
-        citas: Array.isArray(citas) ? citas.length : 0,
-        facturas: Array.isArray(facturas) ? facturas.length : 0,
-        insumos: Array.isArray(insumos) ? insumos.length : 0,
-        consultas: Array.isArray(consultas) ? consultas.length : 0
-      });
-
-      if (Array.isArray(citas)) {
-        setCitasRecientes(citas.slice(0, 5));
-      }
-      if (Array.isArray(insumos)) {
-        setInsumosBajoStock(insumos.filter(i => (i.stockActual || 0) <= 10).slice(0, 5));
-      }
-    } catch (err) {
-      console.error("Error cargando dashboard:", err);
-    } finally {
-      setLoading(false);
-    }
+  const preset = name => {
+    const today = todayInChile();
+    let from = today, to = today;
+    if (name === '7') from = shiftDate(today, -6);
+    if (name === '30') from = shiftDate(today, -29);
+    if (name === 'mes') { from = `${today.slice(0, 7)}-01`; const end = new Date(`${from}T12:00:00Z`); end.setUTCMonth(end.getUTCMonth() + 1); end.setUTCDate(0); to = end.toISOString().slice(0, 10); }
+    setFilters(current => ({ ...current, fechaDesde: from, fechaHasta: to }));
   };
 
-  const statCards = [
-    { label: 'Pacientes Registrados', val: stats.pacientes, icon: Dog, color: '#0d9488', bg: '#f0fdfa', border: '#ccfbf1', nav: 'pacientes' },
-    { label: 'Clientes / Dueños', val: stats.clientes, icon: Users, color: '#0284c7', bg: '#f0f9ff', border: '#e0f2fe', nav: 'clientes' },
-    { label: 'Citas Médicas', val: stats.citas, icon: Calendar, color: '#7c3aed', bg: '#f5f3ff', border: '#ede9fe', nav: 'citas' },
-    { label: 'Consultas Realizadas', val: stats.consultas, icon: Stethoscope, color: '#059669', bg: '#ecfdf5', border: '#d1fae5', nav: 'consultas' },
-    { label: 'Facturas Emitidas', val: stats.facturas, icon: DollarSign, color: '#d97706', bg: '#fffbeb', border: '#fef3c7', nav: 'facturas' },
-    { label: 'Insumos en Inventario', val: stats.insumos, icon: Package, color: '#db2777', bg: '#fdf2f8', border: '#fce7f3', nav: 'insumos' }
-  ];
+  return <div className="dashboard-analytics">
+    <header className="dash-heading"><div><span className="dash-eyebrow">VETCLINIC · VISIÓN GENERAL</span><h2>Panel de gestión</h2><p>Hola, {user?.name?.split(' ')[0] || 'bienvenido'}. Revisa la actividad de tu clínica.</p></div>
+      <div className="dash-heading-actions"><span className="dash-update" role="status">{loading ? 'Actualizando…' : updated ? `Actualizado ${updated.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}` : 'Sin lectura disponible'}</span>
+        <button className="btn btn-secondary" onClick={refresh} disabled={loading || invalidRange}><RefreshCw size={16} aria-hidden="true" />Actualizar</button>
+        <button className="btn btn-primary" onClick={() => go('citas')}><Calendar size={16} aria-hidden="true" />Ver agenda</button></div>
+    </header>
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      
-      {/* =========================================================================
-          HERO BANNER CÁLIDO Y AMIGABLE CON EL PERRITO 3D INTERACTIVO
-          ========================================================================= */}
-      <section
-        style={{
-          position: 'relative',
-          borderRadius: '24px',
-          background: 'linear-gradient(135deg, #ffffff 0%, #f0fdfa 50%, #f8fafc 100%)',
-          border: '1px solid #e2e8f0',
-          padding: '2.25rem 2rem',
-          boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.05), 0 8px 10px -6px rgba(15, 23, 42, 0.02)',
-        }}
-      >
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-            gap: '2.5rem',
-            alignItems: 'center',
-          }}
-        >
-          {/* Lado Izquierdo: Saludo y Acciones Rápidas */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.15rem' }}>
-            <div
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '6px 14px',
-                borderRadius: '999px',
-                background: '#ccfbf1',
-                border: '1px solid #99f6e4',
-                color: '#0f766e',
-                fontSize: '0.78rem',
-                fontWeight: 700,
-                letterSpacing: '0.04em',
-                alignSelf: 'flex-start',
-              }}
-            >
-              <Heart size={14} fill="#0d9488" color="#0d9488" />
-              <span>SISTEMA CLÍNICO VETERINARIO PROFESIONAL</span>
-            </div>
-
-            <h1
-              style={{
-                fontSize: 'clamp(1.9rem, 3.2vw, 2.7rem)',
-                fontWeight: 800,
-                lineHeight: 1.2,
-                color: '#0f172a',
-                letterSpacing: '-0.02em',
-              }}
-            >
-              ¡Bienvenido al <span style={{ color: '#0d9488' }}>Portal Clínico</span>!
-            </h1>
-
-            <p
-              style={{
-                fontSize: '1rem',
-                color: '#475569',
-                lineHeight: 1.6,
-                maxWidth: '560px',
-              }}
-            >
-              Gestiona historias clínicas, agenda consultas y cuida la salud de cada mascota
-              con una plataforma ágil, segura y diseñada para tu equipo.
-            </p>
-
-            {/* Botones de Acción Amigables */}
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '0.85rem',
-                marginTop: '0.5rem',
-              }}
-            >
-              <button
-                type="button"
-                onClick={() => handleNav('pacientes')}
-                className="btn btn-primary"
-                style={{
-                  fontSize: '0.92rem',
-                  padding: '12px 24px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  borderRadius: '999px',
-                }}
-              >
-                <PlusCircle size={18} />
-                <span>Gestionar Pacientes</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleNav('citas')}
-                className="btn btn-secondary"
-                style={{
-                  fontSize: '0.92rem',
-                  padding: '12px 22px',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  borderRadius: '999px',
-                }}
-              >
-                <Calendar size={18} color="#0d9488" />
-                <span>Agenda de Citas</span>
-                <ChevronRight size={16} />
-              </button>
-            </div>
-
-            {/* Ventajas y Certificaciones */}
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                gap: '1.25rem',
-                marginTop: '0.75rem',
-                paddingTop: '1rem',
-                borderTop: '1px solid #e2e8f0',
-                fontSize: '0.78rem',
-                color: '#64748b',
-                fontWeight: 600,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <CheckCircle2 size={16} color="#0d9488" />
-                <span>Base de Datos SQL Server Activa</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Sparkles size={16} color="#f59e0b" />
-                <span>Control de Acceso Seguro (JWT)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Lado Derecho: El Perrito 3D Interactivo */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <VeterinaryPet3D />
-          </div>
-        </div>
+    <section className="dash-filters" aria-label="Filtros del dashboard"><div className="dash-filter-heading"><strong><Filter size={16} aria-hidden="true" />Período de análisis</strong><div className="dash-presets">{[['hoy','Hoy'],['7','7 días'],['30','30 días'],['mes','Este mes']].map(([key,label]) => <button type="button" key={key} onClick={() => preset(key)}>{label}</button>)}</div></div>
+      <div className="dash-date-filters">
+        <label>Desde<input className="form-input" type="date" value={filters.fechaDesde} max={filters.fechaHasta} onChange={e => set('fechaDesde', e.target.value)} /></label>
+        <label>Hasta<input className="form-input" type="date" value={filters.fechaHasta} min={filters.fechaDesde} onChange={e => set('fechaHasta', e.target.value)} /></label>
+        <label>Agrupar por<select className="form-select" value={filters.agrupacion} onChange={e => set('agrupacion', e.target.value)}><option value="dia">Día</option><option value="semana">Semana</option><option value="mes">Mes</option></select></label>
+        <button type="button" className="btn btn-secondary" onClick={() => setFilters(initialFilters())}>Restablecer filtros</button>
+      </div>
+      <p>La fecha filtra facturación y agenda. El inventario muestra existencias actuales; actualización automática cada 30 segundos mientras esta pantalla está visible.</p>
+      {data?.periodo && <p>Período mostrado: <strong>{data.periodo.desde} — {data.periodo.hasta}</strong> · Fechas de la clínica en Chile.</p>}
+      {invalidRange && <p className="dash-error" role="alert">Seleccione fechas válidas, en orden y con un máximo de 366 días.</p>}
+    </section>
+    {error && <div className="alert alert-danger" role="alert">{error}{data && ' Se conserva la última lectura disponible.'}</div>}
+    <div className="dash-kpis" aria-label="Indicadores de gestión" aria-busy={loading}>{cards.map(({label,value,detail,icon:Icon,tone}) => <article key={label} className={`dash-kpi dash-tone-${tone}`}><div><span>{label}</span><Icon size={20} aria-hidden="true" /></div><strong>{data ? value : '—'}</strong><p>{detail}</p></article>)}</div>
+    {data && <>
+      <DashboardIndicatorGuide data={data} />
+      <section className="dash-agenda-filters" aria-label="Filtros de agenda"><strong>Filtrar agenda</strong>
+        <label>Especialidad<select className="form-select" value={filters.especialidadId} onChange={e => set('especialidadId',e.target.value)}><option value="">Todas las especialidades</option>{(options.especialidades || []).map(o => <option key={o.id} value={o.id}>{o.nombre}</option>)}</select></label>
+        <label>Veterinario<select className="form-select" value={filters.veterinarioId} onChange={e => set('veterinarioId',e.target.value)}><option value="">Todos los veterinarios</option>{(options.veterinarios || []).map(o => <option key={o.id} value={o.id}>{o.nombre}</option>)}</select></label>
+        <label>Estado<select className="form-select" value={filters.estado} onChange={e => set('estado',e.target.value)}><option value="">Todos los estados</option>{states.map(s => <option key={s}>{s}</option>)}</select></label>
       </section>
-
-      {/* =========================================================================
-          MÉTRICAS DEL SISTEMA VETERINARIO (CONECTADAS A SQL SERVER)
-          ========================================================================= */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1.25rem' }}>
-          <div>
-            <h2 style={{ fontSize: '1.3rem', fontWeight: 700, color: '#0f172a', letterSpacing: '-0.02em' }}>
-              Resumen Clínico y Operativo
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '0.85rem' }}>
-              Métricas sincronizadas en tiempo real con la base de datos de la clínica.
-            </p>
-          </div>
-        </div>
-
-        {/* Grid de Métricas */}
-        <div className="stats-grid">
-          {statCards.map((c, i) => {
-            const Icon = c.icon;
-            return (
-              <div 
-                key={i} 
-                className="stat-card"
-                onClick={() => handleNav(c.nav)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleNav(c.nav); }}
-                style={{
-                  cursor: 'pointer',
-                  background: '#ffffff',
-                  border: `1px solid ${c.border}`,
-                  borderRadius: '16px',
-                  boxShadow: '0 2px 8px rgba(15, 23, 42, 0.04)',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                <div 
-                  className="stat-icon" 
-                  style={{ 
-                    color: c.color, 
-                    backgroundColor: c.bg,
-                    border: `1px solid ${c.border}`
-                  }}
-                >
-                  <Icon size={24} />
-                </div>
-                <div className="stat-content">
-                  <div className="stat-value" style={{ color: '#0f172a' }}>{c.val}</div>
-                  <div className="stat-label" style={{ color: '#64748b' }}>{c.label}</div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+      <div className="dash-charts" aria-busy={loading}>
+        <ChartCard title="Evolución de facturación" note="Total de documentos emitidos, con IVA. No representa pagos ni ganancias." icon={TrendingUp}><RevenueChart data={data.facturacion} /><div className="dash-finance-summary"><span>Neto: <strong>{money(indicators.netoFacturado)}</strong></span><span>IVA: <strong>{money(indicators.impuestos)}</strong></span></div></ChartCard>
+        <ChartCard title="Actividad de citas" note="Distribución por fecha y estado, según los filtros de agenda." icon={Calendar}><AppointmentChart data={data.citasPorFecha} /></ChartCard>
+        <ChartCard title="Citas por especialidad" note="Participación de cada servicio en las citas filtradas." icon={Activity}><SpecialtyChart data={data.especialidades} /></ChartCard>
+        <ChartCard title="Estado del inventario" note="Hasta 12 productos con menos existencias. Stock bajo: 10 unidades o menos." icon={Package}>
+          <div className="dash-stock-filters"><label>Categoría<select className="form-select" value={filters.tipoInsumo} onChange={e => set('tipoInsumo',e.target.value)}><option value="">Todas las categorías</option>{(options.tiposInsumo || []).map(t => <option key={t}>{t}</option>)}</select></label>
+            <label>Existencias<select className="form-select" value={filters.stock} onChange={e => set('stock',e.target.value)}><option value="todos">Todos</option><option value="bajo">Stock bajo o agotado</option><option value="agotado">Solo agotados</option></select></label></div>
+          <InventoryChart data={data.inventario} /><p className="dash-footnote">Las alertas resumen toda la categoría; este selector limita las barras mostradas.</p>
+        </ChartCard>
       </div>
-
-      {/* =========================================================================
-          PANEL INFERIOR: PRÓXIMAS CITAS E INVENTARIO CRÍTICO
-          ========================================================================= */}
-      <div 
-        style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', 
-          gap: '1.5rem' 
-        }}
-      >
-        {/* Próximas Citas */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <Clock size={18} color="#0d9488" />
-              Próximas Citas Médicas
-            </h3>
-            <button 
-              className="btn btn-sm btn-secondary" 
-              onClick={() => handleNav('citas')}
-              style={{ fontSize: '0.78rem' }}
-            >
-              Ver Todas <ChevronRight size={14} />
-            </button>
-          </div>
-
-          {citasRecientes.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8' }}>
-              <Calendar size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: '#0d9488' }} />
-              <p style={{ fontSize: '0.9rem' }}>No hay citas agendadas actualmente en el sistema.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {citasRecientes.map((cita) => (
-                <div 
-                  key={cita.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.75rem 1rem',
-                    borderRadius: '12px',
-                    background: '#f8fafc',
-                    border: '1px solid #e2e8f0',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                    <div style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: '10px',
-                      backgroundColor: '#f0fdfa',
-                      border: '1px solid #ccfbf1',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#0d9488'
-                    }}>
-                      <Dog size={18} />
-                    </div>
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
-                        {cita.paciente?.nombre || 'Paciente en Atención'}
-                      </div>
-                      <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        {cita.paciente?.cliente 
-                          ? `Dueño: ${cita.paciente.cliente.nombreCompleto} (RUT: ${cita.paciente.cliente.documentoIdentidad})`
-                          : (cita.fechaHora ? new Date(cita.fechaHora).toLocaleString() : 'Fecha pendiente')}
-                      </div>
-                    </div>
-                  </div>
-                  <span className="badge badge-success" style={{ textTransform: 'capitalize' }}>
-                    {cita.estado || 'Agendada'}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Insumos con Stock Bajo */}
-        <div className="card">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <AlertTriangle size={18} color="#d97706" />
-              Insumos con Stock Crítico
-            </h3>
-            <button 
-              className="btn btn-sm btn-secondary" 
-              onClick={() => handleNav('insumos')}
-              style={{ fontSize: '0.78rem' }}
-            >
-              Ver Inventario <ChevronRight size={14} />
-            </button>
-          </div>
-
-          {insumosBajoStock.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: '#94a3b8' }}>
-              <Package size={36} style={{ margin: '0 auto 0.75rem', opacity: 0.4, color: '#0d9488' }} />
-              <p style={{ fontSize: '0.9rem' }}>Todos los medicamentos y suministros tienen stock suficiente.</p>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {insumosBajoStock.map((insumo) => (
-                <div 
-                  key={insumo.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.75rem 1rem',
-                    borderRadius: '12px',
-                    background: '#fffbeb',
-                    border: '1px solid #fef3c7',
-                  }}
-                >
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#0f172a' }}>
-                      {insumo.nombreProducto || 'Insumo'}
-                    </div>
-                    <div style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                      Categoría: {insumo.tipo || 'Clínico'}
-                    </div>
-                  </div>
-                  <span className="badge badge-warning">
-                    Stock: {insumo.stockActual} u.
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
+      <section className="dash-upcoming" aria-label="Próximas citas del período"><header><h2><Calendar size={18} aria-hidden="true" />Próximas citas del período</h2><button className="btn btn-secondary" onClick={() => go('citas')}>Ver agenda <ArrowRight size={16} aria-hidden="true" /></button></header>
+        {(data.proximasCitas || []).length ? <ul>{data.proximasCitas.map(c => <li key={c.id}><span><strong>{c.paciente}</strong><small>{new Date(c.fechaHora).toLocaleString('es-CL')}</small></span><span className="badge badge-info">{c.estado}</span></li>)}</ul> : <p>No hay próximas citas activas dentro del período y los filtros seleccionados.</p>}
+      </section>
+    </>}
+    {!data && loading && <div className="dash-loading" role="status">Preparando las visualizaciones…</div>}
+  </div>;
 };
-
 export default DashboardView;

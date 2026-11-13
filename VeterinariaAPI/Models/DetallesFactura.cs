@@ -15,6 +15,8 @@ public partial class DetallesFactura
     public int? InsumoId { get; set; }
 
     public decimal Subtotal { get; set; }
+    public int? Cantidad { get; set; } = 1;
+    public decimal? PrecioUnitario { get; set; }
     [JsonIgnore]
     public virtual Consulta? Consulta { get; set; }
     [JsonIgnore]

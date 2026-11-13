@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Routes, Route, Navigate, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { LoginView } from './views/LoginView';
-import { DashboardView } from './views/DashboardView';
+import { HomeView } from './views/HomeView';
+import { NotFoundView } from './views/NotFoundView';
 import { PacientesView } from './views/PacientesView';
 import { ClientesView } from './views/ClientesView';
 import { CitasView } from './views/CitasView';
@@ -10,9 +11,14 @@ import { ConsultasView } from './views/ConsultasView';
 import { InsumosView } from './views/InsumosView';
 import { FacturasView } from './views/FacturasView';
 import { AdminConfigView } from './views/AdminConfigView';
+import { ThemeToggle } from './components/ThemeToggle';
+import { SuccessNotification } from './components/SuccessNotification';
+import { ErrorNotification } from './components/ErrorNotification';
 import { AccessDeniedView } from './views/AccessDeniedView';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { ConflictDialog } from './components/ConflictDialog';
+import { PageAccessibility } from './components/PageAccessibility';
 import AuraParticleBackground from './components/AuraParticleBackground';
 
 import { 
@@ -26,6 +32,45 @@ function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1024);
+  const sidebarToggle = useRef(null);
+  const sidebarVisible = isDesktop ? !isSidebarCollapsed : isMobileMenuOpen;
+  useEffect(() => {
+    if (isDesktop || !isMobileMenuOpen) return;
+    const sidebar = document.getElementById('main-sidebar');
+    const main = document.getElementById('main-content');
+    const priorInert = main?.inert;
+    if (main) main.inert = true;
+    const items = () => [...sidebar.querySelectorAll('a[href], button:not(:disabled)')];
+    items()[0]?.focus();
+    const trap = event => {
+      if (event.key !== 'Tab') return;
+      const list = [...items(), sidebarToggle.current].filter(Boolean);
+      const index = list.indexOf(document.activeElement);
+      if (event.shiftKey && index <= 0) { event.preventDefault(); list.at(-1)?.focus(); }
+      else if (!event.shiftKey && (index === list.length - 1 || index < 0)) { event.preventDefault(); list[0]?.focus(); }
+    };
+    document.addEventListener('keydown', trap);
+    return () => { if (main) main.inert = priorInert; document.removeEventListener('keydown', trap); };
+  }, [isDesktop, isMobileMenuOpen]);
+  useEffect(() => {
+    if (!window.matchMedia) return;
+    const media = window.matchMedia('(min-width: 1024px)');
+    const sync = () => { setIsDesktop(media.matches); setIsMobileMenuOpen(false); };
+    sync(); media.addEventListener('change', sync);
+    return () => media.removeEventListener('change', sync);
+  }, []);
+  useEffect(() => {
+    if (!sidebarVisible) return;
+    const escape = event => {
+      if (event.key !== 'Escape') return;
+      if (isDesktop) setIsSidebarCollapsed(true); else setIsMobileMenuOpen(false);
+      sidebarToggle.current?.focus();
+    };
+    window.addEventListener('keydown', escape);
+    return () => window.removeEventListener('keydown', escape);
+  }, [sidebarVisible, isDesktop]);
   const [forbiddenToast, setForbiddenToast] = useState(null);
   const [rateLimitToast, setRateLimitToast] = useState(null);
 
@@ -50,7 +95,7 @@ function MainLayout() {
   const navItems = [
     { 
       path: '/dashboard', 
-      label: 'Santuario / Dashboard', 
+      label: 'Santuario',
       icon: LayoutDashboard,
       roles: ['Administrador', 'Veterinario', 'Recepcionista'] 
     },
@@ -108,8 +153,11 @@ function MainLayout() {
   const currentTitle = currentNavItem ? currentNavItem.label : (location.pathname === '/403' ? 'Acceso Denegado' : 'AURA VET');
 
   return (
-    <div className="app-container" style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent' }}>
+    <div className={`app-container${isSidebarCollapsed ? ' sidebar-collapsed' : ''}`} style={{ position: 'relative', zIndex: 1, minHeight: '100vh', background: 'transparent' }}>
       
+      <SuccessNotification />
+      <ErrorNotification />
+      <a className="skip-link" href="#main-content" onClick={() => document.getElementById('main-content')?.focus()}>Saltar al contenido principal</a>
       {/* Toast flotante de error 403 Forbidden interceptado desde la API */}
       {forbiddenToast && (
         <div 
@@ -137,7 +185,7 @@ function MainLayout() {
         >
           <ShieldAlert size={24} style={{ flexShrink: 0, marginTop: '2px', color: '#fca5a5' }} />
           <div style={{ flex: 1, fontSize: '0.88rem' }}>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.2rem', color: '#fecaca' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.2rem', color: 'var(--danger-border)' }}>
               403 Prohibido - Servidor API
             </div>
             <div>{forbiddenToast.mensaje}</div>
@@ -188,9 +236,9 @@ function MainLayout() {
             animation: 'fadeIn 0.25s ease-out'
           }}
         >
-          <ShieldAlert size={24} style={{ flexShrink: 0, marginTop: '2px', color: '#fde68a' }} />
+          <ShieldAlert size={24} style={{ flexShrink: 0, marginTop: '2px', color: 'var(--warning-border)' }} />
           <div style={{ flex: 1, fontSize: '0.88rem' }}>
-            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.2rem', color: '#fef3c7' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: '0.2rem', color: 'var(--warning-light)' }}>
               429 Solicitudes Excedidas - Rate Limiter
             </div>
             <div>{rateLimitToast.mensaje}</div>
@@ -218,29 +266,33 @@ function MainLayout() {
 
       {/* Backdrop para cerrar el menú en móvil */}
       <div 
-        className={`sidebar-overlay ${isMobileMenuOpen ? 'visible' : ''}`}
+        className={`sidebar-overlay ${!isDesktop && isMobileMenuOpen ? 'visible' : ''}`}
         onClick={() => setIsMobileMenuOpen(false)}
         aria-hidden="true"
       />
 
-      {/* Sidebar de Navegación VetClinic (Off-canvas en Móvil / Sticky en Desktop) */}
+      {/* Sidebar de Navegación VetClinic (Off-canvas en Móvil / Fija en Desktop) */}
       <aside 
+        id="main-sidebar"
+        aria-label="Menú lateral"
+        aria-hidden={!sidebarVisible}
+        inert={!sidebarVisible}
         className={`sidebar ${isMobileMenuOpen ? 'open' : ''}`}
         style={{
-          background: '#ffffff',
-          borderRight: '1px solid #e2e8f0',
+          background: 'var(--bg-surface)',
+          borderRight: '1px solid var(--gray-200)',
           boxShadow: '4px 0 25px rgba(15, 23, 42, 0.06)',
         }}
       >
-        <div className="sidebar-header" style={{ borderBottom: '1px solid #e2e8f0', padding: '1.25rem' }}>
+        <div className="sidebar-header" style={{ borderBottom: '1px solid var(--gray-200)', padding: '1.25rem' }}>
           <div className="sidebar-brand">
             <div 
               style={{
                 width: '42px',
                 height: '42px',
                 borderRadius: '12px',
-                background: '#f0fdfa',
-                border: '1px solid #ccfbf1',
+                background: 'var(--primary-light)',
+                border: '1px solid var(--primary-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -256,7 +308,7 @@ function MainLayout() {
                   fontSize: '1.2rem',
                   fontWeight: 900,
                   letterSpacing: '-0.02em',
-                  color: '#0f172a',
+                  color: 'var(--gray-900)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px'
@@ -264,7 +316,7 @@ function MainLayout() {
               >
                 VetClinic Pro
               </div>
-              <div style={{ fontSize: '0.72rem', color: '#0f766e', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 800 }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--teal-text)', letterSpacing: '0.04em', textTransform: 'uppercase', fontWeight: 800 }}>
                 Clínica Veterinaria
               </div>
             </div>
@@ -272,7 +324,7 @@ function MainLayout() {
           {/* Botón para cerrar drawer en móvil */}
           <button 
             className="btn-icon mobile-menu-btn" 
-            style={{ color: '#64748b', border: '1px solid #e2e8f0' }}
+            style={{ color: 'var(--gray-500)', border: '1px solid var(--gray-200)' }}
             onClick={() => setIsMobileMenuOpen(false)}
             aria-label="Cerrar menú lateral"
           >
@@ -284,6 +336,7 @@ function MainLayout() {
           {navItems.map((item) => {
             const Icon = item.icon;
             const tienePermiso = hasRole(item.roles);
+            if (item.path === '/admin' && !tienePermiso) return null;
 
             return (
               <NavLink
@@ -305,7 +358,7 @@ function MainLayout() {
                   <span>{item.label}</span>
                 </div>
                 {!tienePermiso && (
-                  <Lock size={14} color="#94a3b8" title="Módulo restringido por rol" />
+                  <Lock size={14} color="var(--gray-400)" title="Módulo restringido por rol" />
                 )}
               </NavLink>
             );
@@ -315,8 +368,8 @@ function MainLayout() {
         <div 
           className="sidebar-footer"
           style={{
-            background: '#f8fafc',
-            borderTop: '1px solid #e2e8f0',
+            background: 'var(--gray-50)',
+            borderTop: '1px solid var(--gray-200)',
           }}
         >
           <div className="user-profile">
@@ -325,8 +378,8 @@ function MainLayout() {
                 width: '38px',
                 height: '38px',
                 borderRadius: '50%',
-                background: '#f0fdfa',
-                border: '1px solid #ccfbf1',
+                background: 'var(--primary-light)',
+                border: '1px solid var(--primary-border)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -339,10 +392,10 @@ function MainLayout() {
               {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
             </div>
             <div className="user-info">
-              <span className="user-name" title={user?.name} style={{ color: '#0f172a', fontWeight: 700 }}>
+              <span className="user-name" title={user?.name} style={{ color: 'var(--gray-900)', fontWeight: 700 }}>
                 {user?.name}
               </span>
-              <span style={{ fontSize: '0.72rem', color: '#0f766e', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' }}>
+              <span style={{ fontSize: '0.72rem', color: 'var(--teal-text)', textTransform: 'uppercase', fontWeight: 800, letterSpacing: '0.04em' }}>
                 {user?.role}
               </span>
             </div>
@@ -354,9 +407,9 @@ function MainLayout() {
               marginTop: '0.4rem', 
               justifyContent: 'center',
               borderRadius: '999px',
-              border: '1px solid #cbd5e1',
-              background: '#ffffff',
-              color: '#334155',
+              border: '1px solid var(--gray-300)',
+              background: 'var(--bg-surface)',
+              color: 'var(--gray-700)',
             }}
             onClick={handleLogout}
             aria-label="Cerrar sesión actual"
@@ -371,19 +424,23 @@ function MainLayout() {
         <header 
           className="topbar"
           style={{
-            background: 'rgba(255, 255, 255, 0.95)',
-            borderBottom: '1px solid #e2e8f0',
+            background: 'var(--topbar-bg)',
+            borderBottom: '1px solid var(--gray-200)',
             backdropFilter: 'blur(12px)',
           }}
         >
           <div className="topbar-left">
             <button 
-              className="mobile-menu-btn"
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              aria-label="Abrir menú de navegación"
-              style={{ color: '#334155', background: '#ffffff', border: '1px solid #cbd5e1' }}
+              ref={sidebarToggle}
+              type="button"
+              className="sidebar-toggle-btn"
+              onClick={() => { if (isDesktop) setIsSidebarCollapsed(value => !value); else setIsMobileMenuOpen(value => !value); }}
+              aria-label={sidebarVisible ? 'Ocultar menú de navegación' : 'Mostrar menú de navegación'}
+              aria-expanded={sidebarVisible}
+              aria-controls="main-sidebar"
+              style={{ color: 'var(--gray-700)', background: 'var(--bg-surface)', border: '1px solid var(--gray-300)' }}
             >
-              <Menu size={20} />
+              {sidebarVisible ? <X size={20} aria-hidden="true" /> : <Menu size={20} aria-hidden="true" />}
             </button>
             
             {/* Banner de Estado Operativo */}
@@ -394,11 +451,11 @@ function MainLayout() {
                 alignItems: 'center',
                 gap: '8px',
                 fontSize: '0.75rem',
-                color: '#475569',
+                color: 'var(--gray-600)',
                 fontWeight: 600,
                 letterSpacing: '0.02em',
-                background: '#f0fdfa',
-                border: '1px solid #ccfbf1',
+                background: 'var(--primary-light)',
+                border: '1px solid var(--primary-border)',
                 padding: '5px 14px',
                 borderRadius: '999px',
               }}
@@ -412,13 +469,14 @@ function MainLayout() {
                   boxShadow: '0 0 6px rgba(13, 148, 136, 0.5)',
                 }}
               />
-              <span style={{ color: '#0f766e', fontWeight: 700 }}>CLÍNICA 100% OPERATIVA</span>
-              <span style={{ color: '#cbd5e1' }}>•</span>
+              <span style={{ color: 'var(--teal-text)', fontWeight: 700 }}>CLÍNICA 100% OPERATIVA</span>
+              <span style={{ color: 'var(--gray-300)' }}>•</span>
               <span>URGENCIAS 24/7</span>
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <ThemeToggle />
             {/* Botón rápido "Agendar Cita" */}
             <button
               className="topbar-appointment-btn"
@@ -450,9 +508,9 @@ function MainLayout() {
                 fontSize: '0.78rem', 
                 padding: '0.35rem 0.85rem', 
                 borderRadius: '9999px',
-                backgroundColor: '#f0fdfa',
-                border: '1px solid #ccfbf1',
-                color: '#0f766e',
+                backgroundColor: 'var(--primary-light)',
+                border: '1px solid var(--primary-border)',
+                color: 'var(--teal-text)',
                 fontWeight: 800,
                 letterSpacing: '0.02em',
                 whiteSpace: 'nowrap',
@@ -471,7 +529,7 @@ function MainLayout() {
               path="/dashboard" 
               element={
                 <ProtectedRoute allowedRoles={['Administrador', 'Veterinario', 'Recepcionista']}>
-                  <DashboardView />
+                  <HomeView />
                 </ProtectedRoute>
               } 
             />
@@ -532,7 +590,7 @@ function MainLayout() {
               } 
             />
             <Route path="/403" element={<AccessDeniedView />} />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<NotFoundView />} />
           </Routes>
           </ErrorBoundary>
         </main>
@@ -555,7 +613,7 @@ function App() {
           flexDirection: 'column',
           alignItems: 'center', 
           justifyContent: 'center',
-          backgroundColor: '#f8fafc',
+          backgroundColor: 'var(--gray-50)',
           gap: '1rem',
         }}
       >
@@ -566,7 +624,7 @@ function App() {
               width: '46px',
               height: '46px',
               borderRadius: '50%',
-              border: '3px solid #ccfbf1',
+              border: '3px solid var(--primary-border)',
               borderTopColor: '#0d9488',
               animation: 'spin 1s linear infinite',
               margin: '0 auto 1rem',
@@ -581,8 +639,9 @@ function App() {
   }
 
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+    <div style={{ position: 'relative', minHeight: '100vh', backgroundColor: 'var(--gray-50)' }}>
       {/* Fondo de Partículas Suaves Interactivas */}
+      <PageAccessibility />
       <AuraParticleBackground />
 
       <Routes>
@@ -595,6 +654,7 @@ function App() {
           element={user ? <MainLayout /> : <Navigate to="/login" replace />} 
         />
       </Routes>
+      <ConflictDialog />
     </div>
   );
 }

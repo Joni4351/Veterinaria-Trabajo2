@@ -1,0 +1,21 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "miconexion": "Host=TU_HOST_SUPABASE;Port=5432;Database=postgres;Username=TU_USUARIO;Password=;SSL Mode=Require"
+  },
+  "Jwt": {
+    "Key": "",
+    "Issuer": "VeterinariaAPI",
+    "Audience": "VeterinariaAPI",
+    "ExpireMinutes": 60
+  },
+  "Biometrics": {
+    "EncryptionKey": ""
+  }
+}

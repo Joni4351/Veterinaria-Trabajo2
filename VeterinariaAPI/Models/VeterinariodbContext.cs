@@ -1,18 +1,25 @@
 using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
+using VeterinariaAPI.Services;
 
 namespace VeterinariaAPI.Models;
 
 public partial class VeterinariodbContext : DbContext
 {
+    private readonly DbContextOptions<VeterinariodbContext>? _contextOptions;
+    private readonly AuditOperation _auditOperation = new();
+    public DbSet<Auditoria> Auditorias { get; set; }
+    public DbSet<ReconocimientoFacial> ReconocimientosFaciales { get; set; }
     public VeterinariodbContext()
     {
     }
 
-    public VeterinariodbContext(DbContextOptions<VeterinariodbContext> options)
+    public VeterinariodbContext(DbContextOptions<VeterinariodbContext> options, AuditOperation? auditOperation = null)
         : base(options)
     {
+        _contextOptions = options;
+        _auditOperation = auditOperation ?? new AuditOperation();
     }
 
     public virtual DbSet<Cita> Citas { get; set; }
@@ -45,8 +52,29 @@ public partial class VeterinariodbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        modelBuilder.Entity<Auditoria>(entity =>
+        {
+            entity.ToTable("Auditoria", "public");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.ValoresAnteriores).HasColumnType("jsonb");
+            entity.Property(x => x.ValoresNuevos).HasColumnType("jsonb");
+            entity.HasOne<Usuario>().WithMany().HasForeignKey(x => x.UsuarioId).OnDelete(DeleteBehavior.SetNull);
+        });
+        modelBuilder.Entity<ReconocimientoFacial>(entity =>
+        {
+            entity.ToTable("ReconocimientoFacial", "public");
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.UsuarioId).IsUnique();
+            entity.Property(e => e.DescriptorFacial).HasColumnType("jsonb");
+            entity.Property(e => e.FechaRegistro).HasDefaultValueSql("now()");
+            entity.Property(e => e.Activo).HasDefaultValue(true);
+            entity.Property(e => e.FechaActualizacion).IsConcurrencyToken();
+            entity.HasOne<Usuario>().WithOne().HasForeignKey<ReconocimientoFacial>(e => e.UsuarioId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
         modelBuilder.Entity<Cita>(entity =>
         {
+            entity.Property(e => e.FechaHora).HasColumnType("timestamp without time zone");
             entity.HasKey(e => e.Id).HasName("PK__Citas__3214EC07A639186A");
 
             entity.Property(e => e.Estado).HasMaxLength(50);
@@ -144,7 +172,7 @@ public partial class VeterinariodbContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PK__Facturas__3214EC07EDC3F268");
 
-            entity.Property(e => e.FechaEmision).HasDefaultValueSql("(CONVERT([date],getdate()))");
+            entity.Property(e => e.FechaEmision).HasDefaultValueSql("CURRENT_DATE");
             entity.Property(e => e.MontoImpuestos).HasColumnType("decimal(10, 2)");
             entity.Property(e => e.MontoTotal).HasColumnType("decimal(10, 2)");
 

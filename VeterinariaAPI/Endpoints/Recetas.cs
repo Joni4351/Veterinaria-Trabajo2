@@ -10,7 +10,7 @@ namespace VeterinariaAPI.Endpoints
     {
         public static void MapRecetaApi(this WebApplication app)
         {
-            var recetas = app.MapGroup("/api/v1/recetas").WithTags("Recetas (v1)");
+            var recetas = app.MapGroup("/api/v1/recetas").WithTags("Recetas (v1)").AddEndpointFilter<BusinessValidationFilter>();
 
             // API para listar recetas con filtros
             recetas.MapGet("/", async (
@@ -20,7 +20,7 @@ namespace VeterinariaAPI.Endpoints
                 bool? vigentes,
                 IRepository<Receta> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (consultaId.HasValue)
                 {
@@ -126,7 +126,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.EliminarAsync(recetaExistente);
                 await repo.GuardarCambiosAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
         }
 
         // DTO estructurado con el prefijo 'property:' para la correcta validación por reflexión

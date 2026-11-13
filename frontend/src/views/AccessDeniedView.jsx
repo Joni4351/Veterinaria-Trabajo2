@@ -29,9 +29,9 @@ export const AccessDeniedView = ({ requiredRoles = [], onGoBack }) => {
         width: '100%',
         textAlign: 'center',
         padding: '2.5rem 1.5rem',
-        border: '1px solid #fecaca',
+        border: '1px solid var(--danger-border)',
         boxShadow: '0 10px 25px -5px rgba(239, 68, 68, 0.15)',
-        backgroundColor: '#ffffff'
+        backgroundColor: 'var(--bg-surface)'
       }}>
         {/* Icono de Seguridad 403 */}
         <div style={{
@@ -41,8 +41,8 @@ export const AccessDeniedView = ({ requiredRoles = [], onGoBack }) => {
           width: '76px',
           height: '76px',
           borderRadius: '50%',
-          backgroundColor: '#fee2e2',
-          color: '#ef4444',
+          backgroundColor: 'var(--danger-light)',
+          color: 'var(--danger-text)',
           marginBottom: '1.25rem',
           boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)'
         }}>
@@ -51,8 +51,8 @@ export const AccessDeniedView = ({ requiredRoles = [], onGoBack }) => {
 
         <div style={{
           display: 'inline-block',
-          backgroundColor: '#fee2e2',
-          color: '#b91c1c',
+          backgroundColor: 'var(--danger-light)',
+          color: 'var(--danger-text)',
           fontWeight: 700,
           fontSize: '0.82rem',
           padding: '0.25rem 0.75rem',
@@ -63,18 +63,18 @@ export const AccessDeniedView = ({ requiredRoles = [], onGoBack }) => {
           ERROR 403 - FORBIDDEN
         </div>
 
-        <h2 style={{
+        <h1 style={{
           fontSize: '1.45rem',
           fontWeight: 800,
-          color: '#0f172a',
+          color: 'var(--gray-900)',
           marginBottom: '0.5rem',
           lineHeight: 1.2
         }}>
           Acceso Denegado
-        </h2>
+        </h1>
 
         <p style={{
-          color: '#64748b',
+          color: 'var(--gray-500)',
           fontSize: '0.95rem',
           marginBottom: '1.5rem',
           lineHeight: 1.5
@@ -84,29 +84,29 @@ export const AccessDeniedView = ({ requiredRoles = [], onGoBack }) => {
 
         {/* Detalle de Roles */}
         <div style={{
-          background: '#f8fafc',
-          border: '1px solid #e2e8f0',
+          background: 'var(--gray-50)',
+          border: '1px solid var(--gray-200)',
           borderRadius: '12px',
           padding: '1rem',
           textAlign: 'left',
           marginBottom: '1.75rem',
           fontSize: '0.88rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: '#334155' }}>
-            <UserCheck size={16} color="#0284c7" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', color: 'var(--gray-700)' }}>
+            <UserCheck size={16} color="var(--blue-text)" />
             <span>Tu Rol Actual:</span>
-            <strong style={{ color: '#0284c7' }}>{user?.role || 'Sin Rol'}</strong>
+            <strong style={{ color: 'var(--blue-text)' }}>{user?.role || 'Sin Rol'}</strong>
           </div>
 
           {requiredRoles.length > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#64748b' }}>
-              <Lock size={16} color="#ef4444" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--gray-500)' }}>
+              <Lock size={16} color="var(--danger-text)" />
               <span>Roles Autorizados:</span>
-              <strong style={{ color: '#0f172a' }}>{requiredRoles.join(', ')}</strong>
+              <strong style={{ color: 'var(--gray-900)' }}>{requiredRoles.join(', ')}</strong>
             </div>
           )}
 
-          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed #cbd5e1', fontSize: '0.78rem', color: '#94a3b8' }}>
+          <div style={{ marginTop: '0.75rem', paddingTop: '0.75rem', borderTop: '1px dashed var(--gray-300)', fontSize: '0.78rem', color: 'var(--gray-400)' }}>
             ℹ️ Por seguridad, la API backend valida estrictamente los claims del token JWT en cada solicitud.
           </div>
         </div>

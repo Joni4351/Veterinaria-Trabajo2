@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 
 /**
  * AuraParticleBackground
@@ -8,9 +9,11 @@ import React, { useEffect, useRef } from 'react';
  */
 export default function AuraParticleBackground() {
   const canvasRef = useRef(null);
+  const reducedMotion = useReducedMotion();
 
   useEffect(() => {
     const canvas = canvasRef.current;
+    if (reducedMotion) { canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height); return; }
     if (!canvas || typeof canvas.getContext !== 'function') return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -127,7 +130,7 @@ export default function AuraParticleBackground() {
       window.removeEventListener('mouseleave', handleMouseLeave);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [reducedMotion]);
 
   return (
     <canvas

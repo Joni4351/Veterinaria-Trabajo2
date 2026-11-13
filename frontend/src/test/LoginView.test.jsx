@@ -1,3 +1,4 @@
+import { ThemeProvider } from '../context/ThemeContext';
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
@@ -36,20 +37,21 @@ describe('LoginView Component Tests', () => {
   it('debe renderizar los campos de correo y contraseña y el botón de acceso', () => {
     render(
       <MemoryRouter>
-        <LoginView />
+        <ThemeProvider><LoginView /></ThemeProvider>
       </MemoryRouter>
     );
 
     expect(screen.getByLabelText(/correo electrónico/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/contraseña/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /iniciar sesión/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /regístrate|crear cuenta|completar registro/i })).not.toBeInTheDocument();
   });
 
   it('debe mostrar error de validación en cliente (Zod) si el formulario se envía vacío', async () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
-        <LoginView />
+        <ThemeProvider><LoginView /></ThemeProvider>
       </MemoryRouter>
     );
 
@@ -68,7 +70,7 @@ describe('LoginView Component Tests', () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter>
-        <LoginView />
+        <ThemeProvider><LoginView /></ThemeProvider>
       </MemoryRouter>
     );
 
@@ -93,7 +95,7 @@ describe('LoginView Component Tests', () => {
 
     render(
       <MemoryRouter>
-        <LoginView />
+        <ThemeProvider><LoginView /></ThemeProvider>
       </MemoryRouter>
     );
 
@@ -119,7 +121,7 @@ describe('LoginView Component Tests', () => {
 
     render(
       <MemoryRouter>
-        <LoginView />
+        <ThemeProvider><LoginView /></ThemeProvider>
       </MemoryRouter>
     );
 

@@ -22,7 +22,7 @@ namespace VeterinariaAPI.Endpoints
                 decimal? precioMax,
                 IRepository<Insumo> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (!string.IsNullOrWhiteSpace(nombre))
                 {
@@ -69,8 +69,8 @@ namespace VeterinariaAPI.Endpoints
 
                 var nuevoInsumo = new Insumo
                 {
-                    NombreProducto = dto.NombreProducto,
-                    Tipo = dto.Tipo,
+                    NombreProducto = dto.NombreProducto.Trim(),
+                    Tipo = dto.Tipo.Trim(),
                     StockActual = dto.StockActual,
                     PrecioUnitario = dto.PrecioUnitario
                 };
@@ -79,7 +79,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.GuardarCambiosAsync();
 
                 return Results.Created($"/api/v1/insumos/{nuevoInsumo.Id}", nuevoInsumo);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
 
             // API para editar insumo por ID
             insumos.MapPut("/{id:int}", async (int id, InsumoCreateDto dto, IRepository<Insumo> repo) =>
@@ -93,14 +93,14 @@ namespace VeterinariaAPI.Endpoints
                 var insumoExistente = await repo.ObtenerPorIdAsync(id);
                 if (insumoExistente is null) return Results.NotFound();
 
-                insumoExistente.NombreProducto = dto.NombreProducto;
-                insumoExistente.Tipo = dto.Tipo;
+                insumoExistente.NombreProducto = dto.NombreProducto.Trim();
+                insumoExistente.Tipo = dto.Tipo.Trim();
                 insumoExistente.StockActual = dto.StockActual;
                 insumoExistente.PrecioUnitario = dto.PrecioUnitario;
 
                 await repo.GuardarCambiosAsync();
                 return Results.Ok(insumoExistente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
 
             // API para eliminar insumos
             insumos.MapDelete("/{id:int}", async (int id, IRepository<Insumo> repo, VeterinariodbContext db) =>
@@ -124,7 +124,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.EliminarAsync(insumoExistente);
                 await repo.GuardarCambiosAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
         }
 
         // DTO estructurado con el prefijo 'property:' para la correcta validación por reflexión
@@ -134,7 +134,7 @@ namespace VeterinariaAPI.Endpoints
             string NombreProducto,
 
             [property: Required(ErrorMessage = "El tipo de insumo es obligatorio.")]
-            [property: StringLength(50, ErrorMessage = "El tipo de insumo no puede superar los 50 caracteres.")]
+            [property: StringLength(50, MinimumLength = 2, ErrorMessage = "El tipo de insumo debe tener entre 2 y 50 caracteres.")]
             string Tipo,
 
             [property: Required(ErrorMessage = "El stock actual es obligatorio.")]

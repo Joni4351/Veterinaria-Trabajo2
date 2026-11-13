@@ -1,14 +1,27 @@
+import { NumericInput } from '../components/NumericInput';
+import { normalizeFieldErrors } from '../services/apiErrors';
+import { AccessibleDialog } from "../components/AccessibleDialog";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { Award, Shield, UserCheck, Plus, Trash2, Edit2, X, AlertCircle, Filter, RotateCcw } from 'lucide-react';
+import { Award, Shield, UserCheck, Plus, Trash2, Edit2, X, AlertCircle, Filter, RotateCcw, History, FlaskConical, Users, LayoutDashboard } from 'lucide-react';
 import { especialidadSchema, rolSchema } from '../schemas/adminSchema';
 import { ConfirmModal } from '../components/ConfirmModal';
+import { RegistroFacialView } from './RegistroFacialView';
+import { UserCreateForm } from '../components/UserCreateForm';
+import { DatosPruebaView } from './DatosPruebaView';
+import { AuditoriaView } from './AuditoriaView';
+import { DashboardView } from './DashboardView';
+import { ReportesView } from './ReportesView';
+import { notifySuccess, notifyConflict } from '../services/notifications';
+import './AdminConfigView.css';
 
 export const AdminConfigView = () => {
   const [activeTab, setActiveTab] = useState('especialidades');
   const [especialidades, setEspecialidades] = useState([]);
   const [roles, setRoles] = useState([]);
   const [usuarios, setUsuarios] = useState([]);
+  const [editingUser, setEditingUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   // Filtros API
@@ -36,7 +49,7 @@ export const AdminConfigView = () => {
   useEffect(() => {
     if (activeTab === 'especialidades') fetchEspecialidades();
     if (activeTab === 'roles') fetchRoles();
-    if (activeTab === 'usuarios') fetchUsuarios();
+    if (activeTab === 'usuarios') { fetchUsuarios(); fetchRoles(); }
   }, [activeTab, espFilters, rolFilters, usuFilters]);
 
   const fetchEspecialidades = async () => {
@@ -59,8 +72,8 @@ export const AdminConfigView = () => {
     setLoading(true);
     try {
       const params = {};
-      if (rolFilters.nombre) params.nombre = rolFilters.nombre;
-      if (rolFilters.permisosEscritura !== '') params.permisosEscritura = rolFilters.permisosEscritura === 'true';
+      if (activeTab === 'roles' && rolFilters.nombre) params.nombre = rolFilters.nombre;
+      if (activeTab === 'roles' && rolFilters.permisosEscritura !== '') params.permisosEscritura = rolFilters.permisosEscritura === 'true';
       const res = await api.get('/api/v1/roles', { params });
       setRoles(res.data || []);
     } catch (err) {
@@ -105,7 +118,7 @@ export const AdminConfigView = () => {
     const validation = especialidadSchema.safeParse(espForm);
     if (!validation.success) {
       const errors = {};
-      validation.error.errors.forEach(err => {
+      validation.error.issues.forEach(err => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setFieldErrors(errors);
@@ -122,13 +135,15 @@ export const AdminConfigView = () => {
       } else {
         await api.post('/api/v1/especialidades', payload);
       }
+      notifySuccess(espForm.id ? 'Especialidad actualizada correctamente.' : 'Especialidad registrada correctamente.');
       setModalType(null);
       fetchEspecialidades();
     } catch (err) {
       if (err.response?.data?.errors) {
+        setFieldErrors(normalizeFieldErrors(err.response.data.errors));
         setFormError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setFormError(err.response?.data?.message || 'Error al guardar especialidad');
+        setFormError(err.userMessage || err.response?.data?.message || 'Error al guardar especialidad');
       }
     }
   };
@@ -152,7 +167,7 @@ export const AdminConfigView = () => {
     const validation = rolSchema.safeParse(rolForm);
     if (!validation.success) {
       const errors = {};
-      validation.error.errors.forEach(err => {
+      validation.error.issues.forEach(err => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setFieldErrors(errors);
@@ -169,13 +184,14 @@ export const AdminConfigView = () => {
       } else {
         await api.post('/api/v1/roles', payload);
       }
+      notifySuccess(rolForm.id ? 'Rol actualizado correctamente.' : 'Rol registrado correctamente.');
       setModalType(null);
       fetchRoles();
     } catch (err) {
       if (err.response?.data?.errors) {
         setFormError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setFormError(err.response?.data?.message || 'Error al guardar rol');
+        setFormError(err.userMessage || err.response?.data?.message || 'Error al guardar rol');
       }
     }
   };
@@ -207,18 +223,21 @@ export const AdminConfigView = () => {
     try {
       if (deleteConfirm.type === 'esp') {
         await api.delete(`/api/v1/especialidades/${deleteConfirm.id}`);
+        notifySuccess('Especialidad eliminada correctamente.');
         fetchEspecialidades();
       } else if (deleteConfirm.type === 'rol') {
         await api.delete(`/api/v1/roles/${deleteConfirm.id}`);
+        notifySuccess('Rol eliminado correctamente.');
         fetchRoles();
       } else if (deleteConfirm.type === 'usu') {
         await api.delete(`/api/v1/usuarios/${deleteConfirm.id}`);
+        notifySuccess('Usuario eliminado correctamente.');
         fetchUsuarios();
       }
       setDeleteConfirm({ isOpen: false, type: null, id: null, title: '', message: '', loading: false });
     } catch (err) {
       setDeleteConfirm(prev => ({ ...prev, loading: false }));
-      alert(err.response?.data?.message || 'No se pudo eliminar el registro.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'No se pudo eliminar el registro.');
     }
   };
 
@@ -227,76 +246,40 @@ export const AdminConfigView = () => {
       <div className="card">
         <div className="card-header">
           <div>
-            <h2 className="card-title">Panel de Control de Administración</h2>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-              Gestión centralizada de Especialidades Clínicas, Roles RBAC y Cuentas de Acceso
-            </p>
-          </div>
+            <h1 className="card-title">Panel de Control de Administración</h1>
+            </div>
         </div>
 
         {/* Pestañas de Navegación */}
-        <div style={{ display: 'flex', gap: '1rem', borderBottom: '1px solid #e2e8f0', padding: '0 1.5rem', background: '#f8fafc' }}>
-          <button
-            onClick={() => setActiveTab('especialidades')}
-            style={{
-              padding: '0.75rem 1rem',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              color: activeTab === 'especialidades' ? '#0284c7' : '#64748b',
-              borderBottom: activeTab === 'especialidades' ? '2px solid #0284c7' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <Award size={18} /> Especialidades Médicas
-          </button>
-          <button
-            onClick={() => setActiveTab('roles')}
-            style={{
-              padding: '0.75rem 1rem',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              color: activeTab === 'roles' ? '#0284c7' : '#64748b',
-              borderBottom: activeTab === 'roles' ? '2px solid #0284c7' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <Shield size={18} /> Roles de Seguridad (RBAC)
-          </button>
-          <button
-            onClick={() => setActiveTab('usuarios')}
-            style={{
-              padding: '0.75rem 1rem',
-              border: 'none',
-              background: 'none',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.9rem',
-              color: activeTab === 'usuarios' ? '#0284c7' : '#64748b',
-              borderBottom: activeTab === 'usuarios' ? '2px solid #0284c7' : 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}
-          >
-            <UserCheck size={18} /> Cuentas de Usuarios
-          </button>
-        </div>
-
+        <nav className="admin-sections" aria-label="Secciones de administración">
+          {[
+            ['dashboard', 'Dashboard de gestión', LayoutDashboard],
+            ['reportes', 'Reportes', History],
+            ['auditoria', 'Historial de cambios', History],
+            ['datos-prueba', 'Datos de prueba', FlaskConical],
+            ['facial', 'Registro Facial', UserCheck],
+            ['especialidades', 'Especialidades Médicas', Award],
+            ['roles', 'Roles de Seguridad (RBAC)', Shield],
+            ['usuarios', 'Cuentas de Usuarios', Users]
+          ].map(([key, label, Icon]) => (
+            <button type="button" key={key} className={`admin-section${activeTab === key ? ' is-active' : ''}`}
+              onClick={() => setActiveTab(key)} aria-label={label} aria-pressed={activeTab === key}>
+              <Icon size={15} aria-hidden="true" />
+              <span>{label}</span>
+              {activeTab === key && <span className="admin-active-badge" aria-hidden="true" title="Sección activa">✓</span>}
+            </button>
+          ))}
+        </nav>
+        {activeTab === 'dashboard' && <div style={{ padding: '1.5rem', minWidth: 0 }}><DashboardView /></div>}
+        {activeTab === 'reportes' && <ReportesView />}
+        {activeTab === 'facial' && <RegistroFacialView />}
+        {activeTab === 'datos-prueba' && <DatosPruebaView />}
+        {activeTab === 'auditoria' && <AuditoriaView />}
         {/* Tab 1: Especialidades */}
         {activeTab === 'especialidades' && (
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>Catálogo de Especialidades</h3>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Catálogo de Especialidades</h2>
               <button className="btn btn-primary" onClick={() => handleOpenEspModal()}>
                 <Plus size={16} /> Nueva Especialidad
               </button>
@@ -304,13 +287,13 @@ export const AdminConfigView = () => {
 
             {/* Filtros Especialidades */}
             <div className="filter-panel" style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.85rem', color: '#334155' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-700)' }}>
                 <Filter size={15} /> Filtros de Especialidades (API)
               </div>
               <div className="filter-grid">
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Nombre</label>
-                  <input
+                  <label htmlFor="adminconfig-field-0" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Nombre</label>
+                  <input id="adminconfig-field-0"
                     type="text"
                     className="form-input"
                     placeholder="Filtrar por nombre..."
@@ -319,8 +302,8 @@ export const AdminConfigView = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Costo Mínimo ($)</label>
-                  <input
+                  <label htmlFor="adminconfig-field-1" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Costo Mínimo ($)</label>
+                  <NumericInput id="adminconfig-field-1" allowDecimal
                     type="number"
                     className="form-input"
                     placeholder="0"
@@ -329,8 +312,8 @@ export const AdminConfigView = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Costo Máximo ($)</label>
-                  <input
+                  <label htmlFor="adminconfig-field-2" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Costo Máximo ($)</label>
+                  <NumericInput id="adminconfig-field-2" allowDecimal
                     type="number"
                     className="form-input"
                     placeholder="Sin límite"
@@ -346,13 +329,13 @@ export const AdminConfigView = () => {
               </div>
             </div>
 
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Nombre de Especialidad</th>
-                    <th>Costo Base Consulta</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th scope="col">Nombre de Especialidad</th>
+                    <th scope="col">Costo Base Consulta</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -380,7 +363,7 @@ export const AdminConfigView = () => {
         {activeTab === 'roles' && (
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>Roles de Seguridad del Sistema</h3>
+              <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Roles de Seguridad del Sistema</h2>
               <button className="btn btn-primary" onClick={() => handleOpenRolModal()}>
                 <Plus size={16} /> Nuevo Rol
               </button>
@@ -388,13 +371,13 @@ export const AdminConfigView = () => {
 
             {/* Filtros Roles */}
             <div className="filter-panel" style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.85rem', color: '#334155' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-700)' }}>
                 <Filter size={15} /> Filtros de Roles (API)
               </div>
               <div className="filter-grid">
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Nombre del Rol</label>
-                  <input
+                  <label htmlFor="adminconfig-field-3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Nombre del Rol</label>
+                  <input id="adminconfig-field-3"
                     type="text"
                     className="form-input"
                     placeholder="Filtrar rol..."
@@ -403,8 +386,8 @@ export const AdminConfigView = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Permisos de Escritura</label>
-                  <select
+                  <label htmlFor="adminconfig-field-4" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Permisos de Escritura</label>
+                  <select id="adminconfig-field-4"
                     className="form-select"
                     value={rolFilters.permisosEscritura}
                     onChange={(e) => setRolFilters({ ...rolFilters, permisosEscritura: e.target.value })}
@@ -422,13 +405,13 @@ export const AdminConfigView = () => {
               </div>
             </div>
 
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Rol</th>
-                    <th>Nivel de Acceso</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th scope="col">Rol</th>
+                    <th scope="col">Nivel de Acceso</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -461,22 +444,20 @@ export const AdminConfigView = () => {
           <div style={{ padding: '1.5rem' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
               <div>
-                <h3 style={{ fontSize: '1.1rem', fontWeight: 600, color: '#1e293b' }}>Usuarios Registrados</h3>
-                <p style={{ color: '#64748b', fontSize: '0.82rem' }}>
-                  Las credenciales y altas de usuarios se gestionan a través del endpoint seguro `/api/v1/usuarios/registro`
-                </p>
+                <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--gray-800)' }}>Usuarios Registrados</h2>
               </div>
+              <UserCreateForm roles={roles} onCreated={fetchUsuarios} editingUser={editingUser} onEditClosed={() => setEditingUser(null)} />
             </div>
 
             {/* Filtros Usuarios */}
             <div className="filter-panel" style={{ marginBottom: '1.5rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.85rem', color: '#334155' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.85rem', color: 'var(--gray-700)' }}>
                 <Filter size={15} /> Filtros de Usuarios (API)
               </div>
               <div className="filter-grid">
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Nombre</label>
-                  <input
+                  <label htmlFor="adminconfig-field-5" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Nombre</label>
+                  <input id="adminconfig-field-5"
                     type="text"
                     className="form-input"
                     placeholder="Filtrar por nombre..."
@@ -485,8 +466,8 @@ export const AdminConfigView = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Email</label>
-                  <input
+                  <label htmlFor="adminconfig-field-6" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Email</label>
+                  <input id="adminconfig-field-6"
                     type="text"
                     className="form-input"
                     placeholder="Filtrar por email..."
@@ -495,8 +476,8 @@ export const AdminConfigView = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Rol</label>
-                  <select
+                  <label htmlFor="adminconfig-field-7" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Rol</label>
+                  <select id="adminconfig-field-7"
                     className="form-select"
                     value={usuFilters.rolId}
                     onChange={(e) => setUsuFilters({ ...usuFilters, rolId: e.target.value })}
@@ -515,14 +496,14 @@ export const AdminConfigView = () => {
               </div>
             </div>
 
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Nombre Completo</th>
-                    <th>Correo Electrónico</th>
-                    <th>Rol Asignado</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th scope="col">Nombre Completo</th>
+                    <th scope="col">Correo Electrónico</th>
+                    <th scope="col">Rol Asignado</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -534,6 +515,7 @@ export const AdminConfigView = () => {
                         <span className="badge badge-primary">{u.rol || 'Usuario'}</span>
                       </td>
                       <td data-label="Acciones" style={{ textAlign: 'right' }}>
+                        <button className="btn-icon" onClick={() => setEditingUser(u)} title="Editar usuario" aria-label={`Editar usuario ${u.nombreCompleto}`}><Edit2 size={16} aria-hidden="true" /></button>
                         <button className="btn-icon danger" onClick={() => handleRequestDelete('usu', u.id, u.nombreCompleto)} title="Eliminar usuario" aria-label="Eliminar usuario">
                           <Trash2 size={16} />
                         </button>
@@ -549,19 +531,19 @@ export const AdminConfigView = () => {
 
       {/* Modal Especialidad (Estructura de Tarjetas Visuales) */}
       {modalType === 'esp' && (
-        <div className="modal-overlay">
+        <AccessibleDialog className="modal-overlay" aria-label="Especialidad veterinaria" onClose={() => setModalType(null)}>
           <div className="modal-content" style={{ maxWidth: '520px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera Especialidad */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: espForm.id ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: espForm.id ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: espForm.id ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: espForm.id ? '#0284c7' : 'var(--success-text)', flexShrink: 0 }}>
                   <Award size={22} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {espForm.id ? 'Editar Especialidad' : 'Nueva Especialidad Médica'}
-                  </h3>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  </h2>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {espForm.id ? 'Modifique el costo base o nombre de la especialidad' : 'Registre una nueva especialidad para atención clínica'}
                   </span>
                 </div>
@@ -571,8 +553,8 @@ export const AdminConfigView = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveEsp} noValidate>
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <AccessibleForm onSubmit={handleSaveEsp} noValidate>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {formError && (
                   <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
                     <AlertCircle size={18} />
@@ -580,7 +562,7 @@ export const AdminConfigView = () => {
                   </div>
                 )}
                 <div className="form-group">
-                  <label className="form-label" htmlFor="esp-nombre" style={{ fontWeight: 600, color: '#1e293b' }}>Nombre de la Especialidad *</label>
+                  <label className="form-label" htmlFor="esp-nombre" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Nombre de la Especialidad <RequiredIndicator /></label>
                   <input
                     id="esp-nombre"
                     type="text"
@@ -591,17 +573,17 @@ export const AdminConfigView = () => {
                       setEspForm({ ...espForm, nombre: e.target.value });
                       if (fieldErrors.nombre) setFieldErrors(prev => ({ ...prev, nombre: null }));
                     }}
-                    aria-invalid={!!fieldErrors.nombre}
+                    aria-invalid={!!fieldErrors.nombre} required aria-describedby={!!fieldErrors.nombre ? "esp-nombre-error" : undefined}
                   />
                   {fieldErrors.nombre && (
-                    <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id="esp-nombre-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                       {fieldErrors.nombre}
                     </span>
                   )}
                 </div>
                 <div className="form-group">
-                  <label className="form-label" htmlFor="esp-costo" style={{ fontWeight: 600, color: '#1e293b' }}>Costo Base ($) *</label>
-                  <input
+                  <label className="form-label" htmlFor="esp-costo" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Costo Base ($) <RequiredIndicator /></label>
+                  <NumericInput
                     id="esp-costo"
                     type="number"
                     step="0.01"
@@ -611,40 +593,40 @@ export const AdminConfigView = () => {
                       setEspForm({ ...espForm, costoBase: e.target.value });
                       if (fieldErrors.costoBase) setFieldErrors(prev => ({ ...prev, costoBase: null }));
                     }}
-                    aria-invalid={!!fieldErrors.costoBase}
+                    aria-invalid={!!fieldErrors.costoBase} required aria-describedby={!!fieldErrors.costoBase ? "esp-costo-error" : undefined}
                   />
                   {fieldErrors.costoBase && (
-                    <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id="esp-costo-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                       {fieldErrors.costoBase}
                     </span>
                   )}
                 </div>
               </div>
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setModalType(null)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary">Guardar</button>
+                <SubmitButton type="submit" className="btn btn-primary">Guardar</SubmitButton>
               </div>
-            </form>
+            </AccessibleForm>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Modal Rol (Estructura de Tarjetas Visuales) */}
       {modalType === 'rol' && (
-        <div className="modal-overlay">
+        <AccessibleDialog className="modal-overlay" aria-label="Rol de seguridad" onClose={() => setModalType(null)}>
           <div className="modal-content" style={{ maxWidth: '520px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera Rol */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: rolForm.id ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: rolForm.id ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: rolForm.id ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: rolForm.id ? '#0284c7' : 'var(--success-text)', flexShrink: 0 }}>
                   <Shield size={22} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {rolForm.id ? 'Editar Rol' : 'Nuevo Rol de Usuario'}
-                  </h3>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  </h2>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {rolForm.id ? 'Configure los permisos asignados a este rol' : 'Defina un rol con permisos de acceso al sistema'}
                   </span>
                 </div>
@@ -654,8 +636,8 @@ export const AdminConfigView = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSaveRol} noValidate>
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <AccessibleForm onSubmit={handleSaveRol} noValidate>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {formError && (
                   <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
                     <AlertCircle size={18} />
@@ -663,7 +645,7 @@ export const AdminConfigView = () => {
                   </div>
                 )}
                 <div className="form-group">
-                  <label className="form-label" htmlFor="rol-nombre" style={{ fontWeight: 600, color: '#1e293b' }}>Nombre del Rol *</label>
+                  <label className="form-label" htmlFor="rol-nombre" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>Nombre del Rol <RequiredIndicator /></label>
                   <input
                     id="rol-nombre"
                     type="text"
@@ -674,10 +656,10 @@ export const AdminConfigView = () => {
                       setRolForm({ ...rolForm, nombre: e.target.value });
                       if (fieldErrors.nombre) setFieldErrors(prev => ({ ...prev, nombre: null }));
                     }}
-                    aria-invalid={!!fieldErrors.nombre}
+                    aria-invalid={!!fieldErrors.nombre} required aria-describedby={!!fieldErrors.nombre ? "rol-nombre-error" : undefined}
                   />
                   {fieldErrors.nombre && (
-                    <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id="rol-nombre-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                       {fieldErrors.nombre}
                     </span>
                   )}
@@ -689,19 +671,19 @@ export const AdminConfigView = () => {
                     checked={rolForm.permisosEscritura}
                     onChange={(e) => setRolForm({ ...rolForm, permisosEscritura: e.target.checked })}
                   />
-                  <label htmlFor="permisosEscritura" style={{ fontSize: '0.9rem', cursor: 'pointer', fontWeight: 600, color: '#1e293b' }}>
+                  <label htmlFor="permisosEscritura" style={{ fontSize: '0.9rem', cursor: 'pointer', fontWeight: 600, color: 'var(--gray-800)' }}>
                     Permisos de Escritura y Modificación habilitados
                   </label>
                 </div>
               </div>
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setModalType(null)}>Cancelar</button>
-                <button type="submit" className="btn btn-primary">Guardar</button>
+                <SubmitButton type="submit" className="btn btn-primary">Guardar</SubmitButton>
               </div>
-            </form>
+            </AccessibleForm>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* ConfirmModal para eliminación */}

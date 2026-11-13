@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using VeterinariaAPI.Models;
 using Xunit;
@@ -97,7 +98,8 @@ namespace VeterinariaAPI.Tests
         private string GenerateTestJwt(string role = "Administrador")
         {
             var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.UTF8.GetBytes("Mi_super-claveultra-secreta1234:)");
+            var config = _factory.Services.GetRequiredService<IConfiguration>();
+            var key = Encoding.UTF8.GetBytes(config["Jwt:Key"] ?? throw new InvalidOperationException("Falta la clave JWT del servidor de pruebas."));
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(new[]
@@ -106,31 +108,24 @@ namespace VeterinariaAPI.Tests
                     new Claim(ClaimTypes.Role, role)
                 }),
                 Expires = DateTime.UtcNow.AddHours(1),
-                Issuer = "VeterinarioApi",
-                Audience = "VeterinarioApiUsuarios",
+                Issuer = config["Jwt:Issuer"],
+                Audience = config["Jwt:Audience"],
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
 
-        [Fact]
+        [ExternalDatabaseFact]
         public async Task Test_Supabase_Connection()
         {
-            var rawUri = "postgresql://postgres:Yyg4XmreVcfU0H5x@db.gxbnrxhgwyckgcdfzmjs.supabase.co:5432/postgres";
-            var uri = new Uri(rawUri);
-            var userInfo = uri.UserInfo.Split(':');
-            var user = Uri.UnescapeDataString(userInfo[0]);
-            var password = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
-            var host = "aws-0-us-east-2.pooler.supabase.com";
-            var poolerUser = $"{user}.gxbnrxhgwyckgcdfzmjs";
-            var connStr = $"Host={host};Port=5432;Database=postgres;Username={poolerUser};Password={password};SSL Mode=Require;Trust Server Certificate=true;";
-
-            await using var conn = new Npgsql.NpgsqlConnection(connStr);
+            var connectionString = Environment.GetEnvironmentVariable("VETCLINIC_TEST_POSTGRES_CONNECTION")
+                ?? throw new InvalidOperationException("Configure la conexión de pruebas externa mediante una variable de entorno.");
+            await using var conn = new Npgsql.NpgsqlConnection(connectionString);
             await conn.OpenAsync();
-            await using var cmd = new Npgsql.NpgsqlCommand("SELECT COUNT(*) FROM \"Roles\";", conn);
-            var count = await cmd.ExecuteScalarAsync();
-            Assert.NotNull(count);
+            await using var cmd = new Npgsql.NpgsqlCommand("SELECT 1", conn);
+            var result = await cmd.ExecuteScalarAsync();
+            Assert.NotNull(result);
         }
 
         [Fact]
@@ -189,6 +184,7 @@ namespace VeterinariaAPI.Tests
         [Fact]
         public async Task Test_Register_InvalidModel_ReturnsValidationProblem()
         {
+            _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", GenerateTestJwt());
             // Arrange: DTO con datos inválidos (correo erróneo y contraseña corta)
             var invalidRegister = new
             {
@@ -231,6 +227,7 @@ namespace VeterinariaAPI.Tests
             int clienteId;
             int espId = 100;
             int insumoId = 100;
+            int consultaId;
 
             using (var scope = _factory.Services.CreateScope())
             {
@@ -247,17 +244,24 @@ namespace VeterinariaAPI.Tests
                 db.Insumos.Add(insumo);
 
                 db.SaveChanges();
+                var paciente = new Paciente { ClienteId = clienteId, Nombre = "Paciente facturado", Especie = "Canino", Peso = 5 };
+                db.Pacientes.Add(paciente);
+                db.SaveChanges();
+                var consulta = new Consulta { PacienteId = paciente.Id, Motivo = "Control de prueba", Diagnostico = "Sin hallazgos" };
+                db.Consultas.Add(consulta);
+                db.SaveChanges();
+                consultaId = consulta.Id;
             }
 
             var payload = new
             {
                 ClienteId = clienteId,
-                FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                 MontoImpuestos = 0m,
                 MontoTotal = 0m,
                 Items = new[]
                 {
-                    new { Tipo = "cita", EspecialidadId = (int?)espId, InsumoId = (int?)null, ConsultaId = (int?)null, Cantidad = 1, PrecioUnitario = 20000m, Subtotal = 20000m },
+                    new { Tipo = "cita", EspecialidadId = (int?)espId, InsumoId = (int?)null, ConsultaId = (int?)consultaId, Cantidad = 1, PrecioUnitario = 20000m, Subtotal = 20000m },
                     new { Tipo = "insumo", EspecialidadId = (int?)null, InsumoId = (int?)insumoId, ConsultaId = (int?)null, Cantidad = 2, PrecioUnitario = 1000m, Subtotal = 2000m }
                 }
             };
@@ -293,7 +297,7 @@ namespace VeterinariaAPI.Tests
             var payload = new
             {
                 ClienteId = 1,
-                FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                 MontoImpuestos = 0m,
                 MontoTotal = 0m,
                 Items = new[]
@@ -325,7 +329,7 @@ namespace VeterinariaAPI.Tests
             var payload = new
             {
                 ClienteId = 1,
-                FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                 MontoImpuestos = 0m,
                 MontoTotal = 0m,
                 Items = new[]
@@ -368,13 +372,14 @@ namespace VeterinariaAPI.Tests
 
                 var cita = new Cita { Id = citaId, PacienteId = pacId, UsuarioId = 1, EspecialidadId = espId, FechaHora = DateTime.Now, Estado = "Confirmada" };
                 db.Citas.Add(cita);
+                db.Consultas.Add(new Consulta { PacienteId = pacId, CitaId = citaId, Motivo = "Consulta de prueba", Diagnostico = "Sin hallazgos" });
                 db.SaveChanges();
             }
 
             var payload = new
             {
                 ClienteId = 1,
-                FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                 MontoImpuestos = 0m,
                 MontoTotal = 0m,
                 Items = new[]
@@ -414,7 +419,7 @@ namespace VeterinariaAPI.Tests
                 var factura = new Factura
                 {
                     ClienteId = 1,
-                    FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                    FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                     MontoImpuestos = 1900m,
                     MontoTotal = 11900m
                 };
@@ -436,7 +441,7 @@ namespace VeterinariaAPI.Tests
             var putPayload = new
             {
                 ClienteId = 1,
-                FechaEmision = DateOnly.FromDateTime(DateTime.Today),
+                FechaEmision = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "America/Santiago")),
                 MontoImpuestos = 0m,
                 MontoTotal = 0m,
                 Items = new[]

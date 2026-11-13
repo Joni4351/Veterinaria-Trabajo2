@@ -18,7 +18,7 @@ namespace VeterinariaAPI.Endpoints
                 bool? permisosEscritura,
                 IRepository<Role> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (!string.IsNullOrWhiteSpace(nombre))
                 {

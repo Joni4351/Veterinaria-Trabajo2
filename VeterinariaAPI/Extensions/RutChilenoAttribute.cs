@@ -37,7 +37,7 @@ namespace VeterinariaAPI.Extensions
             var dvIngresado = limpio.Substring(limpio.Length - 1, 1);
 
             // El cuerpo debe ser estrictamente numérico
-            if (!long.TryParse(cuerpo, out _)) return false;
+            if (!Regex.IsMatch(cuerpo, @"^[0-9]+$") || cuerpo.All(c => c == '0')) return false;
 
             // Algoritmo oficial de Módulo 11
             int suma = 0;

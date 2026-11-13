@@ -10,7 +10,7 @@ namespace VeterinariaAPI.Endpoints
     {
         public static void MapPacientesApi(this WebApplication app)
         {
-            var pacientes = app.MapGroup("/api/v1/pacientes").WithTags("Pacientes (v1)");
+            var pacientes = app.MapGroup("/api/v1/pacientes").WithTags("Pacientes (v1)").AddEndpointFilter<BusinessValidationFilter>();
 
             // API para listar pacientes con filtros
             pacientes.MapGet("/", async (
@@ -21,7 +21,7 @@ namespace VeterinariaAPI.Endpoints
                 string? raza,
                 IRepository<Paciente> repo) =>
             {
-                var query = repo.Query().Include(p => p.Cliente).AsQueryable();
+                var query = repo.Query().AsNoTracking().Include(p => p.Cliente).AsQueryable();
 
                 if (clienteId.HasValue)
                 {
@@ -65,8 +65,8 @@ namespace VeterinariaAPI.Endpoints
                 var nuevoPaciente = new Paciente
                 {
                     ClienteId = dto.ClienteId,
-                    Nombre = dto.Nombre,
-                    Especie = dto.Especie,
+                    Nombre = dto.Nombre.Trim(),
+                    Especie = dto.Especie.Trim(),
                     Raza = dto.Raza,
                     Peso = dto.Peso,
                     Alergias = dto.Alergias
@@ -76,7 +76,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.GuardarCambiosAsync();
 
                 return Results.Created($"/api/v1/pacientes/{nuevoPaciente.Id}", nuevoPaciente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
             // API para editar paciente por ID
             pacientes.MapPut("/{id:int}", async (int id, PacienteCreateDto dto, IRepository<Paciente> repo) =>
@@ -91,15 +91,15 @@ namespace VeterinariaAPI.Endpoints
                 if (pacienteExistente is null) return Results.NotFound();
 
                 pacienteExistente.ClienteId = dto.ClienteId;
-                pacienteExistente.Nombre = dto.Nombre;
-                pacienteExistente.Especie = dto.Especie;
+                pacienteExistente.Nombre = dto.Nombre.Trim();
+                pacienteExistente.Especie = dto.Especie.Trim();
                 pacienteExistente.Raza = dto.Raza;
                 pacienteExistente.Peso = dto.Peso;
                 pacienteExistente.Alergias = dto.Alergias;
 
                 await repo.GuardarCambiosAsync();
                 return Results.Ok(pacienteExistente);
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
             // API para eliminar pacientes
             pacientes.MapDelete("/{id:int}", async (int id, IRepository<Paciente> repo, VeterinariodbContext db) =>
@@ -123,7 +123,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.EliminarAsync(pacienteExistente);
                 await repo.GuardarCambiosAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
         }
 
         // DTO estructurado con el prefijo 'property:' para la correcta validación por reflexión
@@ -133,7 +133,7 @@ namespace VeterinariaAPI.Endpoints
             int ClienteId,
 
             [property: Required(ErrorMessage = "El nombre del paciente es obligatorio.")]
-            [property: StringLength(50, MinimumLength = 2, ErrorMessage = "El nombre debe tener entre 2 y 50 caracteres.")]
+            [property: StringLength(100, MinimumLength = 2, ErrorMessage = "El nombre debe tener entre 2 y 100 caracteres.")]
             string Nombre,
 
             [property: Required(ErrorMessage = "La especie es obligatoria.")]
@@ -143,10 +143,10 @@ namespace VeterinariaAPI.Endpoints
             [property: StringLength(50, ErrorMessage = "La raza no puede superar los 50 caracteres.")]
             string? Raza,
 
-            [property: Range(0.01, 1000.0, ErrorMessage = "El peso debe ser mayor a 0.")]
+            [property: Range(0.01, 300.0, ErrorMessage = "El peso debe ser mayor a 0 y no superar 300 kg.")]
             decimal Peso,
 
-            [property: StringLength(250, ErrorMessage = "Las alergias no pueden superar los 250 caracteres.")]
+            [property: StringLength(500, ErrorMessage = "Las alergias no pueden superar los 500 caracteres.")]
             string? Alergias
         );
     }

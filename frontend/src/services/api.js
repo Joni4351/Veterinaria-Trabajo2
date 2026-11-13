@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getApiErrorMessage } from './apiErrors';
 
 // Instancia configurada para el API
 const api = axios.create({
@@ -21,8 +22,17 @@ api.interceptors.request.use((config) => {
 
 // Interceptor para manejo global de respuestas (401 y 403)
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    if (['post', 'put', 'patch', 'delete'].includes(response.config?.method?.toLowerCase()))
+      window.dispatchEvent(new Event('vet:datachanged'));
+    return response;
+  },
   (error) => {
+    if (axios.isCancel(error) || error.code === 'ERR_CANCELED') return Promise.reject(error);
+    error.userMessage = getApiErrorMessage(error);
+    error.message = error.userMessage;
+    if ((error.config?.method || '').toLowerCase() === 'get' && (!error.response || error.response.status >= 500))
+      window.dispatchEvent(new CustomEvent('vet:apierror', { detail: { message: error.userMessage } }));
     // Manejo de 401 Unauthorized (Sesión expirada o no autenticado)
     if (error.response && error.response.status === 401) {
       if (localStorage.getItem('vet_token')) {
@@ -36,8 +46,7 @@ api.interceptors.response.use(
     if (error.response && error.response.status === 403) {
       const endpoint = error.config?.url || 'recurso protegido';
       const metodo = error.config?.method?.toUpperCase() || 'GET';
-      const mensaje = error.response?.data?.message || 
-        `Acceso Denegado (403): Tu rol actual no tiene autorización para realizar la operación [${metodo} ${endpoint}] en el servidor.`;
+      const mensaje = error.userMessage;
 
       // Emitir evento global para que la interfaz pueda desplegar una alerta visual
       if (typeof window !== 'undefined') {

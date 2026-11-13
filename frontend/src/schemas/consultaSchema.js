@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { plainNumberInput } from './numberValidation';
+import { calendarDateSchema, emissionDateSchema } from './dateValidation';
 
 export const consultaSchema = z.object({
   pacienteId: z.coerce
@@ -6,11 +8,12 @@ export const consultaSchema = z.object({
       required_error: 'Debe seleccionar un paciente',
       invalid_type_error: 'Debe seleccionar un paciente válido'
     })
+    .int('Seleccione un identificador entero válido')
     .min(1, 'Debe seleccionar un paciente'),
 
   citaId: z.preprocess(
     (val) => (val === '' || val === null || val === undefined ? null : Number(val)),
-    z.number().positive().nullable().optional()
+    z.number().int().positive().nullable().optional()
   ),
 
   motivo: z
@@ -31,19 +34,16 @@ export const consultaSchema = z.object({
 });
 
 export const recetaMedicaSchema = z.object({
-  fechaEmision: z
-    .string({ required_error: 'La fecha de emisión es obligatoria' })
-    .min(1, 'La fecha de emisión es obligatoria'),
+  fechaEmision: emissionDateSchema(),
 
-  validaHasta: z
-    .string({ required_error: 'La fecha de validez es obligatoria' })
-    .min(1, 'La fecha de validez es obligatoria'),
+  validaHasta: calendarDateSchema('La fecha de validez'),
 
   insumoId: z.coerce
     .number({
       required_error: 'Debe seleccionar un insumo o medicamento',
       invalid_type_error: 'Debe seleccionar un insumo válido'
     })
+    .int('Seleccione un identificador entero válido')
     .min(1, 'Debe seleccionar un insumo o medicamento'),
 
   dosis: z
@@ -52,14 +52,14 @@ export const recetaMedicaSchema = z.object({
     .min(2, 'La dosis debe tener al menos 2 caracteres')
     .max(100, 'La dosis no puede exceder 100 caracteres'),
 
-  duracionDias: z.coerce
+  duracionDias: z.preprocess(value => plainNumberInput(value, false), z.coerce
     .number({
       required_error: 'La duración en días es obligatoria',
       invalid_type_error: 'La duración debe ser un número entero'
     })
     .int('La duración debe ser en días enteros')
     .min(1, 'La duración mínima es de 1 día')
-    .max(365, 'La duración no puede superar 365 días')
+    .max(365, 'La duración no puede superar 365 días'))
 }).refine(
   (data) => new Date(data.validaHasta) >= new Date(data.fechaEmision),
   {

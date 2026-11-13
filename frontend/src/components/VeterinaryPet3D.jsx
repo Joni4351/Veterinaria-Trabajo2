@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { Heart, Sparkles, Award, Stethoscope } from 'lucide-react';
 
 /**
@@ -12,6 +13,8 @@ import { Heart, Sparkles, Award, Stethoscope } from 'lucide-react';
  * - Botones interactivos: Acariciar (corazones), Dar Premio (hueso animado), Chequeo Clínico (escaneo vital).
  */
 export default function VeterinaryPet3D() {
+  const reducedMotion = useReducedMotion();
+  const [paused, setPaused] = useState(false);
   const mountRef = useRef(null);
   const [petMood, setPetMood] = useState('¡Feliz de verte!');
   const [petHearts, setPetHearts] = useState([]);
@@ -255,6 +258,7 @@ export default function VeterinaryPet3D() {
     let clock = new THREE.Clock();
 
     const animate = () => {
+      if (reducedMotion || paused) { renderer.render(scene, camera); return; }
       animationId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
 
@@ -334,7 +338,7 @@ export default function VeterinaryPet3D() {
         mount.removeChild(renderer.domElement);
       }
     };
-  }, []);
+  }, [reducedMotion, paused]);
 
   // Interacción 1: Acariciar al perrito
   const handlePet = () => {
@@ -359,7 +363,7 @@ export default function VeterinaryPet3D() {
 
   // Interacción 3: Chequeo médico
   const handleScan = () => {
-    setIsScanning(true);
+    setIsScanning(!reducedMotion && !paused);
     petActionRef.current = { action: 'scan', time: performance.now() / 1000 };
     setPetMood('🩺 Escaneo Clínico: Signos vitales 100% óptimos.');
   };
@@ -370,8 +374,8 @@ export default function VeterinaryPet3D() {
         position: 'relative',
         width: '100%',
         maxWidth: '420px',
-        background: '#ffffff',
-        border: '1px solid #e2e8f0',
+        background: 'var(--bg-surface)',
+        border: '1px solid var(--gray-200)',
         borderRadius: '24px',
         padding: '1.5rem',
         boxShadow: '0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04)',
@@ -398,8 +402,8 @@ export default function VeterinaryPet3D() {
             gap: '6px',
             fontSize: '0.78rem',
             fontWeight: 700,
-            color: '#0f766e',
-            background: '#ccfbf1',
+            color: 'var(--teal-text)',
+            background: 'var(--primary-border)',
             padding: '4px 12px',
             borderRadius: '999px',
           }}
@@ -415,7 +419,7 @@ export default function VeterinaryPet3D() {
           <span>Toby • Mascota de la Clínica (3D Interactivo)</span>
         </div>
 
-        <span style={{ fontSize: '0.72rem', color: '#64748b', fontWeight: 600 }}>
+        <span style={{ fontSize: '0.72rem', color: 'var(--gray-500)', fontWeight: 600 }}>
           Sigue tu cursor 👀
         </span>
       </div>
@@ -428,7 +432,7 @@ export default function VeterinaryPet3D() {
             position: 'absolute',
             left: `${heart.x}%`,
             top: '40%',
-            color: '#ef4444',
+            color: 'var(--danger-text)',
             animation: 'floatUp 1.2s ease-out forwards',
             pointerEvents: 'none',
             zIndex: 20,
@@ -449,14 +453,17 @@ export default function VeterinaryPet3D() {
         }}
       />
 
-      {/* Estado de ánimo dinámico */}
+      <button type="button" className="btn btn-secondary btn-sm" style={{ marginBottom: 8 }} aria-pressed={paused} onClick={() => { setPaused(value => !value); setIsScanning(false); }} disabled={reducedMotion}>
+        {reducedMotion ? 'Movimiento reducido activado' : paused ? 'Reanudar animación' : 'Pausar animación'}
+      </button>
       <div
+        role="status"
         style={{
           fontSize: '0.85rem',
           fontWeight: 600,
-          color: isScanning ? '#0f766e' : '#334155',
-          background: isScanning ? '#f0fdfa' : '#f8fafc',
-          border: `1px solid ${isScanning ? '#99f6e4' : '#e2e8f0'}`,
+          color: isScanning ? 'var(--teal-text)' : 'var(--gray-700)',
+          background: isScanning ? 'var(--primary-light)' : 'var(--gray-50)',
+          border: `1px solid ${isScanning ? 'var(--primary-border)' : 'var(--gray-200)'}`,
           padding: '6px 16px',
           borderRadius: '999px',
           marginBottom: '1rem',
@@ -483,9 +490,9 @@ export default function VeterinaryPet3D() {
           onClick={handlePet}
           className="btn btn-sm"
           style={{
-            backgroundColor: '#fee2e2',
-            color: '#b91c1c',
-            border: '1px solid #fecaca',
+            backgroundColor: 'var(--danger-light)',
+            color: 'var(--danger-text)',
+            border: '1px solid var(--danger-border)',
             borderRadius: '999px',
             fontSize: '0.8rem',
             padding: '6px 14px',
@@ -498,7 +505,7 @@ export default function VeterinaryPet3D() {
             transition: 'all 0.2s',
           }}
         >
-          <Heart size={14} fill="#ef4444" color="#ef4444" />
+          <Heart size={14} fill="#ef4444" color="var(--danger-text)" />
           <span>Acariciar</span>
         </button>
 
@@ -507,9 +514,9 @@ export default function VeterinaryPet3D() {
           onClick={handleGiveTreat}
           className="btn btn-sm"
           style={{
-            backgroundColor: '#fef3c7',
-            color: '#b45309',
-            border: '1px solid #fde68a',
+            backgroundColor: 'var(--warning-light)',
+            color: 'var(--warning-text)',
+            border: '1px solid var(--warning-border)',
             borderRadius: '999px',
             fontSize: '0.8rem',
             padding: '6px 14px',
@@ -531,9 +538,9 @@ export default function VeterinaryPet3D() {
           onClick={handleScan}
           className="btn btn-sm"
           style={{
-            backgroundColor: '#ccfbf1',
-            color: '#0f766e',
-            border: '1px solid #99f6e4',
+            backgroundColor: 'var(--primary-border)',
+            color: 'var(--teal-text)',
+            border: '1px solid var(--primary-border)',
             borderRadius: '999px',
             fontSize: '0.8rem',
             padding: '6px 14px',
@@ -546,7 +553,7 @@ export default function VeterinaryPet3D() {
             transition: 'all 0.2s',
           }}
         >
-          <Stethoscope size={14} color="#0d9488" />
+          <Stethoscope size={14} color="var(--teal-text)" />
           <span>Chequeo Clínico</span>
         </button>
       </div>

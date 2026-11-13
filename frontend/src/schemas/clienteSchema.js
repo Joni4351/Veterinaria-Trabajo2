@@ -18,7 +18,7 @@ export function validarRutChileno(rut) {
   const dvIngresado = limpio.slice(-1);
 
   // El cuerpo debe ser estrictamente numérico
-  if (!/^\d+$/.test(cuerpo)) return false;
+  if (!/^\d+$/.test(cuerpo) || /^0+$/.test(cuerpo)) return false;
 
   // Algoritmo Módulo 11
   let suma = 0;
@@ -87,7 +87,7 @@ export const clienteSchema = z.object({
     .trim()
     .min(8, 'El teléfono debe tener al menos 8 dígitos')
     .max(20, 'Máximo 20 caracteres')
-    .regex(/^[0-9+() -]{8,20}$/, 'Formato de teléfono no válido (ej: +56912345678)'),
+    .regex(/^\+?[0-9() -]+$/, 'Formato de teléfono no válido (ej: +56912345678)').refine(value => { const count = value.replace(/\D/g, '').length; return count >= 8 && count <= 15; }, 'El teléfono debe contener entre 8 y 15 dígitos'),
 
   email: z
     .string({

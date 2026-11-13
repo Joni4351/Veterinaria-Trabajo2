@@ -10,7 +10,7 @@ namespace VeterinariaAPI.Endpoints
     {
         public static void MapDetalleRecetaApi(this WebApplication app)
         {
-            var detallesRe = app.MapGroup("/api/v1/detallesRe").WithTags("DetalleReceta (v1)");
+            var detallesRe = app.MapGroup("/api/v1/detallesRe").WithTags("DetalleReceta (v1)").AddEndpointFilter<BusinessValidationFilter>();
 
             // API para listar detalles de receta con filtros
             detallesRe.MapGet("/", async (
@@ -18,7 +18,7 @@ namespace VeterinariaAPI.Endpoints
                 int? insumoId,
                 IRepository<DetallesRecetum> repo) =>
             {
-                var query = repo.Query();
+                var query = repo.Query().AsNoTracking();
 
                 if (recetaId.HasValue)
                 {
@@ -47,7 +47,7 @@ namespace VeterinariaAPI.Endpoints
                 {
                     RecetaId = dto.RecetaId,
                     InsumoId = dto.InsumoId,
-                    Dosis = dto.Dosis,
+                    Dosis = dto.Dosis.Trim(),
                     DuracionDias = dto.DuracionDias
                 };
 
@@ -71,7 +71,7 @@ namespace VeterinariaAPI.Endpoints
 
                 detalleReExistente.RecetaId = dto.RecetaId;
                 detalleReExistente.InsumoId = dto.InsumoId;
-                detalleReExistente.Dosis = dto.Dosis;
+                detalleReExistente.Dosis = dto.Dosis.Trim();
                 detalleReExistente.DuracionDias = dto.DuracionDias;
 
                 await repo.GuardarCambiosAsync();
@@ -87,7 +87,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.EliminarAsync(detalleReExistente);
                 await repo.GuardarCambiosAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
         }
 
         // DTO estructurado con el prefijo 'property:' para la correcta validación por reflexión

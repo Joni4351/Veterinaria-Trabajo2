@@ -369,6 +369,8 @@ MigrationBackup/
 FodyWeavers.xsd
 
 # Frontend / Node
+test-results/
+playwright-report/
 node_modules/
 dist/
 dist-ssr/
@@ -376,6 +378,7 @@ dist-ssr/
 .env
 .env.*
 !.env.example
+!.env.docker.example
 
 # Documentos personales
 GUIA_EXPOSICION.md

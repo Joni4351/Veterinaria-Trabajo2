@@ -1,5 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useId, useRef } from 'react';
+import { AccessibleDialog } from './AccessibleDialog';
 import { AlertTriangle, X } from 'lucide-react';
+import { useAsyncActionLock } from '../hooks/useAsyncActionLock';
 
 /**
  * Modal accesible de confirmación para acciones destructivas (WCAG 2.2 AA).
@@ -16,40 +18,27 @@ export const ConfirmModal = ({
   danger = true
 }) => {
   const cancelButtonRef = useRef(null);
-
-  useEffect(() => {
-    if (isOpen) {
-      // Poner foco en el botón de cancelar por seguridad
-      cancelButtonRef.current?.focus();
-
-      // Cerrar al presionar la tecla Escape
-      const handleKeyDown = (e) => {
-        if (e.key === 'Escape' && !loading) {
-          onCancel();
-        }
-      };
-      window.addEventListener('keydown', handleKeyDown);
-      return () => window.removeEventListener('keydown', handleKeyDown);
-    }
-  }, [isOpen, loading, onCancel]);
+  const id = useId();
+  const { pending, run } = useAsyncActionLock();
+  const busy = loading || pending;
 
   if (!isOpen) return null;
 
   return (
-    <div
+    <AccessibleDialog
       className="modal-overlay"
-      role="presentation"
+      aria-labelledby={`${id}-title`} aria-describedby={`${id}-desc`} aria-busy={busy} initialFocus={cancelButtonRef} onClose={busy ? undefined : onCancel}
       onClick={(e) => {
-        if (e.target === e.currentTarget && !loading) onCancel();
+        if (e.target === e.currentTarget && !busy) onCancel();
       }}
     >
       <div
         className="modal-content"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-modal-title"
-        aria-describedby="confirm-modal-desc"
-        style={{ maxWidth: '420px', padding: '1.5rem', background: '#ffffff', borderRadius: '1rem', border: '1px solid #e2e8f0', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
+
+
+
+
+        style={{ maxWidth: '420px', padding: '1.5rem', background: 'var(--bg-surface)', borderRadius: '1rem', border: '1px solid var(--gray-200)', boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2)' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
           <div
@@ -57,8 +46,8 @@ export const ConfirmModal = ({
               width: '42px',
               height: '42px',
               borderRadius: '50%',
-              backgroundColor: danger ? '#fee2e2' : '#e0f2fe',
-              color: danger ? '#ef4444' : '#0284c7',
+              backgroundColor: danger ? 'var(--danger-light)' : 'var(--secondary-light)',
+              color: danger ? 'var(--danger-text)' : '#0284c7',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -69,16 +58,16 @@ export const ConfirmModal = ({
             <AlertTriangle size={22} />
           </div>
           <div>
-            <h3
-              id="confirm-modal-title"
-              style={{ fontSize: '1.15rem', fontWeight: 700, color: '#0f172a' }}
+            <h2
+              id={`${id}-title`}
+              style={{ fontSize: '1.15rem', fontWeight: 700, color: 'var(--gray-900)' }}
             >
               {title}
-            </h3>
+            </h2>
           </div>
         </div>
 
-        <p id="confirm-modal-desc" style={{ color: '#64748b', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
+        <p id={`${id}-desc`} style={{ color: 'var(--gray-500)', fontSize: '0.9rem', marginBottom: '1.5rem', lineHeight: 1.5 }}>
           {message}
         </p>
 
@@ -88,7 +77,7 @@ export const ConfirmModal = ({
             type="button"
             className="btn btn-secondary"
             onClick={onCancel}
-            disabled={loading}
+            disabled={busy}
             style={{ minHeight: '44px', minWidth: '44px' }}
           >
             {cancelText}
@@ -96,15 +85,15 @@ export const ConfirmModal = ({
           <button
             type="button"
             className={danger ? 'btn btn-danger' : 'btn btn-primary'}
-            onClick={onConfirm}
-            disabled={loading}
+            onClick={() => { if (!loading) return run(onConfirm); }}
+            disabled={busy}
             style={{ minHeight: '44px', minWidth: '44px' }}
           >
-            {loading ? 'Procesando...' : confirmText}
+            {busy ? 'Procesando...' : confirmText}
           </button>
         </div>
       </div>
-    </div>
+    </AccessibleDialog>
   );
 };
 

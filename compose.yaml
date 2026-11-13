@@ -1,0 +1,75 @@
+name: vetclinic
+
+services:
+  api:
+    build:
+      context: ./VeterinariaAPI
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__miconexion: ${ConnectionStrings__miconexion:-Host=database;Port=5432;Database=vetclinic;Username=vetclinic;Password=${SANDBOX_DB_PASSWORD:-}}
+      Jwt__Key: ${Jwt__Key:?Complete la clave JWT en .env.docker}
+      Jwt__Issuer: ${Jwt__Issuer:-VeterinariaAPI}
+      Jwt__Audience: ${Jwt__Audience:-VeterinariaAPI}
+      Jwt__ExpireMinutes: ${Jwt__ExpireMinutes:-60}
+      Biometrics__EncryptionKey: ${Biometrics__EncryptionKey:?Complete la clave biométrica en .env.docker}
+      Demo__Enabled: ${Demo__Enabled:-false}
+      Database__MigrateOnStartup: ${Database__MigrateOnStartup:-false}
+      Bootstrap__AdminEmail: ${Bootstrap__AdminEmail:-}
+      Bootstrap__AdminPassword: ${Bootstrap__AdminPassword:-}
+      Swagger__Enabled: ${Swagger__Enabled:-false}
+    networks: [backend, edge]
+    depends_on:
+      database:
+        condition: service_healthy
+        required: false
+    expose:
+      - "8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 30s
+    restart: unless-stopped
+
+  frontend:
+    networks: [edge]
+    build:
+      context: ./frontend
+    ports:
+      - "127.0.0.1:${FRONTEND_PORT:-5173}:8080"
+    depends_on:
+      api:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--spider", "http://127.0.0.1:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  database:
+    profiles: [local]
+    image: postgres:16-alpine@sha256:aa6cb33cf4c19c765cefcf48d96176258800870a9a1e930ad126200f9d825139
+    environment:
+      POSTGRES_DB: vetclinic
+      POSTGRES_USER: vetclinic
+      POSTGRES_PASSWORD: ${SANDBOX_DB_PASSWORD:-}
+    volumes:
+      - local-data:/var/lib/postgresql/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vetclinic -d vetclinic"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  local-data:
+networks:
+  backend:
+    internal: true
+  edge:

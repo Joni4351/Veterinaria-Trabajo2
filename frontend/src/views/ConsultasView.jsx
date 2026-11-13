@@ -1,3 +1,10 @@
+import { TablePagination, pageRows } from '../components/TablePagination';
+import { NumericInput } from '../components/NumericInput';
+import { todayInChile } from '../schemas/dateValidation';
+import { normalizeFieldErrors } from '../services/apiErrors';
+import { AccessibleDialog } from "../components/AccessibleDialog";
+import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
+import { notifySuccess, notifyConflict } from '../services/notifications';
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -15,12 +22,20 @@ export const ConsultasView = () => {
   const [clientes, setClientes] = useState([]);
   const [citas, setCitas] = useState([]);
   const [insumos, setInsumos] = useState([]);
+  const [tablePage, setTablePage] = useState(1), [tableOrder, setTableOrder] = useState('asc');
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [searchDueno, setSearchDueno] = useState('');
+  const [patientSearch, setPatientSearch] = useState(null);
+  const [showPatients, setShowPatients] = useState(false);
+  const patientLabel = p => {
+    const cli = p.cliente || clientes.find(c => c.id === p.clienteId);
+    return `${p.nombre} (${p.especie}) — Dueño: ${cli?.nombreCompleto || 'Sin dueño'} (RUT: ${cli?.documentoIdentidad || '—'})`;
+  };
+  const normalizeSearch = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 
   // Filtros de API
   const [filters, setFilters] = useState({
@@ -28,9 +43,12 @@ export const ConsultasView = () => {
     motivo: '',
     diagnostico: ''
   });
+  useEffect(() => setTablePage(1), [filters, searchDueno]);
+
 
   // Sub-modal Receta
   const [isRecetaModalOpen, setIsRecetaModalOpen] = useState(false);
+  const [deleteRecetaConfirm, setDeleteRecetaConfirm] = useState(false);
   const [selectedConsulta, setSelectedConsulta] = useState(null);
   const [existingReceta, setExistingReceta] = useState(null);
   const [existingDetalle, setExistingDetalle] = useState(null);
@@ -40,11 +58,11 @@ export const ConsultasView = () => {
   const [recetaError, setRecetaError] = useState('');
   const [recetaFieldErrors, setRecetaFieldErrors] = useState({});
   const [recetaForm, setRecetaForm] = useState({
-    fechaEmision: new Date().toISOString().slice(0, 10),
-    validaHasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+    fechaEmision: '',
+    validaHasta: '',
     insumoId: '',
     dosis: '',
-    duracionDias: 7
+    duracionDias: ''
   });
 
   // Modal Confirmación Borrado
@@ -111,7 +129,7 @@ export const ConsultasView = () => {
 
       const res = await api.get('/api/v1/consultas', { params });
       setConsultas(res.data || []);
-      fetchRecetas();
+
     } catch (err) {
       console.error('Error cargando consultas:', err);
     } finally {
@@ -129,6 +147,8 @@ export const ConsultasView = () => {
   };
 
   const handleOpenModal = (consulta = null) => {
+    setPatientSearch(null);
+    setShowPatients(false);
     setError('');
     setFieldErrors({});
     if (consulta) {
@@ -142,7 +162,7 @@ export const ConsultasView = () => {
     } else {
       setEditingId(null);
       setFormData({
-        pacienteId: pacientes[0]?.id ? String(pacientes[0].id) : '',
+        pacienteId: '',
         citaId: '',
         motivo: '',
         diagnostico: ''
@@ -159,7 +179,7 @@ export const ConsultasView = () => {
     const validation = consultaSchema.safeParse(formData);
     if (!validation.success) {
       const errors = {};
-      validation.error.errors.forEach((err) => {
+      validation.error.issues.forEach((err) => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setFieldErrors(errors);
@@ -179,13 +199,15 @@ export const ConsultasView = () => {
       } else {
         await api.post('/api/v1/consultas', payload);
       }
+      notifySuccess(editingId ? 'Consulta actualizada correctamente.' : 'Consulta registrada correctamente.');
       setIsModalOpen(false);
       fetchConsultas();
     } catch (err) {
       if (err.response?.data?.errors) {
+        setFieldErrors(normalizeFieldErrors(err.response.data.errors));
         setError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setError(err.response?.data?.message || 'Error al guardar la consulta.');
+        setError(err.userMessage || err.response?.data?.message || 'Error al guardar la consulta.');
       }
     }
   };
@@ -198,11 +220,12 @@ export const ConsultasView = () => {
     setDeleteConfirm(prev => ({ ...prev, loading: true }));
     try {
       await api.delete(`/api/v1/consultas/${deleteConfirm.id}`);
+      notifySuccess('Consulta eliminada correctamente.');
       setDeleteConfirm({ isOpen: false, id: null, loading: false });
       fetchConsultas();
     } catch (err) {
       setDeleteConfirm(prev => ({ ...prev, loading: false }));
-      alert(err.response?.data?.message || 'No se pudo eliminar la consulta.');
+      notifyConflict(err.userMessage || err.response?.data?.message || 'No se pudo eliminar la consulta.');
     }
   };
 
@@ -232,16 +255,16 @@ export const ConsultasView = () => {
               validaHasta: rec.validaHasta,
               insumoId: String(det.insumoId),
               dosis: det.dosis || '',
-              duracionDias: det.duracionDias || 7
+              duracionDias: det.duracionDias || ''
             });
           } else {
             setExistingDetalle(null);
             setRecetaForm({
               fechaEmision: rec.fechaEmision,
               validaHasta: rec.validaHasta,
-              insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
+              insumoId: '',
               dosis: '',
-              duracionDias: 7
+              duracionDias: ''
             });
           }
         } catch (errDet) {
@@ -250,20 +273,20 @@ export const ConsultasView = () => {
           setRecetaForm({
             fechaEmision: rec.fechaEmision,
             validaHasta: rec.validaHasta,
-            insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
+            insumoId: '',
             dosis: '',
-            duracionDias: 7
+            duracionDias: ''
           });
         }
       } else {
         setExistingReceta(null);
         setExistingDetalle(null);
         setRecetaForm({
-          fechaEmision: new Date().toISOString().slice(0, 10),
-          validaHasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-          insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
-          dosis: '1 comprimido cada 12 horas con alimento',
-          duracionDias: 7
+          fechaEmision: '',
+          validaHasta: '',
+          insumoId: '',
+          dosis: '',
+          duracionDias: ''
         });
       }
     } catch (err) {
@@ -271,11 +294,11 @@ export const ConsultasView = () => {
       setExistingReceta(null);
       setExistingDetalle(null);
       setRecetaForm({
-        fechaEmision: new Date().toISOString().slice(0, 10),
-        validaHasta: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
-        insumoId: insumos[0]?.id ? String(insumos[0].id) : '',
-        dosis: '1 comprimido cada 12 horas con alimento',
-        duracionDias: 7
+        fechaEmision: '',
+        validaHasta: '',
+        insumoId: '',
+        dosis: '',
+        duracionDias: ''
       });
     } finally {
       setRecetaLoading(false);
@@ -291,7 +314,7 @@ export const ConsultasView = () => {
     const validation = recetaMedicaSchema.safeParse(recetaForm);
     if (!validation.success) {
       const errors = {};
-      validation.error.errors.forEach((err) => {
+      validation.error.issues.forEach((err) => {
         if (err.path[0]) errors[err.path[0]] = err.message;
       });
       setRecetaFieldErrors(errors);
@@ -354,9 +377,10 @@ export const ConsultasView = () => {
       }, 1000);
     } catch (err) {
       if (err.response?.data?.errors) {
+        setRecetaFieldErrors(normalizeFieldErrors(err.response.data.errors));
         setRecetaError(Object.values(err.response.data.errors).flat().join(' '));
       } else {
-        setRecetaError(err.response?.data?.message || 'Error al procesar la receta médica.');
+        setRecetaError(err.userMessage || err.response?.data?.message || 'Error al procesar la receta médica.');
       }
     } finally {
       setRecetaLoading(false);
@@ -365,9 +389,6 @@ export const ConsultasView = () => {
 
   const handleDeleteReceta = async () => {
     if (!existingReceta) return;
-    if (!window.confirm('¿Está seguro de que desea eliminar la receta médica vinculada a esta consulta? Esta acción no se puede deshacer.')) {
-      return;
-    }
 
     setRecetaLoading(true);
     setRecetaError('');
@@ -383,7 +404,7 @@ export const ConsultasView = () => {
         setIsRecetaModalOpen(false);
       }, 900);
     } catch (err) {
-      setRecetaError(err.response?.data?.message || 'Error al eliminar la receta médica.');
+      setRecetaError(err.userMessage || err.response?.data?.message || 'Error al eliminar la receta médica.');
     } finally {
       setRecetaLoading(false);
     }
@@ -394,14 +415,11 @@ export const ConsultasView = () => {
       <div className="card">
         <div className="card-header">
           <div>
-            <h2 className="card-title">
+            <h1 className="card-title">
               <Stethoscope size={24} color="#10b981" />
               Historial de Consultas Médicas y Diagnósticos
-            </h2>
-            <p style={{ color: '#64748b', fontSize: '0.88rem', marginTop: '0.2rem' }}>
-              Filtros directos a `/api/v1/consultas` por paciente, cita, motivo clínico o diagnóstico
-            </p>
-          </div>
+            </h1>
+            </div>
           {canCreateOrEdit && (
             <button className="btn btn-primary" onClick={() => handleOpenModal()}>
               <Plus size={18} />
@@ -412,13 +430,13 @@ export const ConsultasView = () => {
 
         {/* Panel de Filtros para Endpoint */}
         <div className="filter-panel">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: '#334155' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--gray-700)' }}>
             <Filter size={16} /> Filtros de Consultas (API)
           </div>
           <div className="filter-grid">
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Paciente</label>
-              <select
+              <label htmlFor="consultas-field-0" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Paciente</label>
+              <select id="consultas-field-0"
                 className="form-select"
                 value={filters.pacienteId}
                 onChange={(e) => setFilters({ ...filters, pacienteId: e.target.value })}
@@ -431,8 +449,8 @@ export const ConsultasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Buscar por Motivo</label>
-              <input
+              <label htmlFor="consultas-field-1" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Buscar por Motivo</label>
+              <input id="consultas-field-1"
                 type="text"
                 className="form-input"
                 placeholder="Filtro exacto o parcial..."
@@ -442,8 +460,8 @@ export const ConsultasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Buscar por Diagnóstico</label>
-              <input
+              <label htmlFor="consultas-field-2" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Buscar por Diagnóstico</label>
+              <input id="consultas-field-2"
                 type="text"
                 className="form-input"
                 placeholder="Palabra clínica clave..."
@@ -453,8 +471,8 @@ export const ConsultasView = () => {
             </div>
 
             <div>
-              <label style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>Dueño (Buscar por RUT o Nombre)</label>
-              <input
+              <label htmlFor="consultas-field-3" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Dueño (Buscar por RUT o Nombre)</label>
+              <input id="consultas-field-3"
                 type="text"
                 className="form-input"
                 placeholder="RUT o Nombre del dueño..."
@@ -485,56 +503,56 @@ export const ConsultasView = () => {
 
           if (loading) {
             return (
-              <div style={{ padding: '3rem', textAlign: 'center', color: '#64748b' }}>
+              <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--gray-500)' }}>
                 Cargando consultas...
               </div>
             );
           }
           if (displayedConsultas.length === 0) {
             return (
-              <p style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+              <p style={{ textAlign: 'center', padding: '3rem', color: 'var(--gray-500)' }}>
                 No hay consultas registradas con los filtros indicados.
               </p>
             );
           }
           return (
-            <div className="table-responsive">
+            <div className="table-responsive" tabIndex={0} role="region" aria-label="Tabla de registros">
               <table className="custom-table">
                 <thead>
                   <tr>
-                    <th>Paciente</th>
-                    <th>Dueño / RUT</th>
-                    <th>Atención / Cita</th>
-                    <th>Motivo de Consulta</th>
-                    <th>Diagnóstico</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
+                    <th scope="col">Paciente</th>
+                    <th scope="col">Dueño / RUT</th>
+                    <th scope="col">Atención / Cita</th>
+                    <th scope="col">Motivo de Consulta</th>
+                    <th scope="col">Diagnóstico</th>
+                    <th scope="col" style={{ textAlign: 'right' }}>Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {displayedConsultas.map((c) => {
+                  {pageRows(displayedConsultas, tablePage, tableOrder).map((c) => {
                     const paciente = c.paciente || pacientes.find(p => p.id === c.pacienteId);
                     const cliente = paciente?.cliente || clientes.find(cl => cl.id === paciente?.clienteId);
                     return (
                       <tr key={c.id}>
                         <td data-label="Paciente">
                           <strong>{paciente ? paciente.nombre : 'Paciente'}</strong>
-                          {paciente && <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{paciente.especie} ({paciente.raza || 'Mestizo'})</div>}
+                          {paciente && <div style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>{paciente.especie} ({paciente.raza || 'Mestizo'})</div>}
                         </td>
                         <td data-label="Dueño / RUT">
                           {cliente ? (
                             <div>
-                              <strong style={{ color: '#0f172a' }}>{cliente.nombreCompleto}</strong>
-                              <div style={{ fontSize: '0.78rem', color: '#0284c7', fontWeight: 600 }}>RUT: {cliente.documentoIdentidad}</div>
+                              <strong style={{ color: 'var(--gray-900)' }}>{cliente.nombreCompleto}</strong>
+                              <div style={{ fontSize: '0.78rem', color: 'var(--blue-text)', fontWeight: 600 }}>RUT: {cliente.documentoIdentidad}</div>
                             </div>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>—</span>
+                            <span style={{ color: 'var(--gray-400)' }}>—</span>
                           )}
                         </td>
                         <td data-label="Atención / Cita">
                           {c.citaId ? (
                             <span className="badge badge-secondary">Cita Programada</span>
                           ) : (
-                            <span style={{ color: '#94a3b8' }}>Atención Espontánea</span>
+                            <span style={{ color: 'var(--gray-400)' }}>Atención Espontánea</span>
                           )}
                         </td>
                         <td data-label="Motivo">
@@ -554,8 +572,8 @@ export const ConsultasView = () => {
                                   <button 
                                     className={`btn btn-sm ${tieneReceta ? 'btn-primary' : 'btn-secondary'}`} 
                                     onClick={() => handleOpenReceta(c)}
-                                    title={tieneReceta ? "Actualizar o Eliminar Receta Médica" : "Emitir Receta Médica"}
-                                    aria-label={tieneReceta ? "Actualizar o Eliminar Receta Médica" : "Emitir Receta Médica"}
+                                    title={tieneReceta ? (canDelete ? "Actualizar o Eliminar Receta Médica" : "Actualizar Receta Médica") : "Emitir Receta Médica"}
+                                    aria-label={tieneReceta ? (canDelete ? "Actualizar o Eliminar Receta Médica" : "Actualizar Receta Médica") : "Emitir Receta Médica"}
                                     style={tieneReceta ? { backgroundColor: '#059669', borderColor: '#059669' } : {}}
                                   >
                                     <Pill size={14} />
@@ -574,7 +592,7 @@ export const ConsultasView = () => {
                             </button>
                           )}
                           {!canCreateOrEdit && !canDelete && (
-                            <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>Solo Lectura</span>
+                            <span style={{ fontSize: '0.8rem', color: 'var(--gray-400)' }}>Solo Lectura</span>
                           )}
                         </td>
                       </tr>
@@ -582,6 +600,7 @@ export const ConsultasView = () => {
                   })}
                 </tbody>
               </table>
+<TablePagination total={displayedConsultas.length} page={tablePage} order={tableOrder} onPage={setTablePage} onOrder={setTableOrder} />
             </div>
           );
         })()}
@@ -589,19 +608,19 @@ export const ConsultasView = () => {
 
       {/* Modal Consulta (Estructura de Tarjetas Visuales) */}
       {isModalOpen && (
-        <div className="modal-overlay">
+        <AccessibleDialog className="modal-overlay" aria-label="Consulta veterinaria" onClose={() => setIsModalOpen(false)}>
           <div className="modal-content" style={{ maxWidth: '640px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
             {/* Tarjeta Visual Cabecera Consulta */}
-            <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: editingId ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: editingId ? '#0284c7' : 'var(--success-text)', flexShrink: 0 }}>
                   <Stethoscope size={22} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                  <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                     {editingId ? 'Editar Consulta' : 'Registrar Consulta Médica'}
-                  </h3>
-                  <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
+                  </h2>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
                     {editingId ? 'Actualice el diagnóstico clínico y motivo de atención' : 'Complete la ficha de atención clínica veterinaria'}
                   </span>
                 </div>
@@ -611,8 +630,8 @@ export const ConsultasView = () => {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} noValidate>
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <AccessibleForm onSubmit={handleSubmit} noValidate>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                 {error && (
                   <div className="alert alert-danger" role="alert">
                     <AlertCircle size={18} />
@@ -622,30 +641,38 @@ export const ConsultasView = () => {
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label className="form-label" htmlFor="consulta-paciente">Paciente Atendido *</label>
-                    <select
+                    <label className="form-label" htmlFor="consulta-paciente">Paciente Atendido <RequiredIndicator /></label>
+                    <input
                       id="consulta-paciente"
-                      className={`form-select ${fieldErrors.pacienteId ? 'border-red-500' : ''}`}
-                      value={formData.pacienteId}
+                      onKeyDown={e => { if (e.key === 'Escape' && showPatients) { e.stopPropagation(); setShowPatients(false); } }}
+                      type="search"
+                      autoComplete="off"
+                      className="form-input"
+                      placeholder="Buscar por nombre, especie, dueño o RUT..."
+                      value={patientSearch ?? (pacientes.find(p => String(p.id) === formData.pacienteId) ? patientLabel(pacientes.find(p => String(p.id) === formData.pacienteId)) : '')}
                       onChange={(e) => {
-                        setFormData({ ...formData, pacienteId: e.target.value });
+                        setPatientSearch(e.target.value);
+                        setShowPatients(true);
+                        setFormData(prev => ({ ...prev, pacienteId: '', citaId: '' }));
                         if (fieldErrors.pacienteId) setFieldErrors(prev => ({ ...prev, pacienteId: null }));
                       }}
                       aria-invalid={!!fieldErrors.pacienteId}
-                      aria-describedby={fieldErrors.pacienteId ? 'pacienteId-error' : undefined}
-                    >
-                      <option value="">Seleccione el paciente...</option>
-                      {pacientes.map(p => {
-                        const cli = p.cliente || clientes.find(c => c.id === p.clienteId);
-                        return (
-                          <option key={p.id} value={p.id}>
-                            {p.nombre} ({p.especie}) — Dueño: {cli?.nombreCompleto || 'Sin dueño'} (RUT: {cli?.documentoIdentidad || '—'})
-                          </option>
-                        );
-                      })}
-                    </select>
+                      aria-describedby={fieldErrors.pacienteId ? 'pacienteId-error' : undefined} required
+                    />
+                    {showPatients && patientSearch?.trim() && <div role="group" aria-label="Resultados de pacientes" style={{ maxHeight: 220, overflowY: 'auto', border: '1px solid var(--border-color)', borderRadius: 8 }}>
+                      {pacientes.filter(p => normalizeSearch(patientLabel(p)).includes(normalizeSearch(patientSearch ?? ''))).map(p => (
+                        <button key={p.id} type="button" className="form-input" style={{ textAlign: 'left', cursor: 'pointer', whiteSpace: 'normal', height: 'auto' }}
+                          onClick={() => {
+                            setFormData(prev => ({ ...prev, pacienteId: String(p.id), citaId: prev.pacienteId === String(p.id) ? prev.citaId : '' }));
+                            setPatientSearch(null);
+                            setShowPatients(false);
+                            setFieldErrors(prev => ({ ...prev, pacienteId: null, citaId: null }));
+                          }}>{patientLabel(p)}</button>
+                      ))}
+                      {!pacientes.some(p => normalizeSearch(patientLabel(p)).includes(normalizeSearch(patientSearch ?? ''))) && <p role="status">No se encontraron pacientes.</p>}
+                    </div>}
                     {fieldErrors.pacienteId && (
-                      <span id="pacienteId-error" role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id="pacienteId-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                         {fieldErrors.pacienteId}
                       </span>
                     )}
@@ -657,10 +684,17 @@ export const ConsultasView = () => {
                       id="consulta-cita"
                       className="form-select"
                       value={formData.citaId}
-                      onChange={(e) => setFormData({ ...formData, citaId: e.target.value })}
+                      onChange={(e) => {
+                        const citaId = e.target.value;
+                        const cita = citas.find(c => String(c.id) === citaId);
+                        setFormData(prev => ({ ...prev, citaId, pacienteId: cita ? String(cita.pacienteId) : prev.pacienteId }));
+                        setFieldErrors(prev => ({ ...prev, citaId: null, pacienteId: null }));
+                      }}
                     >
                       <option value="">Atención espontánea / Urgencia</option>
-                      {citas.map(cit => (
+                      {formData.citaId && citas.some(c => String(c.id) === formData.citaId && normalizeSearch(c.estado || '') === 'completada') &&
+                        <option hidden value={formData.citaId}>Cita previamente asociada (se conserva)</option>}
+                      {citas.filter(cit => String(cit.pacienteId) === formData.pacienteId && normalizeSearch(cit.estado || '') !== 'completada').map(cit => (
                         <option key={cit.id} value={cit.id}>
                           Cita del {new Date(cit.fechaHora).toLocaleDateString()} ({cit.paciente?.nombre || 'Paciente'})
                         </option>
@@ -670,7 +704,7 @@ export const ConsultasView = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="consulta-motivo">Motivo de la Consulta *</label>
+                  <label className="form-label" htmlFor="consulta-motivo">Motivo de la Consulta <RequiredIndicator /></label>
                   <input
                     id="consulta-motivo"
                     type="text"
@@ -682,17 +716,17 @@ export const ConsultasView = () => {
                       if (fieldErrors.motivo) setFieldErrors(prev => ({ ...prev, motivo: null }));
                     }}
                     aria-invalid={!!fieldErrors.motivo}
-                    aria-describedby={fieldErrors.motivo ? 'motivo-error' : undefined}
+                    aria-describedby={fieldErrors.motivo ? 'motivo-error' : undefined} required
                   />
                   {fieldErrors.motivo && (
-                    <span id="motivo-error" role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id="motivo-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                       {fieldErrors.motivo}
                     </span>
                   )}
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="consulta-diagnostico">Diagnóstico Clínico y Hallazgos *</label>
+                  <label className="form-label" htmlFor="consulta-diagnostico">Diagnóstico Clínico y Hallazgos <RequiredIndicator /></label>
                   <textarea
                     id="consulta-diagnostico"
                     className={`form-textarea ${fieldErrors.diagnostico ? 'border-red-500' : ''}`}
@@ -704,10 +738,10 @@ export const ConsultasView = () => {
                       if (fieldErrors.diagnostico) setFieldErrors(prev => ({ ...prev, diagnostico: null }));
                     }}
                     aria-invalid={!!fieldErrors.diagnostico}
-                    aria-describedby={fieldErrors.diagnostico ? 'diagnostico-error' : undefined}
+                    aria-describedby={fieldErrors.diagnostico ? 'diagnostico-error' : undefined} required
                   />
                   {fieldErrors.diagnostico && (
-                    <span id="diagnostico-error" role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id="diagnostico-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                       {fieldErrors.diagnostico}
                     </span>
                   )}
@@ -715,17 +749,17 @@ export const ConsultasView = () => {
               </div>
 
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
                 <button type="button" className="btn btn-secondary" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </button>
-                <button type="submit" className="btn btn-primary">
+                <SubmitButton type="submit" className="btn btn-primary">
                   {editingId ? 'Actualizar Ficha' : 'Guardar Consulta'}
-                </button>
+                </SubmitButton>
               </div>
-            </form>
+            </AccessibleForm>
           </div>
-        </div>
+        </AccessibleDialog>
       )}
 
       {/* Modal Emitir Receta */}
@@ -733,19 +767,19 @@ export const ConsultasView = () => {
         const pac = selectedConsulta.paciente || pacientes.find(p => p.id === selectedConsulta.pacienteId);
         const cli = pac?.cliente || clientes.find(c => c.id === pac?.clienteId);
         return (
-          <div className="modal-overlay">
+          <AccessibleDialog className="modal-overlay" aria-label="Receta veterinaria" onClose={recetaLoading ? undefined : () => setIsRecetaModalOpen(false)}>
             <div className="modal-content" style={{ maxWidth: '680px', width: '95%', background: 'transparent', border: 'none', boxShadow: 'none' }}>
               {/* Tarjeta Visual Cabecera Receta */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.1rem 1.35rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: existingReceta ? '#eff6ff' : '#f0fdf4', display: 'flex', alignItems: 'center', justifyContent: 'center', color: existingReceta ? '#0284c7' : '#10b981', flexShrink: 0 }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: existingReceta ? 'var(--secondary-light)' : 'var(--success-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: existingReceta ? '#0284c7' : 'var(--success-text)', flexShrink: 0 }}>
                     <Pill size={22} />
                   </div>
                   <div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#0f172a', margin: 0 }}>
+                    <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-900)', margin: 0 }}>
                       {existingReceta ? 'Actualizar Receta Médica' : 'Emitir Receta Médica'} — {pac?.nombre || 'Paciente'}
-                    </h3>
-                    <span style={{ fontSize: '0.8rem', color: existingReceta ? '#059669' : '#64748b', fontWeight: existingReceta ? 600 : 400 }}>
+                    </h2>
+                    <span style={{ fontSize: '0.8rem', color: existingReceta ? 'var(--success-text)' : 'var(--gray-500)', fontWeight: existingReceta ? 600 : 400 }}>
                       {existingReceta ? `Receta registrada (Folio #${existingReceta.id})` : 'Prescripción de medicamentos e indicaciones posológicas'}
                     </span>
                   </div>
@@ -755,42 +789,42 @@ export const ConsultasView = () => {
                 </button>
               </div>
 
-              <form onSubmit={handleSaveReceta} noValidate>
+              <AccessibleForm onSubmit={handleSaveReceta} noValidate>
                 {/* Tarjeta Visual Resumen del Paciente y Tutor */}
-                <div style={{ background: '#ffffff', border: '1px solid #bae6fd', borderRadius: '0.85rem', padding: '1rem 1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--info-border)', borderRadius: '0.85rem', padding: '1rem 1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', fontSize: '0.85rem' }}>
                     <div>
-                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>PACIENTE</span>
-                      <strong style={{ color: '#0f172a' }}>{pac?.nombre || 'Paciente'}</strong>
-                      <span style={{ color: '#64748b', fontSize: '0.78rem', marginLeft: '0.35rem' }}>({pac?.especie || 'Mascota'}{pac?.raza ? ` - ${pac.raza}` : ''})</span>
+                      <span style={{ color: 'var(--gray-500)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>PACIENTE</span>
+                      <strong style={{ color: 'var(--gray-900)' }}>{pac?.nombre || 'Paciente'}</strong>
+                      <span style={{ color: 'var(--gray-500)', fontSize: '0.78rem', marginLeft: '0.35rem' }}>({pac?.especie || 'Mascota'}{pac?.raza ? ` - ${pac.raza}` : ''})</span>
                     </div>
                     <div>
-                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>DUEÑO / TUTOR</span>
-                      <strong style={{ color: '#0f172a' }}>{cli?.nombreCompleto || 'Sin dueño asignado'}</strong>
+                      <span style={{ color: 'var(--gray-500)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>DUEÑO / TUTOR</span>
+                      <strong style={{ color: 'var(--gray-900)' }}>{cli?.nombreCompleto || 'Sin dueño asignado'}</strong>
                     </div>
                     <div>
-                      <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>RUT DEL DUEÑO</span>
-                      <span style={{ color: '#0284c7', fontWeight: 600 }}>{cli?.documentoIdentidad ? `RUT: ${cli.documentoIdentidad}` : '—'}</span>
+                      <span style={{ color: 'var(--gray-500)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>RUT DEL DUEÑO</span>
+                      <span style={{ color: 'var(--blue-text)', fontWeight: 600 }}>{cli?.documentoIdentidad ? `RUT: ${cli.documentoIdentidad}` : '—'}</span>
                     </div>
                     {cli?.telefono && (
                       <div>
-                        <span style={{ color: '#64748b', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>CONTACTO</span>
-                        <span style={{ color: '#334155' }}>{cli.telefono}</span>
+                        <span style={{ color: 'var(--gray-500)', display: 'block', fontSize: '0.75rem', fontWeight: 600 }}>CONTACTO</span>
+                        <span style={{ color: 'var(--gray-700)' }}>{cli.telefono}</span>
                       </div>
                     )}
                   </div>
                 </div>
 
                 {/* Tarjeta Visual Formulario de Prescripción */}
-                <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '1.25rem', marginBottom: '0.85rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
 
                   {existingReceta && (
-                    <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: '0.375rem', padding: '0.65rem 0.85rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: '#166534' }}>
+                    <div style={{ background: 'var(--success-light)', border: '1px solid #86efac', borderRadius: '0.375rem', padding: '0.65rem 0.85rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', color: 'var(--success-text)' }}>
                       <CheckCircle2 size={18} color="#16a34a" />
                       <div>
                         <strong>Receta existente detectada (Folio #{existingReceta.id}).</strong>
-                        <span style={{ display: 'block', fontSize: '0.8rem', color: '#15803d' }}>
-                          Puedes actualizar las indicaciones y vigencia, o borrar la receta si ya no es requerida.
+                        <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--success-text)' }}>
+                          {canDelete ? 'Puedes actualizar las indicaciones y vigencia, o eliminar la receta si corresponde.' : 'Puedes actualizar las indicaciones y vigencia de la receta.'}
                         </span>
                       </div>
                     </div>
@@ -803,7 +837,7 @@ export const ConsultasView = () => {
                   </div>
                 )}
                 {recetaSuccess && (
-                  <div className="alert alert-success" role="alert" style={{ background: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '0.75rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                  <div className="alert alert-success" role="alert" style={{ background: 'var(--success-light)', color: 'var(--success-text)', border: '1px solid #bbf7d0', padding: '0.75rem', borderRadius: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                     <CheckCircle2 size={18} />
                     <span>{recetaSuccess}</span>
                   </div>
@@ -811,40 +845,40 @@ export const ConsultasView = () => {
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label className="form-label" htmlFor="receta-emision">Fecha de Emisión *</label>
+                    <label className="form-label" htmlFor="receta-emision">Fecha de Emisión <RequiredIndicator /></label>
                     <input
                       id="receta-emision"
                       type="date"
                       className={`form-input ${recetaFieldErrors.fechaEmision ? 'border-red-500' : ''}`}
-                      value={recetaForm.fechaEmision}
+                      value={recetaForm.fechaEmision} min={todayInChile()} max={todayInChile()}
                       onChange={(e) => {
                         setRecetaForm({ ...recetaForm, fechaEmision: e.target.value });
                         if (recetaFieldErrors.fechaEmision) setRecetaFieldErrors(prev => ({ ...prev, fechaEmision: null }));
                       }}
-                      aria-invalid={!!recetaFieldErrors.fechaEmision}
+                      aria-invalid={!!recetaFieldErrors.fechaEmision} required aria-describedby={!!recetaFieldErrors.fechaEmision ? "receta-emision-error" : undefined}
                     />
                     {recetaFieldErrors.fechaEmision && (
-                      <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id="receta-emision-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                         {recetaFieldErrors.fechaEmision}
                       </span>
                     )}
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label" htmlFor="receta-validez">Válida Hasta *</label>
+                    <label className="form-label" htmlFor="receta-validez">Válida Hasta <RequiredIndicator /></label>
                     <input
                       id="receta-validez"
                       type="date"
                       className={`form-input ${recetaFieldErrors.validaHasta ? 'border-red-500' : ''}`}
-                      value={recetaForm.validaHasta}
+                      value={recetaForm.validaHasta} min={recetaForm.fechaEmision || todayInChile()}
                       onChange={(e) => {
                         setRecetaForm({ ...recetaForm, validaHasta: e.target.value });
                         if (recetaFieldErrors.validaHasta) setRecetaFieldErrors(prev => ({ ...prev, validaHasta: null }));
                       }}
-                      aria-invalid={!!recetaFieldErrors.validaHasta}
+                      aria-invalid={!!recetaFieldErrors.validaHasta} required aria-describedby={!!recetaFieldErrors.validaHasta ? "receta-validez-error" : undefined}
                     />
                     {recetaFieldErrors.validaHasta && (
-                      <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id="receta-validez-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                         {recetaFieldErrors.validaHasta}
                       </span>
                     )}
@@ -852,7 +886,7 @@ export const ConsultasView = () => {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label" htmlFor="receta-insumo">Medicamento / Insumo *</label>
+                  <label className="form-label" htmlFor="receta-insumo">Medicamento / Insumo <RequiredIndicator /></label>
                   <select
                     id="receta-insumo"
                     className={`form-select ${recetaFieldErrors.insumoId ? 'border-red-500' : ''}`}
@@ -861,7 +895,7 @@ export const ConsultasView = () => {
                       setRecetaForm({ ...recetaForm, insumoId: e.target.value });
                       if (recetaFieldErrors.insumoId) setRecetaFieldErrors(prev => ({ ...prev, insumoId: null }));
                     }}
-                    aria-invalid={!!recetaFieldErrors.insumoId}
+                    aria-invalid={!!recetaFieldErrors.insumoId} required aria-describedby={!!recetaFieldErrors.insumoId ? "receta-insumo-error" : undefined}
                   >
                     <option value="">Seleccione medicamento o insumo...</option>
                     {insumos.map(i => (
@@ -871,7 +905,7 @@ export const ConsultasView = () => {
                     ))}
                   </select>
                   {recetaFieldErrors.insumoId && (
-                    <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                    <span id="receta-insumo-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                       {recetaFieldErrors.insumoId}
                     </span>
                   )}
@@ -879,7 +913,7 @@ export const ConsultasView = () => {
 
                 <div className="form-grid">
                   <div className="form-group">
-                    <label className="form-label" htmlFor="receta-dosis">Dosis y Frecuencia *</label>
+                    <label className="form-label" htmlFor="receta-dosis">Dosis y Frecuencia <RequiredIndicator /></label>
                     <input
                       id="receta-dosis"
                       type="text"
@@ -890,18 +924,18 @@ export const ConsultasView = () => {
                         setRecetaForm({ ...recetaForm, dosis: e.target.value });
                         if (recetaFieldErrors.dosis) setRecetaFieldErrors(prev => ({ ...prev, dosis: null }));
                       }}
-                      aria-invalid={!!recetaFieldErrors.dosis}
+                      aria-invalid={!!recetaFieldErrors.dosis} required aria-describedby={!!recetaFieldErrors.dosis ? "receta-dosis-error" : undefined}
                     />
                     {recetaFieldErrors.dosis && (
-                      <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id="receta-dosis-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                         {recetaFieldErrors.dosis}
                       </span>
                     )}
                   </div>
 
                   <div className="form-group">
-                    <label className="form-label" htmlFor="receta-duracion">Duración (Días) *</label>
-                    <input
+                    <label className="form-label" htmlFor="receta-duracion">Duración (Días) <RequiredIndicator /></label>
+                    <NumericInput
                       id="receta-duracion"
                       type="number"
                       className={`form-input ${recetaFieldErrors.duracionDias ? 'border-red-500' : ''}`}
@@ -912,10 +946,10 @@ export const ConsultasView = () => {
                         setRecetaForm({ ...recetaForm, duracionDias: e.target.value });
                         if (recetaFieldErrors.duracionDias) setRecetaFieldErrors(prev => ({ ...prev, duracionDias: null }));
                       }}
-                      aria-invalid={!!recetaFieldErrors.duracionDias}
+                      aria-invalid={!!recetaFieldErrors.duracionDias} required aria-describedby={!!recetaFieldErrors.duracionDias ? "receta-duracion-error" : undefined}
                     />
                     {recetaFieldErrors.duracionDias && (
-                      <span role="alert" style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
+                      <span id="receta-duracion-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.78rem', marginTop: '0.25rem', display: 'block' }}>
                         {recetaFieldErrors.duracionDias}
                       </span>
                     )}
@@ -924,13 +958,13 @@ export const ConsultasView = () => {
               </div>
 
               {/* Pie de Acciones (Tarjeta Visual) */}
-              <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--gray-200)', borderRadius: '0.85rem', padding: '0.9rem 1.35rem', boxShadow: '0 2px 8px rgba(0,0,0,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
-                  {existingReceta && (
+                  {existingReceta && canDelete && (
                     <button
                       type="button"
                       className="btn btn-danger"
-                      onClick={handleDeleteReceta}
+                      onClick={() => setDeleteRecetaConfirm(true)}
                       disabled={recetaLoading}
                       style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', backgroundColor: '#ef4444', borderColor: '#ef4444', color: '#fff' }}
                     >
@@ -943,17 +977,19 @@ export const ConsultasView = () => {
                   <button type="button" className="btn btn-secondary" onClick={() => setIsRecetaModalOpen(false)} disabled={recetaLoading}>
                     Cancelar
                   </button>
-                  <button type="submit" className="btn btn-primary" disabled={recetaLoading}>
+                  <SubmitButton type="submit" className="btn btn-primary" disabled={recetaLoading}>
                     {recetaLoading ? 'Guardando...' : (existingReceta ? 'Actualizar Receta' : 'Generar Receta')}
-                  </button>
+                  </SubmitButton>
                 </div>
               </div>
-            </form>
+            </AccessibleForm>
           </div>
-        </div>
+        </AccessibleDialog>
       ); })()}
 
       {/* ConfirmModal para eliminar consulta */}
+      <ConfirmModal isOpen={canDelete && deleteRecetaConfirm} title="Eliminar receta médica" message="¿Desea eliminar la receta médica vinculada a esta consulta? Esta acción no se puede deshacer."
+        loading={recetaLoading} onCancel={() => setDeleteRecetaConfirm(false)} onConfirm={async () => { await handleDeleteReceta(); setDeleteRecetaConfirm(false); }} />
       <ConfirmModal
         isOpen={deleteConfirm.isOpen}
         title="Eliminar Registro de Consulta Médica"

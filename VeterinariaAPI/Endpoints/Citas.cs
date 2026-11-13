@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.Security.Claims;
 using Microsoft.EntityFrameworkCore;
 using VeterinariaAPI.Extensions;
 using VeterinariaAPI.Models;
@@ -10,7 +11,7 @@ namespace VeterinariaAPI.Endpoints
     {
         public static void MapCitasApi(this WebApplication app)
         {
-            var citas = app.MapGroup("/api/v1/citas").WithTags("Citas (v1)");
+            var citas = app.MapGroup("/api/v1/citas").WithTags("Citas (v1)").AddEndpointFilter<BusinessValidationFilter>();
 
             // API para listar citas con filtros
             citas.MapGet("/", async (
@@ -19,16 +20,22 @@ namespace VeterinariaAPI.Endpoints
                 string? estado,
                 DateTime? fechaDesde,
                 DateTime? fechaHasta,
-                IRepository<Cita> repo) =>
+                IRepository<Cita> repo, HttpContext http) =>
             {
-                var query = repo.Query()
+                var query = repo.Query().AsNoTracking()
                     .Include(c => c.Paciente)
                         .ThenInclude(p => p.Cliente)
                     .Include(c => c.Usuario)
                     .Include(c => c.Especialidad)
                     .AsQueryable();
 
-                if (usuarioId.HasValue)
+                if (http.User.IsInRole("Veterinario"))
+                {
+                    if (!int.TryParse(http.User.FindFirstValue(ClaimTypes.NameIdentifier), out var actorId) || actorId <= 0)
+                        return Results.Forbid();
+                    query = query.Where(c => c.UsuarioId == actorId);
+                }
+                else if (usuarioId.HasValue)
                 {
                     query = query.Where(c => c.UsuarioId == usuarioId.Value);
                 }
@@ -53,7 +60,19 @@ namespace VeterinariaAPI.Endpoints
                     query = query.Where(c => c.FechaHora <= fechaHasta.Value);
                 }
 
-                var listarCitas = await query.ToListAsync();
+                var listarCitas = await query.Select(c => new
+                {
+                    c.Id, c.PacienteId, c.UsuarioId, c.EspecialidadId, c.FechaHora, c.Estado,
+                    Paciente = new
+                    {
+                        c.Paciente.Id, c.Paciente.ClienteId, c.Paciente.Nombre, c.Paciente.Especie,
+                        c.Paciente.Raza, c.Paciente.Peso, c.Paciente.Alergias,
+                        Cliente = new { c.Paciente.Cliente.Id, c.Paciente.Cliente.DocumentoIdentidad,
+                            c.Paciente.Cliente.NombreCompleto, c.Paciente.Cliente.Telefono, c.Paciente.Cliente.Email }
+                    },
+                    Usuario = new { c.Usuario.Id, c.Usuario.RolId, c.Usuario.NombreCompleto, c.Usuario.Email },
+                    Especialidad = new { c.Especialidad.Id, c.Especialidad.Nombre, c.Especialidad.CostoBase }
+                }).ToListAsync();
                 return Results.Ok(listarCitas);
             }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario", "Recepcionista"));
 
@@ -121,28 +140,28 @@ namespace VeterinariaAPI.Endpoints
                 await repo.EliminarAsync(citaExistente);
                 await repo.GuardarCambiosAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
         }
 
         // DTO de entrada estructurado con reglas de validación
         public record CitaCreateDto(
-            [Required(ErrorMessage = "El ID del paciente es obligatorio.")]
-            [Range(1, int.MaxValue, ErrorMessage = "El ID del paciente debe ser un número entero positivo.")]
+            [property: Required(ErrorMessage = "El ID del paciente es obligatorio.")]
+            [property: Range(1, int.MaxValue, ErrorMessage = "El ID del paciente debe ser un número entero positivo.")]
             int PacienteId,
 
-            [Required(ErrorMessage = "El ID del usuario/veterinario es obligatorio.")]
-            [Range(1, int.MaxValue, ErrorMessage = "El ID del usuario debe ser un número entero positivo.")]
+            [property: Required(ErrorMessage = "El ID del usuario/veterinario es obligatorio.")]
+            [property: Range(1, int.MaxValue, ErrorMessage = "El ID del usuario debe ser un número entero positivo.")]
             int UsuarioId,
 
-            [Required(ErrorMessage = "El ID de la especialidad es obligatorio.")]
-            [Range(1, int.MaxValue, ErrorMessage = "El ID de la especialidad debe ser un número entero positivo.")]
+            [property: Required(ErrorMessage = "El ID de la especialidad es obligatorio.")]
+            [property: Range(1, int.MaxValue, ErrorMessage = "El ID de la especialidad debe ser un número entero positivo.")]
             int EspecialidadId,
 
-            [Required(ErrorMessage = "La fecha y hora de la cita son obligatorias.")]
+            [property: Required(ErrorMessage = "La fecha y hora de la cita son obligatorias.")]
             DateTime FechaHora,
 
-            [Required(ErrorMessage = "El estado de la cita es obligatorio.")]
-            [StringLength(50, ErrorMessage = "El estado no puede superar los 50 caracteres.")]
+            [property: Required(ErrorMessage = "El estado de la cita es obligatorio.")]
+            [property: StringLength(50, ErrorMessage = "El estado no puede superar los 50 caracteres.")]
             string Estado
         );
     }

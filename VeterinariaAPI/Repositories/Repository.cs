@@ -15,10 +15,11 @@ namespace VeterinariaAPI.Repositories
             _dbSet = _db.Set<T>();
         }
 
-        public async Task<List<T>> ObtenerTodosAsync() => await _dbSet.ToListAsync();
+        public async Task<List<T>> ObtenerTodosAsync() => await Query().ToListAsync();
         public async Task<List<T>> ObtenerFiltradosAsync(Expression<Func<T, bool>> predicado) => 
-            await _dbSet.Where(predicado).ToListAsync();
-        public IQueryable<T> Query() => _dbSet.AsQueryable();
+            await Query().Where(predicado).ToListAsync();
+        // An update can change PostgreSQL's physical row order; the ID remains stable.
+        public IQueryable<T> Query() => _dbSet.OrderBy(entity => EF.Property<int>(entity, "Id"));
         public async Task<T?> ObtenerPorIdAsync(int id) => await _dbSet.FindAsync(id);
         public async Task CrearAsync(T entidad) => await _dbSet.AddAsync(entidad);
         public async Task EliminarAsync(T entidad) => _dbSet.Remove(entidad);

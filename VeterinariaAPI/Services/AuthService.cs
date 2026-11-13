@@ -24,8 +24,8 @@ namespace VeterinariaAPI.Services
             }
             catch (FormatException)
             {
-                // Fallback de contingencia si la contraseña se importó en texto plano
-                return usuario.PasswordHash == passwordIntento;
+                // Imported plaintext is not a password hash; it must be reset explicitly.
+                return false;
             }
         }
     }

@@ -51,6 +51,15 @@ describe('PacientesView CRUD Component Tests', () => {
     clientesService.getAll.mockResolvedValue(mockClientes);
   });
 
+  it('recepción puede crear y editar pacientes pero no eliminarlos', async () => {
+    AuthContext.useAuth.mockReturnValue({ user: { role: 'Recepcionista' }, isAdmin: false, hasRole: roles => roles.includes('Recepcionista') });
+    render(<PacientesView />);
+    fireEvent.click(await screen.findByRole('button', { name: 'Editar datos de Firulais' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Eliminar.*Firulais/i })).not.toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).getByRole('button', { name: /Guardar/i })).toBeInTheDocument();
+  });
+
   it('debe mostrar el estado de carga mientras se obtienen los datos', () => {
     pacientesService.getAll.mockReturnValue(new Promise(() => {}));
     clientesService.getAll.mockResolvedValue([]);

@@ -1,9 +1,10 @@
 # Bitácora de Desarrollo - Sistema Veterinario (VetClinic Pro)
 
 **Proyecto:** VeterinariaAPI & Frontend  
-**Ubicación Frontend:** `C:\Users\joni5.DESKTOP-AF57599\Downloads\VeterinariaAPI-master\frontend`  
-**Ubicación Backend (.NET):** `C:\Users\joni5.DESKTOP-AF57599\Downloads\VeterinariaAPI-master\VeterinariaAPI`  
-**Base de Datos:** SQL Server (`veterinariodb`)  
+**Directorio Frontend:** `frontend/`
+**Directorio Backend (.NET):** `VeterinariaAPI/`
+**Base de datos actual:** PostgreSQL en Supabase. Las sesiones previas conservan las referencias históricas a SQL Server.
+**Última consolidación documental:** 9 de noviembre de 2026.
 
 ---
 
@@ -378,3 +379,767 @@ El usuario solicitó extender la arquitectura visual implementada previamente en
   - Se añadió la prueba de conectividad directa a Supabase `Test_Supabase_Connection` en `VeterinariaAPI.Tests/ApiIntegrationTests.cs`.
   - Pruebas del Backend: **7/7 pruebas superadas exitosamente** (`dotnet test`).
   - Pruebas del Frontend: **22/22 pruebas superadas exitosamente** (`npm test -- --run`).
+
+---
+
+### Sesión 10 - 09/11/2026: Coordinación de los registros de desarrollo y asistencia
+
+**Objetivo técnico:** Establecer un mecanismo de documentación coordinada de
+las modificaciones del proyecto en `AI_LOG.md` y `BITACORA.md`, con redacción
+técnica y académica y sin reproducir literalmente las instrucciones del usuario.
+
+**Implementación realizada:** Se amplió la regla de trabajo en `AGENTS.md` para
+exigir que cada intervención que modifique código, configuración, interfaz,
+pruebas o documentación actualice ambos registros en la misma entrega. Se
+definió que la bitácora de desarrollo describa el objetivo, la implementación,
+los componentes afectados y la validación, mientras que el registro de IA
+documente el requerimiento reformulado y la intervención asistida. Las entradas
+deben mantener coherencia en fecha, alcance y resultados.
+
+**Archivos afectados:** `AGENTS.md`, `AI_LOG.md` y `BITACORA.md`.
+
+**Validación:** Se revisó la correspondencia entre ambas entradas y las
+instrucciones del proyecto, y se verificó el formato con `git diff --check`.
+No se ejecutaron pruebas de software por tratarse de cambios documentales.
+
+**Resultado:** Regla de actualización conjunta incorporada a las instrucciones
+del repositorio y registrada en ambos documentos. Se conserva el historial
+previo; esta sesión no certifica ni actualiza resultados técnicos anteriores.
+
+---
+
+### Sesión 11 - 09/11/2026: Consolidación de auditoría, acceso facial e interfaz
+
+**Objetivo técnico:** Documentar los avances recientes de trazabilidad,
+autenticación, estabilidad de listados, presentación visual y configuración
+reutilizable. Esta sesión consolida implementaciones ya realizadas; su
+redacción no representa una nueva ejecución ni un despliegue del programa.
+
+#### 1. Auditoría administrativa
+
+- Incorporación del modelo y mapeo de `Auditoria`, captura de operaciones
+  `CREAR`, `MODIFICAR` y `ELIMINAR` mediante Entity Framework Core, identificación
+  de responsable y agrupación de eventos por operación.
+- Exclusión de contraseñas, tokens y descriptores faciales mediante selección
+  explícita de campos registrables.
+- Endpoints de consulta restringidos a administradores, con filtros, búsqueda,
+  paginación, resúmenes y comparación de valores anteriores y nuevos.
+- Corrección de `Connection already open` en el contexto auxiliar de auditoría,
+  preservando el uso de la conexión y transacción de la operación de negocio.
+- Historial con tarjetas de resumen, etiquetas diferenciadas, consulta de
+  detalles y eliminación de identificadores con almohadilla en el listado.
+- Exportación CSV de la página visible y preparación de PDF con selección de
+  1 a 100 registros, una consulta paginada, vista previa y salida mediante la
+  impresión del navegador. El límite acota la transferencia; no garantiza por
+  sí solo la capacidad de la base de datos.
+
+**Componentes:** modelos y contexto de auditoría, `AuditOperation.cs`,
+`Endpoints/Auditoria.cs`, `AuditoriaView.jsx`, `AuditoriaView.css` y pruebas
+asociadas. La captura no cubre cambios directos por SQL ni reconstruye eventos
+anteriores. No se verificó la atomicidad en PostgreSQL aislado.
+
+#### 2. Estabilidad y presentación de los listados
+
+- Orden ascendente por identificador en los repositorios para conservar la
+  posición de los registros después de modificarlos.
+- Estilo compartido entre los listados clínicos, comerciales y administrativos,
+  basado en la tabla del historial: encabezados compactos, separadores,
+  etiquetas y controles redondeados, con soporte claro, oscuro y móvil.
+- Rediseño de las secciones de Administración con iconos, indicador activo y
+  etiqueta visual para los datos de demostración. Esta etiqueta no implica
+  que la base conectada sea un entorno aislado.
+- Eliminación de subtítulos descriptivos de los módulos y referencias visibles
+  a rutas de API, conservando instrucciones y mensajes de los formularios.
+- Barra lateral desplegable mediante botón, recuperación del ancho de
+  contenido en escritorio, cierre con Escape y al navegar en móvil, gestión de
+  foco y exclusión de interacción del panel oculto.
+
+**Componentes:** repositorios, vistas de los módulos, `AdminConfigView.css`,
+`App.jsx`, `index.css` y `ListOrderingTests.cs`.
+
+#### 3. Reconocimiento facial en el inicio de sesión
+
+- Validación inicial de correo y contraseña. Las cuentas sin registro facial
+  activo reciben acceso convencional; las cuentas con registro activo deben
+  completar la comprobación facial antes de recibir su JWT.
+- Desafío aleatorio de un solo uso, con vigencia de dos minutos y almacenamiento
+  temporal en memoria. Los cambios de credenciales o registro invalidan la
+  verificación pendiente.
+- Captura mediante cámara, extracción local del descriptor con face-api.js y
+  comparación en el servidor con el descriptor descifrado mediante AES-256-GCM.
+  Se utiliza distancia euclídea y umbral de 0,5.
+- Actualización de `UltimoAcceso` y registro de auditoría atribuido al usuario
+  verificado. La cámara se libera al finalizar, cancelar, vencer o abandonar
+  el paso; la sesión no se guarda mientras la verificación está pendiente.
+
+**Componentes:** `LoginFacial.cs`, `FacialLoginChallenges.cs`,
+`FacialEncryptionService.cs`, `Usuarios.cs`, `FacialLoginStep.jsx`,
+`AuthContext.jsx`, `LoginView.jsx` y servicios y pruebas asociados.
+
+**Limitaciones:** No existe detección de vida; el descriptor generado en el
+cliente no demuestra presencia física. La cámara requiere HTTPS o localhost.
+Los desafíos son locales al proceso y no sobreviven a reinicios. Las pruebas
+no certifican precisión con usuarios y cámaras reales.
+
+#### 4. Configuración y documentación
+
+- Creación de `appsettings.json.example` y
+  `appsettings.Development.json.example` con campos para completar, sin secretos.
+- Adecuación de `.env.example` para Supabase, JWT y cifrado facial. El backend
+  requiere que las variables se proporcionen al proceso y no lee `.env`
+  automáticamente. Se comprobó la sintaxis de las plantillas JSON.
+- Actualización del encabezado de esta bitácora para reflejar Supabase y usar
+  directorios relativos, conservando intactos los registros históricos.
+- Consolidación coordinada de este registro y de la sección 8 de `AI_LOG.md`.
+  La regla vigente documenta cambios efectivos de código; no registra consultas
+  explicativas sin implementación, salvo solicitud documental expresa.
+
+#### 5. Validación observada
+
+| Comprobación | Evidencia |
+| --- | --- |
+| Backend con login facial | 86 pruebas locales aprobadas, excluida la prueba externa de conexión a Supabase. |
+| Login facial tras el ajuste de atribución de auditoría | 6 casos dirigidos aprobados. |
+| Frontend tras la barra desplegable | 65 pruebas aprobadas en 14 archivos. |
+| Suite de navegador previa a la barra desplegable | 9 pruebas aprobadas con API simulada. |
+| Barra lateral desplegable | 1 prueba adicional dirigida aprobada en escritorio y móvil. |
+| Compilación frontend | Correcta; avisos existentes de tamaño de paquetes y compatibilidad de `fs`. |
+
+Los resultados proceden de ejecuciones anteriores observadas en esta
+conversación; no se presentan como una nueva ejecución conjunta de todas las
+pruebas. Las pruebas de API utilizan InMemory. La prueba de registro desde
+fotografía utiliza modelos locales reales y una imagen de prueba, con API
+simulada. Estas verificaciones no modificaron Supabase.
+
+**Validación documental actual:** Contraste con los archivos y resultados
+observados, y revisión de formato con `git diff --check`. No se volvieron a
+ejecutar las suites por tratarse de una actualización documental.
+
+**Estado de entrega:** Modificaciones disponibles en el directorio de trabajo;
+esta intervención no crea commits, sube cambios a GitHub ni realiza despliegues.
+
+---
+
+### Sesión 12 - 09/11/2026: Confirmaciones posteriores a operaciones RF-51
+
+**Objetivo técnico:** Completar el requerimiento de mensajes de éxito para las
+operaciones de registro, modificación y eliminación que anteriormente solo
+cerraban formularios o refrescaban listados.
+
+**Implementación:** Se añadió un servicio de notificación y un componente
+compartido en el contenedor autenticado. Se integraron confirmaciones en
+clientes, pacientes, citas, consultas, inventario, facturas y sus detalles,
+especialidades, roles y eliminación de usuarios. Los avisos se emiten después
+de recibir la confirmación del servidor y se mantienen fuera del formulario,
+por lo que continúan visibles al cerrarlo o navegar entre módulos. Se preservan
+las confirmaciones contextuales previamente implementadas para usuarios nuevos,
+recetas, registro facial y datos de demostración.
+
+El componente permite cierre manual, retirada automática a los ocho segundos,
+pausa al interactuar mediante puntero o teclado, anuncio accesible y adaptación
+a los temas claro y oscuro. Las cancelaciones y errores no generan mensajes de
+éxito. Se evitó un interceptor genérico de respuestas para no anunciar como
+operación completada una solicitud intermedia de un flujo compuesto.
+
+**Componentes afectados:** `App.jsx`, el servicio `notifications.js`, el
+componente `SuccessNotification` con sus estilos, las vistas de los módulos
+indicados, pruebas de frontend y navegador, `AI_LOG.md` y `BITACORA.md`.
+
+**Validación ejecutada:**
+
+| Comprobación | Resultado |
+| --- | --- |
+| Suite de frontend | 69 pruebas aprobadas en 15 archivos; cuatro nuevas pruebas de notificaciones. |
+| Suite de navegador con API simulada | 11 pruebas aprobadas; se verificaron alta, modificación, eliminación y rechazo sin aviso de éxito. |
+| Compilación de producción | Correcta, con los avisos preexistentes de tamaño de paquetes y compatibilidad de `fs`. |
+| Formato de cambios | Comprobado mediante `git diff --check`. |
+
+El primer intento del nuevo caso de navegador falló por un selector demasiado
+estricto para una etiqueta con indicador obligatorio. Se ajustaron los
+selectores a los controles reales; la prueba dirigida y la suite posterior
+finalizaron correctamente.
+
+**Resultado y alcance:** RF-51 dispone ahora de confirmación explícita en las
+operaciones revisadas. El aviso acredita la respuesta satisfactoria del
+guardado o eliminación, no la recarga posterior del listado. No se modificó el
+backend ni la base de Supabase; no se ejecutaron pruebas de backend ni se
+realizaron commits o publicaciones en esta intervención.
+
+---
+
+### Sesión 13 - 09/11/2026: Prueba inicial con veinte usuarios concurrentes
+
+**Objetivo técnico:** Comprobar operaciones simultáneas de pacientes y producir
+mediciones iniciales sin intervenir la base de Supabase.
+
+**Implementación:** Se añadió `VeterinariaAPI.Tests/ConcurrentPatientsTests.cs`.
+La prueba prepara veinte cuentas veterinarias y un propietario en una base
+InMemory aislada y utiliza veinte sesiones HTTP distintas con JWT de prueba.
+Tras el calentamiento y veinte lecturas secuenciales de referencia, ejecuta
+cinco ráfagas coordinadas: crear veinte pacientes, consultarlos, actualizarlos,
+comprobar sus modificaciones y eliminarlos. Se mantiene la configuración de
+autorización y los límites de solicitudes de la aplicación.
+
+**Resultados de la ejecución final:**
+
+| Indicador | Resultado |
+| --- | --- |
+| Sesiones virtuales autenticadas | 20 cuentas distintas |
+| Solicitudes simultáneas en vuelo | Pico de 20 en cada fase |
+| Solicitudes de las cinco ráfagas | 100, con 0 errores |
+| Pacientes de prueba creados y eliminados | 20 creados y 20 eliminados |
+| Pacientes restantes del lote | 0; se conserva el total inicial de 6 pacientes del fixture |
+| Auditoría comprobada | 60 eventos de pacientes y correspondencia de responsable |
+| Máximo de creación | 59,99 ms |
+| Máximo de consulta | 17,22 ms |
+| Máximo de modificación | 19,38 ms |
+| Máximo de comprobación de modificaciones | 21,68 ms |
+| Máximo de eliminación | 18,35 ms |
+
+La prueba dirigida terminó correctamente. También se limpiaron el propietario
+y las cuentas de prueba. Se generó
+`VeterinariaAPI.Tests/TestResults/concurrencia-pacientes-20.json`, con tiempos
+medios, percentil 95, máximos y errores. Este resultado queda fuera de Git por
+estar en un directorio de resultados de pruebas. Se verificó el formato de los
+cambios con `git diff --check`.
+
+**Limitaciones:** Los resultados corresponden a TestServer e InMemory; no
+incluyen tráfico de red, tiempos de PostgreSQL, Supabase, carga de interfaz,
+pruebas sostenidas ni autenticación simultánea mediante el endpoint de login.
+La concurrencia medida es de solicitudes HTTP pendientes. Esta evidencia es
+inicial y no demuestra el cumplimiento de los RNF de rendimiento en producción.
+No se realizaron cambios de optimización de consultas ni modificaciones en
+Supabase. No se ejecutaron nuevamente las suites completas de frontend o
+backend; se ejecutó exclusivamente el nuevo escenario dirigido.
+
+**Archivos afectados:** el nuevo archivo de pruebas y ambas bitácoras.
+
+---
+
+### Sesión 14 - 09/11/2026: Optimización de consultas RNF-04
+
+**Objetivo técnico:** Reducir lecturas y transferencia de datos innecesarias
+en los módulos existentes, preservando sus reglas funcionales y de seguridad.
+
+**Implementación:**
+
+| Área | Antes | Cambio aplicado |
+| --- | --- | --- |
+| Listados de doce endpoints | Entidades rastreadas aunque solo se consultaban | `AsNoTracking` en las lecturas; edición y auditoría mantienen seguimiento. |
+| Validación de clientes | Descarga de la tabla para comprobar duplicados | Comprobaciones `AnyAsync` de existencia, manteniendo normalización y exclusión del registro editado. |
+| Usuarios y citas | Materialización de entidades completas de usuario | Proyección SQL de campos visibles, sin recuperar hashes de contraseña para el listado. |
+| Dashboard | Seis solicitudes y seis listados completos para contar y mostrar vistas previas | Una solicitud de resumen; en PostgreSQL, seis conteos escalares en un comando y dos consultas con límite de cinco registros cada una. |
+| Historial de auditoría | Conteo adicional además de la agrupación por acción | Total derivado de la agrupación existente. |
+| Vista de consultas | Recarga de recetas al filtrar consultas | Carga inicial y actualización posterior a operaciones sobre recetas. |
+
+Se preservó el orden por identificador de las vistas previas del dashboard y
+se incorporó cancelación de su solicitud al abandonar la vista. Los conteos
+del resumen representan la totalidad de cada entidad, aunque se limite la
+cantidad de registros de las vistas previas.
+
+**Archivos afectados:** `Endpoints/Dashboard.cs`, endpoints de listados y
+auditoría, `Program.cs`, `DashboardView.jsx`, `ConsultasView.jsx`, nuevas pruebas
+de consultas y dashboard, pruebas de navegador y ambas bitácoras.
+
+**Validación ejecutada:**
+
+- Backend: 93 pruebas aprobadas en la suite local, excluyendo la prueba externa
+  de conexión a Supabase y el escenario de concurrencia.
+- Concurrencia: el escenario de veinte sesiones se ejecutó por separado y pasó.
+- Frontend: 71 pruebas aprobadas en 16 archivos.
+- Navegador: 12 pruebas aprobadas con API simulada, incluida la carga del
+  dashboard sin descargar los seis listados.
+- Construcción del SQL de conteos de PostgreSQL: comprobada mediante
+  `ToQueryString`, sin abrir una conexión a la base.
+- Compilaciones de backend y frontend: correctas. Revisión de formato mediante
+  `git diff --check`.
+
+**Resultado y alcance:** Se eliminaron lecturas masivas y repetidas en los
+flujos indicados. No se aplicaron cambios de esquema, índices o datos en
+Supabase. No se midieron latencias de PostgreSQL ni se ejecutó `EXPLAIN ANALYZE`;
+por ello no se declara una reducción porcentual ni cumplimiento definitivo de
+tiempos en producción. La paginación obligatoria de todos los listados queda
+fuera de esta intervención para conservar sus contratos y formularios actuales.
+Las pruebas funcionales usan InMemory y el escenario de concurrencia tampoco
+representa un ensayo sobre PostgreSQL real.
+
+---
+
+### Sesión 15 - 09/11/2026: Errores comprensibles y accesibilidad de formularios
+
+**Objetivo técnico:** Resolver las deficiencias observadas en RNF-15 y RNF-17
+y reforzar las medidas de accesibilidad de RNF-18, mediante componentes comunes
+y comprobaciones automatizadas verificables.
+
+**Implementación realizada:**
+
+| Requisito | Mejoras |
+| --- | --- |
+| RNF-15 | Formateo común de errores de conexión y HTTP, instrucciones de recuperación, aviso global para consultas fallidas y normalización de errores por campo. Los mensajes de servidor no exponen detalles internos y las cancelaciones no generan avisos de error. |
+| RNF-17 | Indicadores y leyendas comunes de obligatoriedad, atributos `required`, etiquetas asociadas a controles y mensajes de validación enlazados. Se enfoca el primer error y se mejoró la validación individual al crear usuarios. |
+| RNF-18 | Contención y restauración del foco en diálogos, Escape, enlace de salto, activación de tarjetas mediante teclado, ajustes de contraste y foco, controles accesibles y preferencias de movimiento reducido. |
+
+Se incorporaron `AccessibleForm`, `AccessibleDialog`, `ErrorNotification`,
+`apiErrors.js` y `accessibility.css`. Se adaptaron los formularios y los diálogos
+de los módulos, incluida la confirmación de eliminación. Se corrigió un selector
+de citas de facturación sin nombre accesible. Se ajustaron los esquemas para
+rechazar costo base y stock vacíos sin rechazar el valor explícito cero, que
+continúa permitido. El dashboard utiliza columnas flexibles en pantallas estrechas.
+
+**Validación ejecutada:**
+
+- **Frontend:** 88 pruebas aprobadas en 19 archivos.
+- **Navegador:** 17 pruebas aprobadas con una API simulada.
+- **axe:** 30 estados de listados y formularios en ambos temas sin infracciones
+  detectadas de las reglas seleccionadas. Se comprobó adicionalmente el login
+  con errores en modo claro y oscuro.
+- **Interacción:** comprobaciones de foco dentro de un diálogo, restauración al
+  cerrar, primer error de formulario, cierre de avisos, salto al contenido y una
+  vista móvil con texto al 200 % sin desbordamiento horizontal.
+- **Compilación de producción:** correcta, con los avisos de paquetes ya
+  existentes. Formato revisado mediante `git diff --check`.
+
+Durante la revisión se detectaron y corrigieron fallos de contraste en estados,
+stock, importes y una leyenda sobre fondo translúcido, así como el nombre del
+selector de facturación. Se actualizaron selectores de pruebas afectados por
+las nuevas etiquetas y se corrigió una espera de carga antes del primer Tab.
+
+**Archivos afectados:** componentes y estilos compartidos de accesibilidad,
+interceptor y formateador de errores, vistas de módulos, formularios, esquemas
+de costo y stock, archivos de pruebas, dependencias de desarrollo y ambas
+bitácoras. La referencia técnica fue [WCAG 2.2](https://www.w3.org/TR/WCAG22/).
+
+**Resultado y limitaciones:** Se implementaron las mejoras funcionales y las
+comprobaciones indicadas. No se declara una certificación integral WCAG 2.2 AA:
+faltan evaluaciones manuales completas, tecnologías de asistencia, otros
+navegadores y estados no incluidos en la muestra. La prueba de ampliación de
+texto cubre la vista de clientes. No se modificó Supabase ni se realizaron
+pruebas nuevas de backend, commits o despliegues en esta intervención.
+
+## Sesión 16 — 09/11/2026 — Simplificación de leyendas en formularios
+
+**Objetivo:** Eliminar el texto auxiliar general que explica la obligatoriedad de los campos, preservando las validaciones y los indicadores existentes.
+
+**Implementación y componentes afectados:** Se eliminó la leyenda del componente compartido `frontend/src/components/AccessibleForm.jsx` y su estilo sin uso en `frontend/src/accessibility.css`. Se actualizaron simultáneamente esta bitácora y `AI_LOG.md`. Los asteriscos, los campos obligatorios y el tratamiento de errores conservan su comportamiento.
+
+**Validación y resultado:** Las tres pruebas de controles accesibles finalizaron correctamente. La búsqueda de la leyenda y de su clase en el código fuente del frontend no obtuvo coincidencias. No se realizó una nueva comprobación visual ni una ejecución completa de pruebas; no se modificaron el backend ni la base de datos.
+
+## Sesión 17 — 09/11/2026 — Contornos uniformes en administración
+
+**Objetivo:** Unificar la presentación de las opciones del menú administrativo mediante un contorno redondeado común.
+
+**Implementación y componentes afectados:** Se modificó `frontend/src/views/AdminConfigView.css` para aplicar el borde temático a todas las pestañas, incluidas especialidades, roles de seguridad y cuentas de usuario. Se retiró el selector posicional limitado a las tres primeras opciones. Se actualizaron simultáneamente `AI_LOG.md` y esta bitácora.
+
+**Validación y resultado:** La compilación de producción del frontend terminó correctamente, con los avisos preexistentes de face-api.js y tamaño de paquetes. No se efectuó una inspección visual en navegador ni se modificaron el backend o la base de datos.
+
+## Sesión 18 — 11/11/2026 — Migración inicial sin aplicación remota
+
+**Objetivo:** Versionar el esquema actual mediante EF Core sin alterar la base Supabase.
+
+**Implementación:** Se incorporaron la migración InicialPostgreSQL, su diseñador, snapshot y script SQL; una fábrica de contexto exclusiva de diseño con conexión local inoperante; y el manifiesto de dotnet-ef 8.0.11. Se adaptó FechaEmision a CURRENT_DATE y se actualizaron README, AI_LOG y esta bitácora. Componentes: VeterinariaAPI/Migrations, VeterinariaAPI/Data/VeterinariodbContextFactory.cs, VeterinariaAPI/Models/VeterinariodbContext.cs, .config/dotnet-tools.json y database/migraciones/InicialPostgreSQL.sql.
+
+**Validación:** Compilación Release y generación SQL correctas; ausencia de cambios pendientes del modelo verificada tras recompilar el ensamblado con la nueva migración. Script con 14 tablas del modelo y tabla de historial. Revisión de espacios mediante git diff --check correcta. No se ejecutó la suite de pruebas.
+
+**Resultado y límites:** Archivos generados localmente sin aplicar migraciones, ejecutar SQL, iniciar la API ni conectar a Supabase. Pendientes la validación en PostgreSQL desechable y la comparación con el esquema real. La migración inicial completa requiere un procedimiento específico de adopción antes de utilizarse en una base existente.
+
+## Sesión 19 — 11/11/2026 — Paciente determinado por la cita
+
+**Objetivo:** Evitar selecciones inconsistentes de paciente al crear o editar consultas asociadas a una cita.
+
+**Implementación:** Se modificó frontend/src/views/ConsultasView.jsx para asignar el paciente de la cita, mostrar únicamente esa opción y bloquear su modificación. La atención sin cita permite selección libre. Se conservó la validación existente del backend para creación y edición. Se incorporó frontend/src/test/ConsultaPaciente.test.jsx y se actualizaron AI_LOG.md y BITACORA.md.
+
+**Validación y resultado:** Una prueba de interfaz y doce pruebas de validación de backend aprobadas; compilación frontend satisfactoria con avisos previos. La prueba de backend aprobada utilizó almacenamiento en memoria y permisos ampliados tras una ejecución restringida sin finalización. No se comprobó visualmente en navegador ni se modificó Supabase. Los cambios de migraciones previos se mantienen separados de esta intervención.
+
+## Sesión 20 — 11/11/2026 — Selección contextual de paciente y cita
+
+**Objetivo:** Incorporar búsqueda textual de pacientes y limitar las opciones de cita al animal seleccionado, excluyendo las completadas.
+
+**Implementación:** Se modificaron ConsultasView.jsx y ConsultaPaciente.test.jsx. Los resultados muestran animal, especie y datos de propietario; la búsqueda admite nombre, especie, dueño o RUT. Cambiar la búsqueda limpia paciente y cita, y la selección explícita establece el animal. Se preservan asociaciones históricas completadas en edición sin ofrecerlas como nuevas opciones. Se actualizaron AI_LOG.md y BITACORA.md.
+
+**Validación y límites:** Una prueba de interfaz aprobada que cubre búsqueda, filtrado por paciente y estado, cambio de animal y resultado vacío; compilación satisfactoria con avisos previos. No se realizó inspección visual ni pruebas nuevas del backend. La intervención no modifica la base de datos ni añade restricciones de estado al servidor.
+
+## Sesión 21 — 11/11/2026 — Búsqueda de pacientes sin listado inicial
+
+**Objetivo:** Mostrar coincidencias únicamente al introducir texto y mantener vacío el campo al crear consultas.
+
+**Implementación:** En ConsultasView.jsx se retiraron la preselección inicial y la apertura del listado al enfocar; los resultados requieren texto significativo. Se conserva el paciente de consultas existentes. Se ampliaron las comprobaciones de ConsultaPaciente.test.jsx y se actualizaron AI_LOG.md y BITACORA.md.
+
+**Validación y límites:** Una prueba de interfaz aprobada para inicio vacío, clic y foco sin despliegue, texto en blanco, búsqueda, selección previa y borrado; mantiene las verificaciones de citas por paciente y estado. Sin inspección visual ni nueva compilación en esta intervención. Backend y Supabase sin modificaciones.
+
+## Sesión 22 — 11/11/2026 — Emisión del día y recetas sin valores predefinidos
+
+**Objetivo:** Solicitar los datos de nuevas recetas sin contenido preseleccionado y controlar la coherencia temporal de recetas y facturas.
+
+**Implementación:** Se vaciaron los valores iniciales de fechas, medicamento, dosis y duración en ConsultasView.jsx, conservando datos existentes al editar. Se centralizó la fecha de Chile y su validación en dateValidation.js y los esquemas de recetas y facturas, con límites de calendario en ambos formularios. BusinessValidationFilter rechaza emisiones distintas de hoy en creación y edición; mantiene el rechazo de vigencia anterior. Se actualizaron FacturasView.jsx, pruebas de negocio, auditoría, esquemas, ConsultaPaciente.test.jsx y el nuevo EmissionDates.test.js. AI_LOG.md y esta bitácora se actualizaron conjuntamente.
+
+**Validación:** 90 pruebas frontend de la suite aprobadas; tras añadir la comprobación de receta vacía, dos pruebas del archivo afectado aprobadas. 95 pruebas backend aprobadas, excluyendo prueba externa Supabase y concurrencia separada. Compilación frontend correcta con avisos previos. Casos cubiertos: emisión de hoy, ayer y mañana; creación y edición; límites de vigencia; cambio de fecha chilena respecto de UTC; datos iniciales vacíos y límites de controles.
+
+**Resultado y limitaciones:** La restricción alcanza emisiones de recetas y facturas, no agenda ni filtros históricos. También limita la edición de documentos históricos conforme a la regla solicitada, sin actualizar sus fechas automáticamente. No se ejecutaron pruebas de navegador, no se modificó Supabase ni se aplicaron migraciones.
+
+## Sesión 23 — 11/11/2026 — Alta de insumos sin valores predefinidos
+
+**Objetivo:** Requerir el ingreso explícito de nombre, categoría, stock y precio al crear insumos.
+
+**Implementación:** En InsumosView.jsx se vaciaron los valores iniciales y de apertura de tipo, stock y precio, manteniendo vacío el nombre y agregando una opción de categoría sin selección. Se conservaron los valores existentes en edición y las validaciones actuales. Se actualizaron ambas bitácoras.
+
+**Validación y límites:** Cuatro pruebas de RequiredNumbers.test.js aprobadas. Sin nueva compilación o revisión visual; backend y Supabase sin cambios.
+
+## Sesión 24 — 11/11/2026 — Localización de clientes al facturar
+
+**Objetivo:** Permitir seleccionar clientes por nombre o RUT mediante resultados de búsqueda contextual.
+
+**Implementación:** FacturasView.jsx incorpora campo vacío para nuevas facturas y resultados debajo únicamente al escribir texto significativo. Los resultados muestran nombre y RUT; se normalizan tildes, mayúsculas y formato del RUT. Se mantiene la selección existente al editar y su sincronización cuando se asigna por cita. Se añadió FacturaCliente.test.jsx y se actualizaron AI_LOG.md y esta bitácora.
+
+**Validación y límites:** Prueba de interfaz aprobada para búsqueda, selección, inicio vacío, foco y ausencia de resultados; compilación satisfactoria con avisos previos. No se ejecutaron nuevas pruebas de backend ni inspección visual en navegador. No se modificó la base de datos.
+
+## Sesión 25 — 11/11/2026 — Citas por propietario en facturación
+
+**Objetivo:** Evitar que el selector de facturación muestre citas de otros clientes.
+
+**Implementación:** En FacturasView.jsx se eliminó la devolución del catálogo completo ante ausencia de cliente o coincidencias. Se conserva todo estado, incluidas citas completadas; se limpia la cita al cambiar la búsqueda de cliente y se verifica su disponibilidad al incorporarla. Se precisaron los mensajes del selector y se amplió FacturaCliente.test.jsx. Ambas bitácoras se actualizaron conjuntamente.
+
+**Validación y límites:** Una prueba de interfaz aprobada para pertenencia, completadas, cliente sin citas y reinicio de selección. Sin nueva compilación, inspección visual ni pruebas de backend. Supabase sin modificaciones.
+
+## Sesión 26 — 11/11/2026 — Mensajes de información faltante en facturación
+
+**Objetivo:** Explicar al usuario los datos o conceptos pendientes cuando intenta emitir una factura incompleta.
+
+**Implementación:** FacturasView.jsx permite activar Confirmar y Emitir Factura y muestra conjuntamente errores de campos, aviso general y explicación de incorporación de conceptos, impidiendo enviar mientras falten datos. Se mantiene el foco en el primer campo inválido. Se amplió FacturaCliente.test.jsx y se actualizaron AI_LOG.md y BITACORA.md.
+
+**Validación y límites:** Dos pruebas de interfaz aprobadas, incluida la comprobación de errores asociados, foco y ausencia de solicitudes de creación ante información incompleta. Compilación correcta con avisos previos. Sin inspección visual ni pruebas nuevas de backend; base de datos sin modificaciones.
+
+## Sesión 27 — 11/11/2026 — Formulario de facturación adaptable
+
+**Objetivo:** Facilitar el uso de facturación al 100 % de zoom con campos y acciones accesibles dentro de la pantalla.
+
+**Implementación:** FacturasView.jsx y el nuevo FacturasView.css incorporan distribución de dos columnas en escritorio, una columna en móvil, ventana de ancho adaptable, límite de altura y cuerpo desplazable separado de encabezado y botones. El portal del diálogo evita superposición de la barra lateral y cabecera sobre el formulario. Se incorporó una prueba de adaptación en e2e/accesibilidad.spec.js y se actualizaron AI_LOG.md y BITACORA.md.
+
+**Validación:** Dos pruebas unitarias de facturación aprobadas, compilación correcta con avisos previos y una prueba de navegador aprobada en tres resoluciones: 1366x768, 1920x1080 y 390x844. Se verificaron límites de pantalla, controles visibles, ausencia de desbordamiento horizontal y ausencia de desplazamiento vertical en el estado inicial de escritorio. Capturas de escritorio y móvil inspeccionadas tras corregir interferencias de capas.
+
+**Resultado y límites:** El formulario inicial cabe completo en las resoluciones de escritorio comprobadas; en pantallas pequeñas o con contenido extenso se desplaza únicamente el cuerpo, conservando las acciones visibles. Validación de navegador con datos simulados en Edge, sin cambios en backend o Supabase.
+
+## Sesión 28 — 11/11/2026 — Ejecución reproducible con Docker Compose
+
+**Objetivo:** Contenerizar la interfaz y API de VetClinic y verificar su funcionamiento mediante PostgreSQL local sin afectar Supabase.
+
+**Implementación:** Se crearon VeterinariaAPI/Dockerfile, frontend/Dockerfile y sus .dockerignore, compose.yaml, compose.sandbox.yaml y frontend/docker/nginx.conf. La interfaz compilada utiliza Nginx con proxy de mismo origen y resolución de rutas SPA; ambos servicios finales ejecutan usuarios no root. Se añadieron comprobaciones HTTP de vida y disponibilidad de base, dependencia de servicios saludables, plantilla .env.docker.example y script Start-DockerSandbox.ps1 con claves aleatorias persistidas en archivo privado ignorado. El sandbox inicializa exclusivamente su volumen PostgreSQL vacío con el SQL de la migración inicial. Se incorporaron pruebas de salud del backend y una prueba de navegador Docker independiente. Se actualizaron frontend/package.json, .gitignore, README.md, AI_LOG.md y esta bitácora.
+
+**Validación:** Configuración Compose válida, imágenes construidas, tres servicios saludables y sintaxis Nginx correcta. Prueba real sobre PostgreSQL: login, listados, dashboard y creación, modificación y eliminación de un cliente temporal. Una prueba de navegador aprobada sin API simulada cubrió proxy, rechazo anónimo, manifiesto facial, autenticación y recarga de ruta con sesión. Suite backend: 97 aprobadas, con conexión externa y concurrencia separada excluidas. Readiness respondió 503 con la base local detenida y 200 tras recuperarla. Se comprobó ausencia de archivos privados de configuración en las imágenes finales, ejecución sin root y reutilización de configuración y volumen al repetir el arranque. Persisten avisos de compilación preexistentes.
+
+**Resultado y límites:** Sandbox local disponible en http://localhost:15173, sin conexión a Supabase y con sus propios registros. El SQL inicial fue ejecutado en PostgreSQL local; quedan pendientes equivalencia de esquema remoto, pruebas completas de todos los módulos y aplicación posterior mediante EF CLI. No se implementaron TLS, despliegue público o pipeline. Para usar Supabase se requiere completar la configuración privada y considerar las escrituras del sembrado existente. Sin commits, push ni publicación de imágenes en esta intervención.
+
+## Sesión 29 — 11/11/2026 — Asociación clínica de los detalles de factura
+
+**Objetivo:** Conservar el identificador de la consulta al facturar una atención y evitar que una cita seleccionada quede fuera del detalle sin advertencia.
+
+**Implementación:** FacturasView.jsx utiliza el catálogo de consultas para resolver la atención mediante CitaId, envía ConsultaId y exige incorporar la selección al detalle antes de emitir. Se informa cuando una cita aún no tiene consulta. BusinessValidationFilter completa y valida la referencia clínica en creación y edición y rechaza atenciones sin consulta. Las líneas de producto conservan únicamente InsumoId. Se ampliaron FacturaCliente.test.jsx y BusinessValidationTests.cs, y se prepararon consultas reales en dos pruebas antiguas de ApiIntegrationTests.cs. README, AI_LOG y esta bitácora se actualizaron conjuntamente.
+
+**Validación:** 95 pruebas frontend y 99 backend aprobadas; se excluyeron prueba externa de Supabase y concurrencia separada. Compilación y reconstrucción de Docker correctas. En PostgreSQL local se verificaron referencias separadas en factura mixta, permanencia de ConsultaId al editar y rechazo de cita sin consulta. La comprobación HTTP requirió corregir la preparación de identificadores escalares; los registros temporales se retiraron. Persisten avisos previos de compilación.
+
+**Resultado y límites:** El sandbox funciona con el ajuste. Una fila de insumo mantiene ConsultaId nulo por diseño; la atención corresponde a otra fila con su referencia clínica. No se alteraron datos de Supabase, facturas históricas ni estructura de tablas. La aplicación ejecutada fuera de Docker requiere recargar el backend para incorporar el cambio.
+
+## Sesión 30 — 11/11/2026 — Prevención de envíos repetidos en formularios
+
+**Objetivo:** Bloquear temporalmente las acciones de registro y actualización para impedir solicitudes consecutivas mientras la operación anterior no finaliza.
+
+**Implementación:** Se añadió useAsyncActionLock.js con una referencia de exclusión inmediata y estado de procesamiento. AccessibleForm y SubmitButton centralizan el bloqueo, texto de espera y aria-busy. Trece controles de envío en diez componentes utilizan el comportamiento compartido. ConfirmModal incorpora el mismo mecanismo para confirmaciones de registro facial, generación de datos y otras acciones, bloqueando además su cancelación pendiente. Se actualizaron componentes de formularios, pruebas, README.md, AI_LOG.md y esta bitácora.
+
+**Validación:** 98 pruebas frontend y 19 pruebas de navegador aprobadas. Se comprobaron eventos repetidos, una sola solicitud durante la espera, recuperación después de un error y un nuevo envío permitido tras finalizar, además de la preservación de restricciones y foco. Se ajustaron la sincronización de un caso previo y el nombre del diálogo del nuevo caso de navegador antes de la ejecución final. Compilación frontend y reconstrucción de su imagen Docker satisfactorias, con avisos previos.
+
+**Resultado y límites:** Protección por instancia en la interfaz, sin idempotencia general del servidor ni modificación de duplicados anteriores. Backend y Supabase sin cambios en esta intervención. API y base Docker estaban detenidas al finalizar la comprobación; se dejó también detenido el frontend actualizado, con su imagen lista para el próximo inicio. Sin nuevas pruebas backend, commits o push.
+
+## Sesión 31 — 11/11/2026 — Entrada numérica sin exponentes ni expresiones
+
+**Objetivo:** Evitar caracteres y notaciones no admitidas en campos numéricos, conservando enteros o decimales según la magnitud del negocio.
+
+**Implementación:** NumericInput.jsx centraliza las restricciones de teclado, pegado, arrastre y cambio de valor. Se aplicó a diecisiete controles de seis vistas, incluidos filtros. Los enteros se reservan para existencias, cantidades, días y registros; peso e importes permiten punto decimal. numberValidation.js refuerza cinco esquemas de validación para rechazar notación científica y expresiones antes de convertir valores. La edición de cantidades de facturación exige enteros. Se añadieron pruebas de componente y navegador, y se actualizaron README, AI_LOG y esta bitácora. Teléfonos y RUT conservan su formato específico.
+
+**Validación:** Suite frontend: 101 aprobadas; comprobación final focalizada: siete aprobadas. Suite de navegador: veinte aprobadas, con pruebas de símbolos, pegado, exponentes, borrado y decimales válidos. La prueba real permitió corregir un rechazo del estado parcial del punto decimal antes de la ejecución satisfactoria. Compilación e imagen Docker reconstruidas correctamente, con avisos previos; sin incidencias en las comprobaciones de accesibilidad seleccionadas existentes.
+
+**Resultado y límites:** Restricción aplicada a la interfaz y sus esquemas; backend sin cambios en esta intervención y sin pruebas nuevas. No se modificó Supabase ni se iniciaron contenedores que estaban detenidos. La imagen está lista para el próximo arranque. Sin commits o push.
+
+## Sesión 32 — 11/11/2026 — Configuración explícita de la prueba externa
+
+**Objetivo:** Retirar configuración sensible de un archivo de pruebas antes de publicar los cambios de la rama.
+
+**Implementación:** Tras el rechazo inicial del push por revisión automática, Test_Supabase_Connection se cambió a una conexión recibida mediante VETCLINIC_TEST_POSTGRES_CONNECTION y consulta SELECT 1. Se añadió ExternalDatabaseFactAttribute para omitir la prueba sin configuración explícita. Se actualizaron README.md, AI_LOG.md y esta bitácora. No se registraron valores de credenciales.
+
+**Validación y alcance:** 99 pruebas backend aprobadas y una externa omitida, excluyendo concurrencia separada. No se detectaron patrones de conexión con credenciales literales en el archivo corregido; git diff --check correcto. No se conectó a Supabase. La corrección no elimina datos del historial ni cambia contraseñas del proveedor.
+
+
+## Sesión 33 — 11/11/2026 — Dashboard de gestión y visualizaciones de negocio
+
+**Objetivo:** Integrar un tablero operativo con cuatro visualizaciones, filtros interactivos y datos agregados actualizados desde el backend.
+
+**Implementación:** Se creó DashboardAnalytics.cs y se registró su endpoint autenticado en Dashboard.cs, manteniendo el resumen anterior. Se incorporaron agregaciones de facturas, citas y existencias, validación del rango máximo de 366 días y filtros de agenda e inventario. DashboardView.jsx y sus nuevos componentes y estilos presentan gráficos de línea, barras apiladas, anillo y barras horizontales, indicadores, próximas citas y tablas alternativas. La vista se adapta a móvil y a ambos temas. El cliente API notifica escrituras exitosas; el panel consulta cada 30 segundos cuando está visible, al recuperar foco y al cambiar filtros, cancela peticiones obsoletas y conserva la última lectura ante errores. Se actualizaron pruebas, README.md, AI_LOG.md y esta bitácora.
+
+**Validación:** Backend: 110 aprobadas y una externa omitida, excluyendo concurrencia separada. Frontend: suite final de 104 aprobadas, incluidos cinco casos específicos del dashboard y cobertura del temporizador. Compilación correcta con advertencias previas. La suite final de navegador registró 21 pruebas aprobadas; este último se corrigió por un selector de prueba y por medición de contraste durante la transición de tema. Se verificaron filtros, refresco por notificación, cuatro gráficos, temas claro/oscuro y anchos de 1440 y 390 píxeles, sin desbordamiento ni incidencias automáticas seleccionadas de accesibilidad. Se revisaron capturas de escritorio y móvil.
+
+**Resultado y límites:** Tablero conectado al endpoint de agregación, sin migraciones ni cambios en Supabase. La facturación no representa cobros y el inventario no es histórico. Pruebas backend aisladas en memoria; no se comprobó PostgreSQL real al encontrarse Docker detenido. La actualización automática utiliza consultas periódicas. Sin commits ni publicación en la rama remota.
+
+## Sesión 34 — 11/11/2026 — Tablero exclusivo de Administración
+
+**Objetivo:** Trasladar el dashboard al apartado administrativo y restringir sus datos al rol Administrador.
+
+**Implementación:** AdminConfigView incorpora Dashboard de gestión como nueva pestaña. App.jsx presenta HomeView en la ruta inicial, renombra su enlace lateral a Inicio y mantiene la protección administrativa existente. HomeView ofrece agenda y pacientes; el enlace a Administración depende del rol. Los dos endpoints del dashboard restringen la autorización a Administrador. Se adaptaron las pruebas de autorización y navegador y se actualizaron README.md, AI_LOG.md y esta bitácora. Se conservan los gráficos y filtros existentes.
+
+**Validación:** 111 pruebas backend aprobadas, una externa omitida y concurrencia separada excluida; cobertura de acceso permitido para Administrador, denegación 403 para otros roles y 401 sin autenticación. Las 104 pruebas frontend aprobaron y la compilación finalizó correctamente con advertencias previas. La prueba visual en la pestaña administrativa aprobó en ambos temas y resoluciones de escritorio y móvil, sin desbordamiento ni incidencias automáticas seleccionadas de accesibilidad. Se adaptaron los casos de navegación para comprobar la ausencia del dashboard fuera de Administración.
+
+**Resultado y límites:** Tablero administrativo con autorización también en el servidor. Sin migraciones, modificaciones de Supabase, commits ni push; pruebas backend con almacenamiento aislado en memoria.
+
+**Cierre de pruebas de navegador:** Veinte casos aprobados en la ejecución completa y el restante aprobado en repetición focalizada tras precisar el selector del enlace lateral administrativo, que resultaba ambiguo al incorporarse otro acceso desde Inicio. Los 21 casos quedaron verificados entre ambas ejecuciones.
+
+## Sesión 35 — 11/11/2026 — Restauración del santuario interactivo
+
+**Objetivo:** Recuperar el perro 3D y su entrada de navegación manteniendo separado el dashboard administrativo.
+
+**Implementación:** Se reincorporó VeterinaryPet3D en HomeView con distribución responsiva y colores del proyecto; App.jsx identifica la pantalla como Santuario. Se conservaron los controles originales del compañero y los accesos a módulos. Se ampliaron las pruebas de navegador y se actualizaron AI_LOG.md y esta bitácora.
+
+**Validación y límites:** Compilación correcta y tres pruebas focalizadas de navegador aprobadas: modelo visible, interacción Acariciar, acceso por los tres roles y conservación de las restricciones administrativas. Se ajustó el selector visual del lienzo decorativo tras una primera comprobación. Persisten advertencias previas de face-api.js, tamaño del paquete y THREE.Clock; la reincorporación de Three.js incrementa el paquete principal. Sin cambios de backend, operaciones en Supabase, commits ni push.
+
+## Sesión 36 — 11/11/2026 — Rediseño visual de la bienvenida
+
+**Objetivo:** Mejorar la presentación del santuario mediante una bienvenida compacta y accesos de navegación claros.
+
+**Implementación:** HomeView.jsx incorpora tarjetas con iconos, descripción y enlaces a agenda, pacientes y Administración según el rol. Se separó el panel del compañero 3D para eliminar la alineación vertical que generaba espacio vacío. El nuevo HomeView.css define composición responsiva, jerarquía tipográfica y estilos con variables de tema y reducción de movimiento. Se ampliaron las pruebas de navegador y se actualizaron AI_LOG.md y esta bitácora.
+
+**Validación y alcance:** Compilación correcta y cuatro pruebas focalizadas de navegador aprobadas. Se verificaron resoluciones de 1440 y 390 píxeles, temas claro/oscuro, enlaces, lienzo del perro, interacción y restricciones administrativas. No se detectaron desbordamientos ni incidencias en las comprobaciones automáticas de accesibilidad seleccionadas para la bienvenida. Se revisó visualmente la captura de escritorio oscuro. Permanecen advertencias previas de Three.js, face-api.js y tamaño del paquete. Sin cambios de backend, operaciones en Supabase, commits ni push.
+
+## Sesión 37 — 11/11/2026 — Accesibilidad transversal y auditoría
+
+**Objetivo:** Reforzar la accesibilidad de módulos, formularios, navegación y visualizaciones con evidencia automática y una aceptación manual explícitamente delimitada.
+
+**Implementación:** Se corrigieron jerarquías de encabezados y una región principal anidada, se declararon encabezados de tablas y se añadieron títulos de ruta y foco al contenido. Los modales aíslan el fondo y preservan el foco; el menú móvil y la exportación de auditoría gestionan apertura, recorrido, Escape y retorno. Se reforzaron asociaciones de ayuda y errores, contraste y coincidencia entre nombre visible y accesible. El dashboard incorpora descripciones, tablas identificadas, tramas y números para complementar el color. Las animaciones respetan movimiento reducido y el perro admite pausa. Se actualizaron componentes comunes, vistas, estilos, pruebas, README, informe de accesibilidad, evidencia JSON, AI_LOG y esta bitácora.
+
+**Validación:** 104 pruebas frontend y 25 pruebas de navegador aprobadas, con compilación correcta y advertencias existentes. Axe registró cero incidencias en 28 escenarios completos de siete pantallas y siete secciones administrativas en ambos temas. Los controles de formularios y login también aprobaron. Se verificaron registro automatizado exclusivamente por teclado, errores, Escape, foco, menú móvil, ampliación CSS al 200 % y movimiento reducido. Cuatro casos de cierre, una prueba de exportación con Escape y la auditoría final comprobaron los últimos ajustes. Se corrigieron errores de fixtures y selectores durante las ejecuciones iniciales, junto con los defectos reales detectados.
+
+**Resultado y límites:** Mejoras implementadas y evidencia reproducible documentada en docs/ACCESIBILIDAD.md y AUDITORIA_AXE_2026-11-11.json. La prueba humana con teclado y lector de pantalla y el zoom nativo siguen pendientes; se incluye una pauta de aceptación y no se afirma cumplimiento integral ni certificación. Sin cambios de backend, Supabase, commits ni push.
+
+## Sesión 38 — 11/11/2026 — Avisos y confirmaciones personalizados
+
+**Objetivo:** Reemplazar las ventanas nativas de conflicto y confirmación por componentes coherentes con la interfaz del proyecto.
+
+**Implementación:** Se incorporaron ConflictDialog y su estilo, una notificación central notifyConflict y el montaje único en App. Se reemplazaron ocho llamadas de alerta de siete módulos y la confirmación nativa de recetas. Se conservan mensajes de negocio, temas claro/oscuro y bloqueo de envíos repetidos. ConfirmModal utiliza identificadores únicos; AccessibleDialog recupera el foco en un control del diálogo subyacente si el anterior ya no está disponible. Se actualizaron pruebas, README, documentación de accesibilidad, AI_LOG y esta bitácora.
+
+**Validación:** 104 pruebas frontend aprobadas y compilación correcta con avisos previos. Casos de navegador comprueban conflicto 409, explicación de restricciones, contraste en ambos temas, Escape y retorno del foco, ausencia de ventanas nativas, cancelación de receta sin solicitud y eliminación confirmada única. Se corrigieron el retorno del foco desde un botón deshabilitado y un selector de prueba que debía identificar Volver. No quedan llamadas a alert ni confirm o prompt del navegador en el código revisado.
+
+**Resultado y límites:** Avisos propios de la aplicación y confirmación destructiva explícita. Se registró la comunicación del usuario sobre pruebas manuales de teclado superadas, sin asumir uso de lector de pantalla. Pruebas de navegador con respuestas simuladas, sin cambios de backend ni Supabase, commits o push.
+
+**Cierre:** La suite completa de navegador aprobó sus 27 pruebas y mantuvo sin incidencias los 28 escenarios de auditoría general.
+
+## Sesión 39 — 11/11/2026 — Seis indicadores consultables desde la web
+
+**Objetivo:** Completar los indicadores del dashboard para obtener sus resultados sin operaciones manuales y consultar su definición desde la interfaz.
+
+**Implementación:** El servicio analítico calcula promedio por factura, porcentaje de insumos agotados y participación por especialidad, reutilizando los agregados existentes. Se devuelve null si el denominador está vacío. Nuevas tarjetas muestran promedio e insumos agotados; DashboardIndicatorGuide reúne seis indicadores con pregunta de negocio, fórmula y resultado. Se ajustaron la distribución responsiva, la presentación monetaria del promedio y las pruebas de backend, frontend y navegador. Se actualizaron README, AI_LOG y esta bitácora. Se conserva la exclusividad administrativa y el alcance independiente de los filtros de agenda e inventario.
+
+**Validación y resultado:** Backend: 112 aprobadas y una externa omitida, excluyendo concurrencia separada. Frontend: 105 aprobadas; se corrigió la ambigüedad de un selector por repetición del nombre en tarjeta y tabla. Compilación correcta con avisos previos. Dos casos focalizados de navegador aprobaron, con seis fórmulas y resultados, ambos temas, móvil y 28 escenarios generales sin incidencias. Se revisó la captura de escritorio oscuro.
+
+**Límites:** Sin cambios de esquema ni Supabase; almacenamiento en memoria en las pruebas backend y datos interceptados en navegador. No se verificó PostgreSQL real. Sin commits ni push.
+
+## Sesión 40 — 11/11/2026 — Indicadores derivados compatibles con respuestas anteriores
+
+**Objetivo:** Evitar No calculable cuando existen totales suficientes pero la respuesta no contiene los campos derivados.
+
+**Implementación:** dashboardData.js normaliza la respuesta antes de mostrarla, conservando cálculos válidos y derivando los ausentes desde los totales del mismo conjunto filtrado. Se distingue cero agotados de ausencia de inventario y se conserva el tratamiento de denominadores vacíos. DashboardView comparte los datos normalizados con las tarjetas y la guía. Se actualizaron pruebas, README, AI_LOG y esta bitácora.
+
+**Validación:** 106 pruebas frontend aprobadas, compilación correcta con avisos previos y un caso de navegador aprobado con los valores de la captura: promedio $37.088,33 y agotados 0 %. La prueba también verifica selección de 30 días y participación por especialidad. El escenario sin denominador continúa aprobado.
+
+**Alcance:** La causa es compatible con campos derivados ausentes en una instancia previa de la API; no se inspeccionó la respuesta real del usuario ni se reinició su servidor. Sin consultas adicionales, cambios de backend o Supabase, commits ni push.
+
+## Sesión 41 — 12/11/2026 — Verificación técnica y corrección de brechas de evaluación
+
+**Objetivo:** Verificar criterios de implementación de Evaluacion3_LPWII y subsanar incumplimientos demostrables sin producir informes académicos ni intervenir Supabase.
+
+**Implementación:** Se añadieron tres reportes administrativos filtrados y paginados, sus exportaciones CSV/XLSX/PDF y preparación de impresión, con registro de auditoría y autorización administrativa. Se separaron consultas y estrategias de formato mediante ReportService e IReportFormat. Se incorporó análisis HTTP externo de IA configurable sobre agregados, con validación, límite de respuesta, timeout y tratamiento seguro de fallos. Se implementó el flujo de estados de citas en interfaz, backend y disparadores SQL, junto con restricciones e índices versionados. Se reforzaron errores relacionales, OpenAPI Bearer, arranque seguro sin cuentas de demostración por defecto en producción y verificación exclusiva de contraseñas con hash. Se añadieron datos iniciales sintéticos y se corrigió la coherencia de montos e IVA para nuevas facturas de demostración, preservando las existentes.
+
+Se incorporó una carga histórica idempotente de 500 registros por entidad principal a lo largo de doce meses, con confirmación administrativa. Se agregaron orden/paginación visual a listados, página 404, pestaña Reportes y pruebas asociadas. Se extendieron Docker Compose, imágenes fijadas, plantilla sin secretos, CI y scripts de respaldo/restauración y validación aislada. Se conservaron los cambios anteriores y se actualizan simultáneamente AI_LOG y esta bitácora; no se elaboraron informes, presentaciones o documentos académicos.
+
+**Componentes:** Endpoints y servicios de reportes, IA y datos históricos; autenticación, validación de negocio, middleware de excepciones, integridad del modelo, migraciones RefuerzoIntegridad y FlujoCitasSql, Program y SwaggerAuthorizationFilter; ReportesView, HistoricalSeedPanel, TablePagination, vistas principales y navegación; contenedores, Compose, .env.example, CI, scripts y suites técnicas.
+
+**Validación:** Backend: 135 aprobadas y una integración externa omitida; frontend: 106 aprobadas y build correcto con advertencias de paquetes. Navegador: 28 escenarios generales aprobados y un escenario nuevo de reportes aprobado tras corregir el selector de prueba; otra prueba con backend/PostgreSQL reales en Docker comprobó login, recarga, tres reportes y descarga PDF. Axe no detectó incidencias en las comprobaciones seleccionadas en ambos temas; npm audit de producción reportó cero vulnerabilidades conocidas. OpenAPI contiene las rutas nuevas y seguridad Bearer. Las pruebas de IA usan proveedor simulado, incluyendo respuesta inválida, ausencia de configuración y timeout.
+
+En vetclinic-review, los tres contenedores quedaron saludables y las migraciones se aplicaron localmente. Se verificaron doce meses, 500 registros históricos por entidad, repetición sin duplicados, rechazo SQL de stock negativo y transición inválida, nueve exportaciones y apertura mediante pypdf/openpyxl —con gráfico gerencial nativo—. Se comprobó respaldo/restauración temporal conservando 506 pacientes, 505 citas y 503 facturas. El escenario de veinte usuarios concurrentes emplea InMemory; no acredita rendimiento productivo.
+
+**Pendientes y alcance:** Sin cambios en Supabase, commits ni push. Las migraciones requieren revisión antes de aplicarlas a datos reales. Pendientes llamada real de IA, ejecución/publicación de CI en GitHub, lector de pantalla humano, inspección completa de impresión y paginación SQL uniforme. Las cuentas heredadas con contraseña en texto plano necesitan restablecimiento. Se identificaron credenciales en diferencias históricas de Git, sin comprobar vigencia ni sanear el historial; corresponde rotarlas y planificar su limpieza. No se certifica cumplimiento integral de WCAG, OWASP o tiempos de producción. No se modificaron retrospectivamente registros de desarrollo anteriores.
+
+## Sesión 42 — 12/11/2026 — Corrección de exportación y auditoría compatible
+
+**Objetivo:** Permitir generar reportes con el CHECK de auditoría existente sin eliminar la trazabilidad ni modificar Supabase.
+
+**Implementación:** Se corrigió la acción persistida por las exportaciones a CREAR, asociada a Reportes y con Operacion=EXPORTAR en metadatos. La consulta y detalle de auditoría presentan estos eventos como EXPORTAR, incluyendo filtros, búsqueda y resumen. Se permite consultar únicamente los campos seguros del detalle de reporte.
+
+**Componentes:** ReportesApi, AuditoriaApi, SafeAuditValues, ReviewComplianceTests, AI_LOG y BITACORA.
+
+**Validación:** 135 pruebas backend aprobadas y una integración externa omitida. Se verificaron los tres reportes, acción compatible, metadatos y consulta/detalle de exportaciones. La causa concuerda con la restricción CHECK del esquema compartido. Sin intervención sobre Supabase, commits o push.
+
+**Comprobación relacional adicional:** En PostgreSQL Docker aislado se impuso temporalmente un CHECK equivalente para nuevos eventos, conservando los anteriores. Las nueve exportaciones se completaron; también pasó la consulta filtrada y agregada como EXPORTAR. La restricción temporal fue retirada al finalizar. No se modificó Supabase.
+
+
+## Sesión 43 — 12/11/2026 — Organización visual de reportes administrativos
+
+**Objetivo:** Compactar el panel de filtros y mejorar la presentación de las acciones de exportación conforme al diseño de VetClinic.
+
+**Implementación:** Encabezado con icono y formatos disponibles, tarjeta de filtros adaptable a tres/dos/una columnas, barra de descarga con iconos e impresión destacada y mejoras de espaciado, superficies y paginación. Se mantienen los temas y los estilos de impresión existentes.
+
+**Componentes:** ReportesView.jsx, ReportesView.css, accesibilidad.spec.js y ambas bitácoras.
+
+**Validación:** Build correcto con avisos previos. Caso de navegador aprobado para filtros, paginación, descarga, manejo del error de IA, columnas de escritorio/móvil, ausencia de desbordamiento y axe sin incidencias en claro/oscuro. Capturas generadas a 1440 y 360 px; inspección visual de escritorio oscuro realizada. Prueba ejecutada en 5187 sin alterar el servidor del usuario en 5173. Sin modificaciones de backend, Supabase, commits o push.
+
+## Sesión 44 — 12/11/2026 — Retiro de análisis externo de IA
+
+**Objetivo:** Suprimir la integración externa de análisis de reportes solicitada por el usuario, manteniendo el reconocimiento facial y las exportaciones existentes.
+
+**Implementación:** Eliminación del servicio HTTP, endpoint, registro DI, limitador dedicado, variables de configuración y controles de análisis. Se retiraron sus cuatro pruebas específicas y se ajustó la prueba de interfaz para comprobar que el botón ya no existe. Se conservaron los registros históricos de desarrollo.
+
+**Componentes:** Program, InsightsService e Insights retirados, ReportesView, Compose, .env.example, pruebas backend/navegador y ambas bitácoras.
+
+**Validación:** Backend: 131 pruebas aprobadas y una integración externa omitida; compilación frontend correcta con avisos previos y escenario de reportes aprobado en ambos temas y resoluciones. Sin referencias activas restantes al servicio retirado en los componentes examinados. Sin cambios en Supabase, despliegues, commits o push. Las instancias ya ejecutándose necesitan reinicio o reconstrucción para incorporar el cambio.
+
+## Sesión 45 — 12/11/2026 — Ejecución real del pipeline y ajustes de pruebas
+
+**Objetivo:** Subir los avances y verificar la automatización en GitHub Actions.
+
+**Implementación:** Publicación inicial f86e979; análisis de la ejecución 43334918483. Se corrigió la firma JWT fija de pruebas para leer la configuración efectiva, se sincronizó el cambio de tema antes de axe y se precisó el selector del aviso de registro facial. Se conservan todas las comprobaciones de contraste y autorización.
+
+**Validación:** Contenedores aprobados en la primera ejecución remota; las fallas de pruebas impidieron publicar imágenes. Correcciones comprobadas localmente: 131 pruebas backend aprobadas con clave aleatoria, una integración externa omitida y 29 pruebas de navegador aprobadas. La ejecución remota del ajuste queda en comprobación al guardar esta entrada; no se atribuye un resultado futuro. Sin cambios en Supabase o autenticación de producción. Se actualizan AI_LOG y BITACORA conjuntamente.
+
+**Seguimiento de zona horaria:** La ejecución remota 43335829104 confirmó la corrección de autenticación y volvió a aprobar contenedores; tres pruebas antiguas de facturación fallaron porque DateTime.Today toma UTC en el runner, mientras la validación exige la fecha de Chile. Los seis usos de la fecha de emisión en ApiIntegrationTests se ajustaron a America/Santiago. Suite local repetida con clave aleatoria: 131 aprobadas y una integración externa omitida. Se conserva la validación de fechas del producto; no se flexibiliza para aprobar CI. El resultado remoto del ajuste sigue pendiente al guardar esta actualización.
+
+**Seguimiento de concurrencia:** El frontend y contenedores de 43335829104 aprobaron en GitHub. La siguiente ejecución resolvió las fechas de facturación y detectó una aserción no portable en ConcurrentPatientsTests: las cien solicitudes de las cinco fases finalizaron sin errores, pero una fase midió quince solicitudes solapadas y la prueba exigía exactamente veinte. Se conservan las veinte sesiones, validaciones de datos, auditoría, errores y tiempos; el pico observado se verifica dentro del rango posible de 1 a 20, sin fabricar un solapamiento exacto dependiente del planificador. El informe conserva el valor medido y sus limitaciones InMemory. Suite local: 131 aprobadas, una integración externa omitida. Se prepara una nueva ejecución remota para comprobar el resultado completo.
+
+**Cierre comprobado en GitHub:** La ejecución 43336537895 del commit 9ed753f terminó completed/success. Backend: 131 aprobadas, una integración externa omitida y cero fallos. Frontend: 106 pruebas unitarias y 29 de navegador aprobadas. Contenedores, salud de API, respaldo/restauración y los dos trabajos publish (api/frontend) concluyeron success. Las imágenes se publicaron en GHCR con etiqueta del SHA completo probado. En las ejecuciones anteriores fallidas la publicación permaneció omitida. Este cierre actualiza exclusivamente ambas bitácoras y se publica con [skip ci] para no repetir la misma validación por un cambio sin código.
+
+## Sesión 46 — 13/11/2026 — Formularios de alta y edición de usuarios
+
+**Objetivo:** Incorporar creación mediante ventana modal y edición de cuentas desde las acciones del listado administrativo.
+
+**Implementación:** Formulario compartido en AccessibleDialog, botón Nuevo usuario junto al título, acción Editar por fila, campos precargados, contraseña opcional y recarga tras guardar. Se mantienen validación, mensajes, bloqueo de envíos y manejo de foco/Escape. Se separa la carga de roles para cuentas respecto de filtros del catálogo. El endpoint PUT nuevo autoriza únicamente administradores con rol vigente, valida identificadores/datos y correo único, impide la modificación del propio rol, conserva el hash cuando no hay contraseña nueva y audita sin exponer secretos. Se agrega RolId al listado.
+
+**Componentes:** UsuariosApi, UserCreateForm, AdminConfigView, UserEditingTests, pruebas unitarias del formulario, escenario de navegador y AI_LOG/BITACORA.
+
+**Validación:** Backend: 136 aprobadas y una externa omitida. Frontend: suite inicial de 106 aprobadas; tres pruebas del formulario aprobadas al añadir el caso nuevo. Compilación correcta con avisos previos. Navegador: creación y auditoría axe de formularios/listados en ambos temas aprobadas; recorrido ampliado de alta y edición con Escape, foco, contraseña conservada y fila actualizada aprobado. Pruebas con InMemory y respuestas interceptadas; sin cambios en Supabase, esquema o contenedores, sin ejecución remota de CI, commits o push. Los cambios de permisos no revocan JWT previamente emitidos.
+
+## Sesión 47 — 13/11/2026 — Alta y edición de clientes por recepción
+
+**Objetivo:** Alinear los permisos del módulo Clientes con las tareas de recepción, manteniendo la eliminación administrativa.
+
+**Implementación:** Autorización explícita de Recepcionista en POST y PUT de clientes, y separación de los controles de crear, editar y eliminar en la interfaz. Se mantienen validaciones, auditoría y restricciones de los demás roles y módulos; no se amplía el permiso global de escritura.
+
+**Componentes:** ClientesApi, ClientesView, ReceptionistClientPermissionsTests, ReceptionistClients.test y ambas bitácoras.
+
+**Validación:** Backend completo: 139 aprobadas y una externa omitida. Nuevos casos prueban creación/consulta/edición, duplicados, actor de auditoría y eliminación denegada; se conserva el rechazo de edición para anónimos y veterinarios. Prueba de interfaz aprobada para creación/edición visibles, guardado y eliminación ausente. Build correcto con avisos previos. Datos InMemory y respuestas simuladas; sin cambios en Supabase, esquema, Docker, CI remoto, commits o push.
+
+## Sesión 48 — 13/11/2026 — Edición de pacientes habilitada para recepción
+
+**Objetivo:** Ampliar exclusivamente el permiso de actualización de pacientes al rol Recepcionista.
+
+**Implementación:** Se autoriza recepción en PUT pacientes y en el botón Editar de cada fila, conservando los permisos previos de creación y eliminación y las validaciones/auditoría existentes.
+
+**Componentes:** PacientesApi, PacientesView, ReceptionistPatientPermissionsTests, PacientesView.test, AI_LOG y BITACORA.
+
+**Validación:** 140 pruebas backend aprobadas, una integración externa omitida; ocho pruebas de interfaz de pacientes aprobadas y build correcto con avisos previos. Se comprobaron persistencia, actor de auditoría, validaciones de propietario/peso y denegación de alta/eliminación para recepción. InMemory y servicios simulados, sin cambios en Supabase, esquema, Docker, CI remoto, commits o push.
+
+## Sesión 49 — 13/11/2026 — Eliminación de pacientes exclusiva del administrador
+
+**Objetivo:** Restringir el borrado de pacientes en backend al rol Administrador.
+
+**Implementación:** Se retiró Veterinario de la autorización DELETE, conservando bloqueos por citas/consultas. Los nuevos casos verifican 401 anónimo, 403 Veterinario/Recepcionista, 204 Administrador sin dependencias y rechazo con relaciones. La fase de borrado de la prueba concurrente se ajustó al administrador y la auditoría comprueba su actor; alta/consulta/edición mantienen sesiones veterinarias.
+
+**Componentes:** PacientesApi, PatientDeletionPermissionsTests, ConcurrentPatientsTests, AI_LOG y BITACORA.
+
+**Validación:** Suite final 145 aprobadas y una externa omitida. Se corrigió una expectativa obsoleta de borrado por veterinario detectada en la primera ejecución. Pruebas InMemory; sin cambios en Supabase, esquema, frontend, contenedores, CI remoto, commits o push.
+
+## Sesión 50 — 13/11/2026 — Consulta de citas limitada a la cuenta veterinaria
+
+**Objetivo:** Cumplir el criterio de correspondencia entre citas consultadas e identidad veterinaria autenticada.
+
+**Implementación:** El endpoint GET de agenda restringe por identificador JWT y no permite sustituirlo con usuarioId de consulta. Identidades inválidas se rechazan; filtros de estado/especialidad/fecha permanecen combinados. Administrador y Recepcionista mantienen agenda general. Se oculta el filtro profesional al Veterinario y se evita enviarlo desde su interfaz.
+
+**Componentes:** CitasApi, CitasView, AppointmentVisibilityTests, CitasScope.test, AI_LOG y BITACORA.
+
+**Validación:** 150 pruebas backend aprobadas y una externa omitida; tres casos frontend por rol y compilación aprobados con avisos previos. Se probaron parámetros de otro usuario, alcance propio, filtros combinados, accesos generales y solicitudes no autorizadas. Entornos InMemory y simulados, sin cambios en Supabase, esquema, Docker, CI remoto, commits o push. No se modificaron permisos de escritura ni otros endpoints con referencias a citas.
+
+## Sesión 51 — 13/11/2026 — Consulta independiente del detalle de cita
+
+**Objetivo:** Completar los criterios 3 y 5 de la historia 8: detalle de cita y mensaje específico de agenda sin asignaciones.
+
+**Implementación:** Se añadió Ver detalle por fila y un diálogo reutilizable con información de cita, paciente, propietario y profesional en formato de solo lectura. AccessibleDialog gestiona foco/Escape y regreso al botón. Se usa el conjunto ya autorizado de citas y no se incorporan operaciones de escritura. Se muestra un mensaje propio de Veterinario ante resultados vacíos y se separa el error de carga del error del formulario para no confundir fallos con ausencia de datos.
+
+**Componentes:** CitaDetailDialog, CitasView, CitasScope.test, accesibilidad.spec y ambas bitácoras.
+
+**Validación:** 114 pruebas frontend aprobadas y build correcto con avisos previos. Cinco casos unitarios cubren roles, datos, detalle, foco y error/vacío; recorrido de navegador aprobado para detalle, accesibilidad en ambos temas con movimiento reducido y adaptación a 360 px. No se eliminaron reglas axe para resolver la medición inicial durante una transición. Pruebas con API simulada; sin cambios de backend, Supabase, esquema, contenedores, CI remoto, commits o push.
+
+## Sesión 52 — 13/11/2026 — Borrado clínico exclusivo del Administrador
+
+**Objetivo:** Restringir la eliminación clínica al Administrador en frontend y backend.
+
+**Implementación:** DELETE consultas/recetas/detallesRe exige Administrador; Veterinario mantiene alta y actualización. Se ocultan el botón y la confirmación de eliminación de receta para los demás roles y se adecuan sus etiquetas e indicaciones. Se mantienen las verificaciones de dependencias y el borrado de detalles junto a la receta.
+
+**Componentes:** Endpoints clínicos, ConsultasView, ClinicalDeletionPermissionsTests, accesibilidad.spec y ambas bitácoras.
+
+**Validación:** 155 pruebas backend aprobadas y una externa omitida; 114 frontend aprobadas, compilación correcta con avisos previos y dos escenarios de navegador aprobados. Se comprobaron rechazo por rol, preservación de registros, borrado autorizado y dependencias. La primera prueba visual permitió corregir la ubicación de la condición del botón; la repetición aprobó. InMemory y respuestas simuladas; sin intervención en Supabase, esquema, contenedores, CI remoto, commits o push.
+
+## Sesión 53 — 13/11/2026 — Catálogo de insumos de solo lectura para roles operativos
+
+**Objetivo:** Permitir únicamente al Administrador crear, editar y eliminar insumos directamente.
+
+**Implementación:** Restricción de POST/PUT/DELETE al Administrador y conservación de GET para Administrador, Veterinario y Recepcionista. La interfaz oculta controles de escritura para los dos últimos roles y muestra Solo Lectura. Se mantienen los procesos de inventario de facturación y las restricciones de integridad.
+
+**Componentes:** InsumosApi, InsumosView, SupplyPermissionsTests, InsumosPermissions.test y ambas bitácoras.
+
+**Validación:** 159 pruebas backend aprobadas y una externa omitida, tres casos frontend por rol aprobados y build correcto con avisos previos. Se verificaron acceso directo a API, inmutabilidad al denegar y ciclo administrativo autorizado. Entornos simulados/InMemory, sin cambios en Supabase, esquema, contenedores, CI remoto, commits o push.
+
+## Sesión 54 — 13/11/2026 — Permisos de emisión de facturas por rol
+
+**Objetivo:** Permitir emisión a Administrador y Recepcionista, y mantener Veterinario en consulta de facturación.
+
+**Implementación:** POST facturas autoriza administración/recepción. Edición/eliminación de facturas emitidas y escrituras de detalles se reservan al Administrador. La interfaz separa emisión y mantenimiento, ocultando controles no autorizados sin impedir consultar detalles. Se conserva el guardado de conceptos e inventario dentro del flujo de emisión.
+
+**Componentes:** FacturasApi, DetalleFacturasAPI, FacturasView, InvoicePermissionsTests, InvoicePermissions.test y ambas bitácoras.
+
+**Validación:** 165 pruebas backend aprobadas, una externa omitida; tres pruebas de interfaz por rol aprobadas y build correcto con advertencias previas. Casos nuevos verifican emisión, stock, detalles, auditoría, consulta y rechazo de operaciones no autorizadas. Entorno InMemory/simulado; sin cambios en Supabase, esquema, contenedores, CI remoto, commits o push.
+
+## Sesión 55 — 13/11/2026 — Borrado de citas reservado al Administrador
+
+**Objetivo:** Alinear la autorización de eliminación de citas con la interfaz sin alterar el menú ni los permisos de operación de agenda.
+
+**Implementación:** DELETE de citas se restringe a Administrador; se mantienen dependencias clínicas, auditoría y las autorizaciones de lectura/alta/edición. Se incorporan pruebas por rol y casos de dependencias e inexistencia.
+
+**Componentes:** CitasApi, AppointmentDeletionPermissionsTests, AI_LOG y BITACORA.
+
+**Validación:** 171 pruebas backend aprobadas, una externa omitida y cuatro escenarios de navegador aprobados sobre navegación, sesión y rutas administrativas. Se comprobó rechazo por rol, conservación ante denegación, borrado válido y bloqueo de citas con consulta facturada. Pruebas InMemory y simuladas; sin intervención en Supabase, migraciones, Docker, CI remoto, commits o push.
+
+## Sesión 56 — 13/11/2026 — Integridad transaccional e histórica de facturación
+
+**Objetivo:** Cerrar los pendientes de inventario/facturación y alinear permisos e información con las historias revisadas.
+
+**Implementación:** Cantidad/precio histórico por línea con migración versionada; reposición por unidades registradas, conservación de precios al editar, transacción conjunta de líneas/inventario/totales/auditoría y concurrencia optimista. Las líneas antiguas ambiguas se bloquean sin inferir unidades del precio actual. La interfaz muestra ID de factura, cantidad/precio y controla cantidades/subtotales de insumos. Se protege el cambio directo de importes sin conceptos. Recepcionista obtiene alta de pacientes; listado completo de usuarios solo administrativo y selector profesional limitado para agenda. Se actualizan README, pruebas, CI y las dos bitácoras, sin informes académicos.
+
+**Componentes:** DetallesFactura/contexto/migración/snapshot, BillingConsistency, middleware y filtro de negocio, endpoints de facturación/cuentas/pacientes, vistas y esquema de formulario, pruebas técnicas y Test-BillingIntegrity.ps1.
+
+**Validación:** 176 backend aprobadas y una externa omitida; 123 frontend aprobadas, build correcto con avisos previos; 31 escenarios de navegador y uno real Docker aprobados. PostgreSQL aislado rechazó la segunda venta concurrente con 409 y mantuvo una venta y stock cero. Precio histórico y reposición de tres unidades comprobados tras cambio de catálogo. Fallos SQL inyectados confirmaron rollback de cabecera/detalle/stock/total/auditoría. La prueba elimina sus disparadores/datos y comprueba previamente conexión/puerto del entorno aislado. Docker reconstruido y migración aplicada exclusivamente en vetclinic-review; respaldo/restauración también comprobados. La nueva prueba queda incorporada al pipeline.
+
+**Pendientes externos:** Supabase no se modificó; requiere aplicar/revisar la migración y resolver con documentación original las cantidades históricas ausentes. Se prepara publicación de cambios y verificación de CI remoto; el resultado aún no se atribuye. No se implementan idempotencia general, pagos, anulación tributaria o detección de presencia real. El gráfico personal ajeno al cambio permanece sin versionar.
+
+Validación remota complementaria (13/11/2026): backend y contenedores aprobados en el run 43461207441. La auditoría del diálogo detectó contraste transitorio durante su aparición; se suprime la animación de opacidad del aviso (ConflictDialog.css), conservando foco, colores y controles. Pendiente confirmar el nuevo resultado automatizado.
+Resultado local complementario: prueba Playwright del aviso aprobada (1/1), con auditoría axe en tema claro y oscuro y comprobación del foco.
+El run 43462304628 mantiene aprobados backend y contenedores; persiste una incidencia de contraste en Chromium Linux. Se retira backdrop-filter del aviso y se incorporan diagnósticos de estilos en la prueba para facilitar una reproducción verificable, sin omitir reglas axe.
+En la suite Chromium local se detectó un fallo adicional del título del detalle de cita (30/31 aprobadas). Se corrige su color semántico y se sincroniza la medición de tema con la finalización de las animaciones. Repetición de los dos diálogos afectados: 2/2 aprobadas, incluyendo foco y contraste.
+El diagnóstico remoto evidencia un problema de composición de diálogos superpuestos. Se traslada el aviso global a document.body mediante portal React, manteniendo AccessibleDialog y sus controles de foco. Se repetirá la prueba en Chromium y GitHub.
+Cierre de pruebas locales (13/11/2026): 123 pruebas de componentes y 31 pruebas de navegador Chromium aprobadas. Entorno Docker reconstruido, servicios saludables y comprobación de integración desde navegador aprobada (1/1). GitHub run 43464183329 sobre 0d00c48 aprobó backend, frontend y contenedores; imágenes aún en publicación. No se ejecutó la migración sobre Supabase.
+Resultado remoto definitivo (13/11/2026): pipeline 43464183329 completada con éxito para 0d00c48; pruebas de backend, frontend, contenedores y publicación de ambas imágenes aprobadas. Evidencia: https://github.com/Joni4351/Veterinaria-Trabajo2/actions/runs/43464183329. Se conserva pendiente la aplicación controlada de la migración en Supabase.
+
+## Sesión 57 — Actualización puntual de la base Supabase
+
+**Fecha:** 13/11/2026.
+
+**Objetivo:** Desplegar la estructura de histórico de detalles de factura sobre la base en la nube sin alterar facturas, importes o existencias previas.
+
+**Implementación:** Tras inspeccionar el esquema se confirmó que no existía historial EF y faltaban las columnas requeridas. Se aplicó únicamente el SQL correspondiente a `20261113155901_HistoricoInventarioFactura`, con transacción y bloqueos acotados. Se añadieron `Cantidad` integer y `PrecioUnitario` numeric(10,2), ambas anulables, con restricciones de valores válidos. Tres servicios se completaron con cantidad uno/precio original; tres líneas antiguas de productos permanecen sin cantidad ni precio histórico para evitar estimaciones. No se ejecutaron las migraciones previas ni se simuló su ejecución en `__EFMigrationsHistory`.
+
+**Componentes:** Base Supabase, script `database/migraciones/HistoricoInventarioFacturaSupabase.sql`, AI_LOG.md y BITACORA.md. El respaldo limitado a datos/restricciones de DetallesFactura se conserva localmente en `MigrationBackup/supabase/20261113T191534Z_DetallesFactura_antes.json`, fuera de Git y sin credenciales. La herramienta de administración temporal no forma parte del programa.
+
+**Validación:** Respaldo escrito y comprobado antes de modificar; comparación transaccional de los campos originales de los seis detalles y huellas de filas de Facturas e Insumos sin diferencias; comprobación de tipos, nulabilidad, restricciones validadas y backfill de servicios. COMMIT correcto y confirmación posterior mediante una nueva conexión de solo lectura. Se conservaron seis detalles, todas las facturas e inventario. No se crearon operaciones sintéticas en la nube.
+
+**Pendientes y límites:** Revisar documentos originales para las tres líneas de insumos históricas; conciliar el esquema antes de adoptar el historial completo EF. No se ejecutó una prueba de interfaz conectada a Supabase ni se generó una copia integral de la base. Se conserva el archivo gráfico personal ajeno a esta intervención sin cambios.

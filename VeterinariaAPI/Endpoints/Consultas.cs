@@ -10,7 +10,7 @@ namespace VeterinariaAPI.Endpoints
     {
         public static void MapConsultasApi(this WebApplication app)
         {
-            var consultas = app.MapGroup("/api/v1/consultas").WithTags("Consultas (v1)");
+            var consultas = app.MapGroup("/api/v1/consultas").WithTags("Consultas (v1)").AddEndpointFilter<BusinessValidationFilter>();
 
             // API para listar consultas con filtros
             consultas.MapGet("/", async (
@@ -19,7 +19,7 @@ namespace VeterinariaAPI.Endpoints
                 string? diagnostico,
                 IRepository<Consulta> repo) =>
             {
-                var query = repo.Query()
+                var query = repo.Query().AsNoTracking()
                     .Include(c => c.Paciente)
                         .ThenInclude(p => p.Cliente)
                     .AsQueryable();
@@ -56,7 +56,7 @@ namespace VeterinariaAPI.Endpoints
                 {
                     PacienteId = dto.PacienteId,
                     CitaId = dto.CitaId,
-                    Motivo = dto.Motivo,
+                    Motivo = dto.Motivo.Trim(),
                     Diagnostico = dto.Diagnostico
                 };
 
@@ -80,8 +80,8 @@ namespace VeterinariaAPI.Endpoints
 
                 consultaExistente.PacienteId = dto.PacienteId;
                 consultaExistente.CitaId = dto.CitaId;
-                consultaExistente.Motivo = dto.Motivo;
-                consultaExistente.Diagnostico = dto.Diagnostico;
+                consultaExistente.Motivo = dto.Motivo.Trim();
+                consultaExistente.Diagnostico = dto.Diagnostico.Trim();
 
                 await repo.GuardarCambiosAsync();
                 return Results.Ok(consultaExistente);
@@ -109,7 +109,7 @@ namespace VeterinariaAPI.Endpoints
                 await repo.EliminarAsync(consultaExistente);
                 await repo.GuardarCambiosAsync();
                 return Results.NoContent();
-            }).RequireAuthorization(policy => policy.RequireRole("Administrador", "Veterinario"));
+            }).RequireAuthorization(policy => policy.RequireRole("Administrador"));
         }
 
         // DTO estructurado con el prefijo 'property:' para la correcta validación por reflexión

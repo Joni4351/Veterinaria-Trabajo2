@@ -1,0 +1,49 @@
+.invoice-overlay { padding: 12px; z-index: 1200; }
+.invoice-dialog.modal-content {
+  width: 100%;
+  max-width: 1500px;
+  max-height: calc(100dvh - 24px);
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-surface);
+}
+.invoice-dialog > div:first-child {
+  flex-shrink: 0;
+  padding: 12px 16px !important;
+  margin-bottom: 0 !important;
+  border-radius: 0 !important;
+}
+.invoice-form { display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+.invoice-body { padding: 12px; overflow-y: auto; min-height: 0; overscroll-behavior: contain; }
+.invoice-columns { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; align-items: start; }
+.invoice-column { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.invoice-column > div { padding: 12px !important; margin-bottom: 0 !important; }
+.invoice-column .form-group { min-width: 0; margin-bottom: 0; }
+.invoice-column .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.invoice-column select, .invoice-column input { min-width: 0; max-width: 100%; }
+.invoice-column .form-label { margin-bottom: 4px; }
+.invoice-column .table-responsive { max-width: 100%; }
+.invoice-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-surface);
+}
+@media (max-width: 1099px) {
+  .invoice-columns { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) {
+  .invoice-overlay { padding: 6px; }
+  .invoice-dialog.modal-content { max-height: calc(100dvh - 12px); }
+  .invoice-dialog h3 { font-size: 1rem !important; }
+  .invoice-column .form-grid { grid-template-columns: minmax(0, 1fr); }
+  .invoice-column > div > div[style*="display: flex"] { flex-wrap: wrap; }
+  .invoice-column > div > div[style*="grid-template-columns"] { grid-template-columns: minmax(0, 1fr) !important; }
+  .invoice-footer .btn { flex: 1 1 auto; }
+}

@@ -1,0 +1,142 @@
+[
+  {
+    "theme": "light",
+    "section": "/dashboard",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "/clientes",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "/pacientes",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "/citas",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "/consultas",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "/insumos",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "/facturas",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "Dashboard de gestión",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "Historial de cambios",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "Datos de prueba",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "Registro Facial",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "Especialidades Médicas",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "Roles de Seguridad (RBAC)",
+    "violations": []
+  },
+  {
+    "theme": "light",
+    "section": "Cuentas de Usuarios",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "/dashboard",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "/clientes",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "/pacientes",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "/citas",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "/consultas",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "/insumos",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "/facturas",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "Dashboard de gestión",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "Historial de cambios",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "Datos de prueba",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "Registro Facial",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "Especialidades Médicas",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "Roles de Seguridad (RBAC)",
+    "violations": []
+  },
+  {
+    "theme": "dark",
+    "section": "Cuentas de Usuarios",
+    "violations": []
+  }
+]

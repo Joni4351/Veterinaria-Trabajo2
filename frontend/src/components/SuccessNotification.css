@@ -1,0 +1,10 @@
+.success-notification-region { position: fixed; top: 80px; right: 20px; z-index: 2000; max-width: min(440px, calc(100vw - 32px)); pointer-events: none; }
+.success-notification { display: flex; gap: 12px; align-items: flex-start; padding: 16px; border: 1px solid var(--success-border); border-radius: 12px; background: var(--success-light); color: var(--success-text); box-shadow: var(--shadow-md); pointer-events: auto; }
+.success-notification > svg { flex-shrink: 0; margin-top: 2px; }
+.success-notification strong { display: block; font-size: 13px; font-weight: 650; }
+.success-notification p { margin-top: 4px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.success-notification button { flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border: 0; border-radius: 8px; color: inherit; background: transparent; cursor: pointer; }
+.success-notification button:hover { background: color-mix(in srgb, currentColor 10%, transparent); }
+.success-notification button:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+@media (max-width: 600px) { .success-notification-region { right: 16px; left: 16px; }.success-notification button { width: 44px; height: 44px; } }
+@media print { .success-notification-region { display: none !important; } }

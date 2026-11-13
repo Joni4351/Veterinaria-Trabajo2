@@ -3,7 +3,14 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "overrides": {
+    "@tensorflow/tfjs-core": {
+      "node-fetch": "^2.7.0"
+    }
+  },
   "scripts": {
+    "test:facial:e2e": "playwright test --config playwright.facial.config.js",
+    "test:docker:e2e": "playwright test --config playwright.docker.config.js",
     "dev": "vite",
     "build": "vite build",
     "lint": "oxlint",
@@ -13,6 +20,7 @@
   },
   "dependencies": {
     "axios": "^1.20.0",
+    "face-api.js": "0.22.2",
     "lucide-react": "^1.55.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -21,6 +29,8 @@
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.8",
