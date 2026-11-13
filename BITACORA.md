@@ -1129,3 +1129,17 @@ En la suite Chromium local se detectó un fallo adicional del título del detall
 El diagnóstico remoto evidencia un problema de composición de diálogos superpuestos. Se traslada el aviso global a document.body mediante portal React, manteniendo AccessibleDialog y sus controles de foco. Se repetirá la prueba en Chromium y GitHub.
 Cierre de pruebas locales (13/11/2026): 123 pruebas de componentes y 31 pruebas de navegador Chromium aprobadas. Entorno Docker reconstruido, servicios saludables y comprobación de integración desde navegador aprobada (1/1). GitHub run 43464183329 sobre 0d00c48 aprobó backend, frontend y contenedores; imágenes aún en publicación. No se ejecutó la migración sobre Supabase.
 Resultado remoto definitivo (13/11/2026): pipeline 43464183329 completada con éxito para 0d00c48; pruebas de backend, frontend, contenedores y publicación de ambas imágenes aprobadas. Evidencia: https://github.com/Joni4351/Veterinaria-Trabajo2/actions/runs/43464183329. Se conserva pendiente la aplicación controlada de la migración en Supabase.
+
+## Sesión 57 — Actualización puntual de la base Supabase
+
+**Fecha:** 13/11/2026.
+
+**Objetivo:** Desplegar la estructura de histórico de detalles de factura sobre la base en la nube sin alterar facturas, importes o existencias previas.
+
+**Implementación:** Tras inspeccionar el esquema se confirmó que no existía historial EF y faltaban las columnas requeridas. Se aplicó únicamente el SQL correspondiente a `20261113155901_HistoricoInventarioFactura`, con transacción y bloqueos acotados. Se añadieron `Cantidad` integer y `PrecioUnitario` numeric(10,2), ambas anulables, con restricciones de valores válidos. Tres servicios se completaron con cantidad uno/precio original; tres líneas antiguas de productos permanecen sin cantidad ni precio histórico para evitar estimaciones. No se ejecutaron las migraciones previas ni se simuló su ejecución en `__EFMigrationsHistory`.
+
+**Componentes:** Base Supabase, script `database/migraciones/HistoricoInventarioFacturaSupabase.sql`, AI_LOG.md y BITACORA.md. El respaldo limitado a datos/restricciones de DetallesFactura se conserva localmente en `MigrationBackup/supabase/20261113T191534Z_DetallesFactura_antes.json`, fuera de Git y sin credenciales. La herramienta de administración temporal no forma parte del programa.
+
+**Validación:** Respaldo escrito y comprobado antes de modificar; comparación transaccional de los campos originales de los seis detalles y huellas de filas de Facturas e Insumos sin diferencias; comprobación de tipos, nulabilidad, restricciones validadas y backfill de servicios. COMMIT correcto y confirmación posterior mediante una nueva conexión de solo lectura. Se conservaron seis detalles, todas las facturas e inventario. No se crearon operaciones sintéticas en la nube.
+
+**Pendientes y límites:** Revisar documentos originales para las tres líneas de insumos históricas; conciliar el esquema antes de adoptar el historial completo EF. No se ejecutó una prueba de interfaz conectada a Supabase ni se generó una copia integral de la base. Se conserva el archivo gráfico personal ajeno a esta intervención sin cambios.
