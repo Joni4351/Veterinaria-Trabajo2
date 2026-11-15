@@ -1291,3 +1291,45 @@ Resultado remoto definitivo (13/11/2026): ejecución 43464183329 completada corr
 **Respaldo y validación:** Antes del cambio se guardó y verificó un respaldo local de los datos y restricciones de `DetallesFactura` en `MigrationBackup/supabase/20261113T191534Z_DetallesFactura_antes.json`, excluido de Git; no es un respaldo integral de la base. La transacción comprobó igualdad de los campos originales de los seis detalles y de las huellas de todas las filas de Facturas e Insumos. Se verificaron los tipos exactos, nulabilidad y ambas restricciones validadas antes del COMMIT. Resultado persistido: seis detalles conservados, tres servicios completados y tres líneas históricas de insumos sin cantidades/precios inferidos. Una nueva conexión de solo lectura confirmó las columnas y restricciones persistidas. No se emitieron facturas de prueba ni se modificó inventario en Supabase.
 
 **Límites:** Las tres líneas antiguas de insumos requieren documentos originales para completar sus cantidades. La incorporación general de esta base al historial EF sigue requiriendo conciliación del esquema; no debe ejecutarse `database update` indiscriminadamente. No se realizó una prueba integral de interfaz contra Supabase ni un respaldo completo. El programa de inspección/despliegue fue temporal y no se incorpora al código de aplicación. Se actualizaron simultáneamente ambas bitácoras; no se registraron secretos.
+
+## Intervención 55 — Corrección de presentación y paginación de reportes
+
+**Fecha:** 15/11/2026.
+
+**Requerimiento reformulado:** Garantizar la legibilidad de los reportes administrativos en PDF, la impresión íntegra de resultados extensos y la identificación de categorías en el gráfico XLSX gerencial.
+
+**Intervención asistida y decisiones:** Se sustituyó el PDF basado en filas concatenadas por tablas horizontales con anchos definidos, ajuste por palabras, encabezados repetidos y numeración de páginas. Se extrajo ReportSheet como componente compartido y se trasladó el documento completo de impresión a un portal en document.body, fuera de los contenedores de la aplicación; los estilos de impresión permiten flujo y paginación naturales, con cierre mediante afterprint. El gráfico XLSX incorpora título, categorías mensuales y valores en caché OpenXML, etiquetas numéricas y ejes visibles. Se incorporaron cinco pruebas de formato del backend y tres pruebas de impresión del navegador a la configuración existente.
+
+**Componentes:** Services/ReportFormats.cs, PdfReportFormat.cs y XlsxChartParts.cs; ReportLayoutTests.cs; ReportSheet.jsx; ReportesView.jsx y ReportesView.css; reportes-impresion.spec.js; playwright.facial.config.js; AI_LOG.md y BITACORA.md.
+
+**Validación:** Backend Release: 181 pruebas aprobadas, una integración Supabase omitida. Frontend: 123 pruebas aprobadas y compilación correcta, con avisos de tamaño y externalización de fs de face-api.js. Chromium: cuatro pruebas aprobadas (tres de impresión y la existente de filtros, exportación y accesibilidad). Los documentos de impresión de agenda e historial contienen 17 páginas para 160 filas; el gerencial de 24 meses contiene cinco páginas. El PDF exportado de agenda contiene 16 páginas para 160 filas. Se renderizaron e inspeccionaron la primera y última página de ese PDF y una página intermedia de impresión; se comprobó la conservación de encabezados, columnas y texto. Se validaron las categorías y valores del XLSX mediante lectura XML del archivo generado.
+
+**Límites:** Las pruebas de navegador utilizan respuestas simuladas; no se modificó Supabase ni se aplicaron migraciones. No se verificó visualmente el XLSX en Excel. La primera ejecución de backend se anuló por conexión tardía del testhost y la repetición pasó; se instaló Chromium al faltar su ejecutable local y se corrigió el selector de la nueva prueba antes de aprobarla. Los archivos de revisión se conservan fuera de Git en MigrationBackup/report-layout. Se requiere reiniciar una API local que permanezca ejecutando la versión anterior; no se reconstruyeron contenedores ni se publicaron cambios.
+
+## Intervención 56 — Aislamiento del diseño móvil frente a la impresión
+
+**Fecha:** 15/11/2026.
+
+**Requerimiento reformulado:** Mantener la estructura tabular al imprimir agenda operativa, historial por período y resumen gerencial desde diferentes anchos de pantalla.
+
+**Intervención y decisión:** Se identificó que las reglas globales max-width: 768px incluían el medio de impresión y convertían las tablas en tarjetas. Se restringieron ambas consultas móviles de index.css al medio screen, conservando el comportamiento responsivo en pantalla y la estructura nativa de impresión. Se ampliaron las pruebas de reportes a 390 y 1280 píxeles y se verifican explícitamente los tipos de presentación de tbody, filas y celdas, alineación horizontal, ausencia de sombra de tarjeta y paginación.
+
+**Componentes:** frontend/src/index.css, frontend/e2e/reportes-impresion.spec.js, AI_LOG.md y BITACORA.md.
+
+**Validación:** Seis pruebas Chromium aprobadas, correspondientes a los tres reportes en ambos tamaños. Compilación frontend correcta con avisos preexistentes de tamaño de paquetes y fs de face-api.js. Se renderizó e inspeccionó una página intermedia del documento de impresión para confirmar la continuidad de columnas. Los PDF de prueba quedan excluidos de Git en MigrationBackup/report-layout.
+
+**Límites:** Pruebas con respuestas de API simuladas; sin cambios de backend, base de datos o contenedores ni publicación al repositorio. La comprobación anterior a tamaño de escritorio no cubría la activación de estilos móviles durante la impresión; esta regresión queda incorporada a la suite.
+
+## Intervención 57 — Búsqueda contextual de clientes en reportes
+
+**Fecha:** 15/11/2026.
+
+**Requerimiento reformulado:** Facilitar la selección de un cliente concreto en los reportes mediante búsqueda textual, conservando el alcance inicial de todos los clientes.
+
+**Intervención y decisiones:** Se conservó el selector Cliente con Todos por defecto y se incorporó un campo independiente de búsqueda por nombre o documento. Las coincidencias aparecen únicamente con texto ingresado; el nombre se compara sin distinguir mayúsculas o tildes y el RUT admite puntos y guion opcionales. Seleccionar un resultado aplica clienteId, reinicia la paginación, vacía la búsqueda y devuelve el foco al campo. El selector permite volver a Todos; escribir sin seleccionar no modifica el filtro aplicado. Se informa la ausencia de coincidencias y Escape vacía la búsqueda. La selección comparte los parámetros existentes de consulta y exportación.
+
+**Componentes:** ReportesView.jsx, ReportesView.css, reportes-impresion.spec.js, AI_LOG.md y BITACORA.md.
+
+**Validación:** Ocho pruebas Chromium aprobadas: búsqueda por nombre sin tilde y RUT sin separadores, aplicación y limpieza del filtro, ausencia de catálogo al enfocar y tratamiento sin resultados; regresión de filtros/exportación/accesibilidad y seis casos de impresión. Compilación frontend correcta con los avisos preexistentes de tamaño de paquetes y fs de face-api.js.
+
+**Límites:** El filtrado de coincidencias utiliza el catálogo de clientes que la vista ya consulta. Las pruebas de navegador usan API simulada; sin modificaciones de backend, base de datos, contenedores ni publicación.
