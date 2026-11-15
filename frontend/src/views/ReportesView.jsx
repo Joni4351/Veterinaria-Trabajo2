@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { FileText, SlidersHorizontal, Download, Printer, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
+import { createPortal } from 'react-dom';
+import { ReportSheet } from '../components/ReportSheet';
 import { todayInChile, isCalendarDate } from '../schemas/dateValidation';
 import './ReportesView.css';
 
@@ -12,8 +14,25 @@ export function ReportesView() {
   const [filters, setFilters] = useState({ desde: `${today.slice(0, 4)}-01-01`, hasta: today, estado: '', especialidadId: '', clienteId: '' });
   const [page, setPage] = useState(1), [report, setReport] = useState(null), [loading, setLoading] = useState(false), [busy, setBusy] = useState(''), [error, setError] = useState('');
   const [options, setOptions] = useState({ clientes: [], especialidades: [] });
+  const [clientSearch, setClientSearch] = useState('');
+  const normalize = text => String(text || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  const term = normalize(clientSearch);
+  const rutTerm = term.replace(/[.\-\s]/g, '');
+  const matches = term ? options.clientes.filter(c => normalize(c.nombreCompleto).includes(term) || (rutTerm && normalize(c.documentoIdentidad).replace(/[.\-\s]/g, '').includes(rutTerm))) : [];
+  const selectedClient = options.clientes.find(c => String(c.id) === filters.clienteId);
   const [printed, setPrinted] = useState(null);
   const lock = useRef(false);
+  useEffect(() => {
+    if (!printed) return;
+    let cancelled = false, frame;
+    const finish = () => setPrinted(null);
+    window.addEventListener('afterprint', finish, { once: true });
+    // Run only after React committed the complete report portal, outside the application layout.
+    Promise.resolve(document.fonts?.ready).then(() => {
+      if (!cancelled) frame = requestAnimationFrame(() => { if (!cancelled) window.print(); });
+    });
+    return () => { cancelled = true; cancelAnimationFrame(frame); window.removeEventListener('afterprint', finish); };
+  }, [printed]);
   const invalidDates = !isCalendarDate(filters.desde) || !isCalendarDate(filters.hasta) || filters.desde > filters.hasta || (Date.parse(filters.hasta) - Date.parse(filters.desde)) / 86400000 > 730;
   const params = Object.fromEntries(Object.entries(filters).filter(([key, value]) => value !== '' && (type !== 'gerencial' || !['estado', 'especialidadId'].includes(key))));
   useEffect(() => {
@@ -35,8 +54,7 @@ export function ReportesView() {
       const r = await api.get(`/api/v1/admin/reportes/${type}/exportar/${format}`, { params, responseType: format === 'impresion' ? 'json' : 'blob' });
       if (format === 'impresion') {
         setPrinted(r.data);
-        window.addEventListener('afterprint', () => setPrinted(null), { once: true });
-        requestAnimationFrame(() => requestAnimationFrame(() => window.print()));
+
       } else {
         const url = URL.createObjectURL(r.data); const a = document.createElement('a'); a.href = url; a.download = `vetclinic-${type}-${filters.desde}-${filters.hasta}.${format}`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
       }
@@ -46,8 +64,7 @@ export function ReportesView() {
       setError(message);
     } finally { lock.current = false; setBusy(''); }
   };
-  const shown = printed || report;
-  return <section className={`reports-panel${printed ? ' reports-printing' : ''}`} aria-labelledby="reports-title">
+  return <section className="reports-panel" aria-labelledby="reports-title">
     <div className="reports-controls reports-toolbar">
       <header className="reports-heading"><span className="reports-heading-icon"><FileText size={24} aria-hidden="true" /></span><h2 id="reports-title">Reportes de gestión</h2><span className="reports-format-badge">PDF · XLSX · CSV</span></header>
       <div className="reports-filter-card">
@@ -56,7 +73,16 @@ export function ReportesView() {
         <label>Reporte<select className="form-select" value={type} onChange={e => { setType(e.target.value); setPage(1); }}>{Object.entries(names).map(([v, name]) => <option key={v} value={v}>{name}</option>)}</select></label>
         <label>Desde<input className="form-input" type="date" max={filters.hasta} aria-invalid={invalidDates} aria-describedby={invalidDates ? 'reports-error' : undefined} value={filters.desde} onChange={e => change('desde', e.target.value)} /></label>
         <label>Hasta<input className="form-input" type="date" min={filters.desde} aria-invalid={invalidDates} aria-describedby={invalidDates ? 'reports-error' : undefined} value={filters.hasta} onChange={e => change('hasta', e.target.value)} /></label>
-        <label>Cliente<select className="form-select" value={filters.clienteId} onChange={e => change('clienteId', e.target.value)}><option value="">Todos</option>{options.clientes.map(c => <option key={c.id} value={c.id}>{c.nombreCompleto}</option>)}</select></label>
+        <label>Cliente<select className="form-select" value={filters.clienteId} onChange={e => { change('clienteId', e.target.value); setClientSearch(''); }}><option value="">Todos</option>{selectedClient && <option value={selectedClient.id}>{selectedClient.nombreCompleto} — RUT: {selectedClient.documentoIdentidad}</option>}</select></label>
+        <div className="reports-client-search">
+          <label htmlFor="reports-client-query">Buscar cliente por nombre o RUT</label>
+          <input id="reports-client-query" type="search" className="form-input" autoComplete="off" placeholder="Escribe un nombre o RUT…" value={clientSearch} onChange={e => setClientSearch(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') setClientSearch(''); }} aria-describedby="reports-client-help" />
+          <small id="reports-client-help">Selecciona una coincidencia para filtrar; “Todos” incluye todos los clientes.</small>
+          {term && <div className="reports-client-results" role="group" aria-label="Resultados de clientes">
+            <p role="status">{matches.length ? `${matches.length} coincidencias` : 'No se encontraron clientes.'}</p>
+            {matches.map(c => <button type="button" key={c.id} className="btn btn-secondary" onClick={() => { change('clienteId', String(c.id)); setClientSearch(''); document.getElementById('reports-client-query')?.focus(); }}>{c.nombreCompleto} — RUT: {c.documentoIdentidad}</button>)}
+          </div>}
+        </div>
         {type !== 'gerencial' && <><label>Estado<select className="form-select" value={filters.estado} onChange={e => change('estado', e.target.value)}><option value="">Todos</option>{states.map(s => <option key={s}>{s}</option>)}</select></label>
           <label>Especialidad<select className="form-select" value={filters.especialidadId} onChange={e => change('especialidadId', e.target.value)}><option value="">Todas</option>{options.especialidades.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}</select></label></>}
       </div>
@@ -68,14 +94,8 @@ export function ReportesView() {
     </div>
     {error && <p id="reports-error" role="alert" className="alert alert-danger">{error}</p>}
     {loading && <p role="status">Cargando reporte…</p>}
-    {shown && <div className="reports-sheet"><h3>{shown.titulo}</h3><p>Emisión: {new Date(shown.emitido).toLocaleString('es-CL')}</p><p>{shown.filtros}</p>
-      {shown.grafico?.length > 0 && <figure className="reports-chart"><figcaption>Facturación mensual con impuestos</figcaption>{shown.grafico.map(b => <div key={b.etiqueta}><span>{b.etiqueta}: ${Number(b.valor).toLocaleString('es-CL')}</span><div style={{ width: `${Math.max(1, Number(b.valor) / Math.max(1, ...shown.grafico.map(x => Number(x.valor))) * 100)}%` }} /></div>)}</figure>}
-      <div className="table-responsive" tabIndex={0} role="region" aria-label="Resultados del reporte"><table className="custom-table"><caption>{shown.total ?? shown.filas.length} registros filtrados</caption><thead><tr>{shown.columnas.map(c => <th key={c.title} scope="col">{c.title}</th>)}</tr></thead>
-        <tbody>{shown.filas.map((row, i) => <tr key={i}>{row.map((cell, j) => <td key={j} data-label={shown.columnas[j].title}>{shown.columnas[j].kind === 'date' ? new Date(cell).toLocaleString('es-CL') : typeof cell === 'number' ? cell.toLocaleString('es-CL') : cell}</td>)}</tr>)}</tbody>
-        {Object.keys(shown.totales || {}).length > 0 && <tfoot><tr>{shown.columnas.map((c, i) => <td key={i}>{i === 0 ? 'TOTAL' : shown.totales[i] == null ? '' : Number(shown.totales[i]).toLocaleString('es-CL')}</td>)}</tr></tfoot>}
-      </table></div>
-      {!shown.filas.length && <p>No hay registros para los filtros seleccionados.</p>}
-    </div>}
+    {report && <ReportSheet report={report} />}
+    {printed && createPortal(<div className="reports-print-root"><ReportSheet report={printed} /></div>, document.body)}
     {report && <nav className="reports-pagination reports-controls" aria-label="Páginas del reporte"><button className="btn btn-secondary" disabled={page === 1 || loading} onClick={() => setPage(p => p - 1)}>Anterior</button><span>Página {page} de {Math.max(1, Math.ceil(report.total / 25))}</span><button className="btn btn-secondary" disabled={page * 25 >= report.total || loading} onClick={() => setPage(p => p + 1)}>Siguiente</button></nav>}
   </section>;
 }

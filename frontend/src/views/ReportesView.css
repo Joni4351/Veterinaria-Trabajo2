@@ -33,10 +33,30 @@
   .reports-actions .btn { width: 100%; padding: 10px; font-size: 12px; }
   .reports-pagination { justify-content: center; gap: 8px; }
 }
+/* A normal-flow document at body level can paginate; app shells may have fixed height/overflow. */
+.reports-client-search { min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.reports-client-search small { color: var(--gray-600); line-height: 1.5; }
+.reports-client-results { display: flex; flex-direction: column; gap: 6px; max-height: 240px; overflow-y: auto; padding: 8px; border: 1px solid var(--border-color); border-radius: 10px; }
+.reports-client-results .btn { text-align: left; justify-content: flex-start; white-space: normal; flex-shrink: 0; }
+.reports-print-root { display: none; }
 @media print {
-  body:has(.reports-printing) * { visibility: hidden; }
-  body:has(.reports-printing) .reports-sheet, body:has(.reports-printing) .reports-sheet * { visibility: visible; }
-  body:has(.reports-printing) .reports-sheet { position: absolute; top: 0; left: 0; width: 100%; border: 0; color: #000; background: #fff; }
-  .reports-printing .table-responsive { overflow: visible; }.reports-printing table { width: 100%; border-collapse: collapse; }.reports-printing thead { display: table-header-group; }.reports-printing tr { break-inside: avoid; }.reports-printing th, .reports-printing td { color: #000 !important; background: #fff !important; border: 1px solid #777; padding: 5px; font-size: 9pt; }.reports-printing .reports-controls { display: none !important; }
+  @page vetclinic-report { size: A4 landscape; margin: 12mm; }
+  html:has(.reports-print-root), body:has(.reports-print-root) { height: auto !important; min-height: 0 !important; overflow: visible !important; background: white !important; }
+  body:has(.reports-print-root) > :not(.reports-print-root) { display: none !important; }
+  .reports-print-root { display: block !important; page: vetclinic-report; position: static !important; width: 100%; height: auto; overflow: visible; color: black; background: white; }
+  .reports-print-root, .reports-print-root * { visibility: visible !important; box-sizing: border-box; }
+  .reports-print-root .reports-sheet { position: static; width: auto; height: auto; max-height: none; overflow: visible; margin: 0; padding: 0; border: 0; border-radius: 0; color: black; background: white; }
+  .reports-print-root h3 { font-size: 14pt; margin: 0 0 8pt; }
+  .reports-print-root p { font-size: 9pt; line-height: 1.4; margin: 6pt 0; }
+  .reports-print-root .table-responsive { display: block; height: auto !important; max-height: none !important; overflow: visible !important; border: 0; border-radius: 0; }
+  .reports-print-root table { display: table; width: 100%; min-width: 0; table-layout: fixed; border-collapse: collapse; }
+  .reports-print-root caption { display: table-caption; text-align: left; padding: 6pt 0; }
+  .reports-print-root thead { display: table-header-group !important; }
+  .reports-print-root tbody, .reports-print-root tfoot { display: table-row-group; }
+  .reports-print-root tr { display: table-row; break-inside: avoid; page-break-inside: avoid; }
+  .reports-print-root th, .reports-print-root td { display: table-cell; position: static; color: black !important; background: white !important; border: 1px solid #777; padding: 5pt; font-size: 9pt; line-height: 1.35; white-space: normal; overflow-wrap: anywhere; }
+  .reports-print-root td::before { display: none !important; }
+  .reports-print-root .reports-chart { margin: 12pt 0; break-inside: avoid; }
+  .reports-print-root .reports-chart > div { font-size: 9pt; margin: 5pt 0; }
+  .reports-print-root .reports-chart > div > div { background: #0f766e; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
-@media print { body:has(.reports-printing) main { position: static !important; margin: 0 !important; padding: 0 !important; width: 100% !important; } body:has(.reports-printing) .sidebar, body:has(.reports-printing) .topbar, body:has(.reports-printing) .admin-sections { display: none !important; } }

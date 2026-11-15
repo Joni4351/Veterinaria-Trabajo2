@@ -1143,3 +1143,45 @@ Resultado remoto definitivo (13/11/2026): pipeline 43464183329 completada con é
 **Validación:** Respaldo escrito y comprobado antes de modificar; comparación transaccional de los campos originales de los seis detalles y huellas de filas de Facturas e Insumos sin diferencias; comprobación de tipos, nulabilidad, restricciones validadas y backfill de servicios. COMMIT correcto y confirmación posterior mediante una nueva conexión de solo lectura. Se conservaron seis detalles, todas las facturas e inventario. No se crearon operaciones sintéticas en la nube.
 
 **Pendientes y límites:** Revisar documentos originales para las tres líneas de insumos históricas; conciliar el esquema antes de adoptar el historial completo EF. No se ejecutó una prueba de interfaz conectada a Supabase ni se generó una copia integral de la base. Se conserva el archivo gráfico personal ajeno a esta intervención sin cambios.
+
+## Sesión 58 — Exportación e impresión íntegra de reportes administrativos
+
+**Fecha:** 15/11/2026.
+
+**Objetivo:** Corregir cortes de filas en PDF, impresión limitada a una página y falta de identificación de barras en XLSX.
+
+**Implementación:** Se implementaron tablas PDF horizontales con ajuste de texto por columna, encabezados repetidos y páginas numeradas. La impresión completa utiliza ReportSheet compartido y un portal independiente del diseño de pantalla, con estilos que eliminan las restricciones de altura y desbordamiento, conservando la vista paginada después de imprimir. Se añadieron título, meses, valores y configuración explícita de ejes al gráfico gerencial de Excel.
+
+**Componentes afectados:** Generadores ReportFormats/PdfReportFormat/XlsxChartParts; ReportSheet y vista/estilos ReportesView; pruebas ReportLayoutTests y reportes-impresion, configuración Playwright y ambas bitácoras.
+
+**Validación:** 181 pruebas backend aprobadas y una integración externa omitida; 123 pruebas frontend aprobadas; build correcto con avisos preexistentes. Cuatro pruebas Chromium aprobadas: impresión de los tres tipos y regresión de filtros/exportación/accesibilidad. Agenda e historial de impresión: 17 páginas con 160 filas; gerencial: cinco páginas con 24 meses. PDF exportado de agenda: 16 páginas, comprobadas visualmente primera y última; una página intermedia de impresión también inspeccionada. XLSX comprobado estructuralmente mediante categorías, valores, referencias y etiquetas en XML. Las cinco nuevas pruebas de formato están incluidas en la suite del backend.
+
+**Limitaciones:** Sin operaciones en Supabase, migraciones, publicación o reconstrucción Docker. Navegador con API simulada; sin revisión visual del XLSX en Excel. Se resolvió la ausencia local de Chromium instalando el navegador de prueba; una ejecución inicial backend se anuló por timeout del testhost y su repetición pasó. Evidencias locales en MigrationBackup/report-layout, excluidas de Git. El backend en ejecución necesita reinicio para cargar el generador actualizado. Se preservó la imagen personal no relacionada con esta intervención.
+
+## Sesión 59 — Corrección de tablas impresas afectadas por estilos móviles
+
+**Fecha:** 15/11/2026.
+
+**Objetivo:** Impedir que la impresión de los tres reportes transforme filas en tarjetas verticales.
+
+**Implementación:** Se limitaron al medio screen las consultas móviles de index.css. Se ampliaron las pruebas de impresión de operativo, período y gerencial para ejecutarlas a 390 y 1280 píxeles, comprobando estructura de tabla, alineación de celdas, ausencia de sombras y generación multipágina, además de restauración de la vista de pantalla.
+
+**Componentes:** index.css, reportes-impresion.spec.js y ambas bitácoras.
+
+**Validación:** Seis pruebas Chromium aprobadas y compilación frontend correcta, con avisos preexistentes. Revisión visual de una página intermedia renderizada con columnas alineadas. Evidencias locales excluidas de Git en MigrationBackup/report-layout.
+
+**Límites:** API simulada en navegador; sin modificaciones de datos, backend o Docker y sin publicación. La cobertura se amplía respecto de la revisión anterior para incluir las reglas que se activaban al reducir el ancho.
+
+## Sesión 60 — Selección de clientes por búsqueda en reportes
+
+**Fecha:** 15/11/2026.
+
+**Objetivo:** Mantener Todos como filtro inicial y permitir localizar clientes por nombre o RUT sin desplegar el catálogo completo.
+
+**Implementación:** Se añadió búsqueda independiente con coincidencias solo al escribir, normalización de tildes y separadores del RUT, selección explícita que aplica el filtro y reinicia la página, mensaje sin coincidencias y limpieza mediante Escape. El selector muestra Todos y el cliente seleccionado, permitiendo restablecer el alcance general. Se incorporaron estilos y una prueba de navegador del flujo.
+
+**Componentes:** ReportesView.jsx/CSS, reportes-impresion.spec.js y ambas bitácoras.
+
+**Validación:** Ocho casos Chromium aprobados, cubriendo búsqueda, filtros/exportación/accesibilidad e impresión de los tres reportes en dos anchos. Build frontend correcto con avisos preexistentes. La búsqueda vacía o enfocada no muestra resultados; las solicitudes reflejan el cliente seleccionado y su eliminación al volver a Todos.
+
+**Límites:** Catálogo consultado desde el endpoint existente, pruebas con respuestas simuladas y sin cambios de backend o datos ni publicación al repositorio.

@@ -738,7 +738,7 @@ button, input, select, textarea {
 /* ==========================================================================
    TRANSFORMACIÓN EN TARJETAS (MOBILE <= 768px)
    ========================================================================== */
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .table-responsive {
     overflow-x: visible;
     border: none;
@@ -1009,7 +1009,7 @@ button, input, select, textarea {
   .sidebar, .main-wrapper { transition: none; }
 }
 
-@media (max-width: 768px) {
+@media screen and (max-width: 768px) {
   .topbar {
     padding: 0.5rem 0.85rem !important;
     gap: 0.5rem !important;
