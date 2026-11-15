@@ -135,7 +135,8 @@ describe('E2E Full Flow Integration Test: Login -> Crear Recurso -> Listar Recur
     await user.selectOptions(within(modal).getByLabelText(/especie/i), 'Canino');
     await user.type(within(modal).getByLabelText(/raza/i), 'Pastor Alemán');
     await user.type(within(modal).getByLabelText(/peso/i), '32');
-    await user.selectOptions(within(modal).getByLabelText(/dueño/i), '10');
+    await user.type(within(modal).getByLabelText(/dueño/i), 'juan');
+    await user.click(within(modal).getByRole('button', { name: /Juan Pérez — RUT/ }));
 
     const saveButton = within(modal).getByRole('button', { name: /registrar paciente/i });
     await user.click(saveButton);

@@ -1,3 +1,4 @@
+import { SearchPicker } from '../components/SearchPicker';
 import { NumericInput } from '../components/NumericInput';
 import { AccessibleDialog } from "../components/AccessibleDialog";
 import { AccessibleForm, RequiredIndicator, SubmitButton } from "../components/AccessibleForm";
@@ -126,7 +127,7 @@ export const PacientesView = () => {
     } else {
       setEditingId(null);
       setFormData({
-        clienteId: clientes[0]?.id ? String(clientes[0].id) : '',
+        clienteId: '',
         nombre: '',
         especie: 'Canino',
         raza: '',
@@ -641,23 +642,11 @@ export const PacientesView = () => {
                   <label htmlFor={`${formId}-clienteId`} className="form-label">
                     Dueño / Cliente Responsable <RequiredIndicator />
                   </label>
-                  <select
-                    id={`${formId}-clienteId`}
-                    className={`form-select ${fieldErrors.clienteId ? 'border-danger' : ''}`}
-                    value={formData.clienteId}
-                    onChange={(e) => setFormData({ ...formData, clienteId: e.target.value })}
-                    aria-invalid={!!fieldErrors.clienteId}
-                    aria-describedby={fieldErrors.clienteId ? `${formId}-clienteId-error` : undefined}
-                    style={{ minHeight: '44px' }}
-                    required
-                  >
-                    <option value="">Seleccione un cliente por RUT o Nombre...</option>
-                    {clientes.map(c => (
-                      <option key={c.id} value={c.id}>
-                        {c.nombreCompleto} — RUT: {c.documentoIdentidad}
-                      </option>
-                    ))}
-                  </select>
+                  <SearchPicker id={`${formId}-clienteId`} value={formData.clienteId}
+                    onChange={value => { setFormData(prev => ({ ...prev, clienteId: value })); setFieldErrors(prev => ({ ...prev, clienteId: null })); }}
+                    items={clientes.map(c => ({ id: c.id, label: `${c.nombreCompleto} — RUT: ${c.documentoIdentidad}`, search: [c.nombreCompleto], rut: c.documentoIdentidad }))}
+                    placeholder="Buscar dueño por nombre o RUT…"
+                    aria-invalid={!!fieldErrors.clienteId} aria-describedby={fieldErrors.clienteId ? `${formId}-clienteId-error` : undefined} required />
                   {fieldErrors.clienteId && (
                     <span id={`${formId}-clienteId-error`} role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                       {fieldErrors.clienteId}

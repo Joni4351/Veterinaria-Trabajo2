@@ -51,7 +51,6 @@ export const FacturasView = () => {
 
   // Filtros de API
   const [filters, setFilters] = useState({
-    clienteId: '',
     fechaDesde: '',
     fechaHasta: '',
     montoMin: '',
@@ -122,7 +121,7 @@ export const FacturasView = () => {
     setLoading(true);
     try {
       const params = {};
-      if (filters.clienteId) params.clienteId = filters.clienteId;
+
       if (filters.fechaDesde) params.fechaDesde = filters.fechaDesde;
       if (filters.fechaHasta) params.fechaHasta = filters.fechaHasta;
       if (filters.montoMin) params.montoMin = filters.montoMin;
@@ -140,7 +139,6 @@ export const FacturasView = () => {
 
   const handleResetFilters = () => {
     setFilters({
-      clienteId: '',
       fechaDesde: '',
       fechaHasta: '',
       montoMin: '',
@@ -591,19 +589,7 @@ export const FacturasView = () => {
               />
             </div>
 
-            <div>
-              <label htmlFor="facturas-field-1" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Cliente</label>
-              <select id="facturas-field-1"
-                className="form-select"
-                value={filters.clienteId}
-                onChange={(e) => setFilters({ ...filters, clienteId: e.target.value })}
-              >
-                <option value="">Todos los clientes</option>
-                {clientes.map(c => (
-                  <option key={c.id} value={c.id}>{c.nombreCompleto} — RUT: {c.documentoIdentidad}</option>
-                ))}
-              </select>
-            </div>
+
 
             <div>
               <label htmlFor="facturas-field-2" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Desde Fecha</label>

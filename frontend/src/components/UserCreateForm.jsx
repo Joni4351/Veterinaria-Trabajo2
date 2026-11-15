@@ -1,3 +1,4 @@
+import './UserCreateForm.css';
 import { AccessibleForm, RequiredIndicator, SubmitButton } from "./AccessibleForm";
 import React, { useState, useEffect } from 'react';
 import { Plus, X, UserRound } from 'lucide-react';
@@ -50,11 +51,11 @@ export function UserCreateForm({ roles, onCreated, editingUser = null, onEditClo
     {success && <p role="status" className="alert alert-success">{success}</p>}
     <button type="button" className="btn btn-primary" aria-haspopup="dialog" onClick={() => { onEditClosed?.(); setForm({ nombreCompleto: '', email: '', password: '', rolId: '' }); setOpen(true); setError(''); setSuccess(''); setFieldErrors({}); }} disabled={saving}><Plus size={16} aria-hidden="true" /> Nuevo usuario</button>
     {open && <AccessibleDialog className="modal-overlay" aria-labelledby="user-dialog-title" onClose={close}>
-    <div className="modal-content" style={{ maxWidth: 620, width: '95%' }}>
-    <header style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}><UserRound size={24} color="var(--teal-text)" aria-hidden="true" /><h2 id="user-dialog-title" style={{ fontSize: 20, flex: 1 }}>{editingUser ? 'Editar usuario' : 'Crear usuario'}</h2><button type="button" className="btn-icon" aria-label="Cerrar formulario de usuario" onClick={close} disabled={saving}><X size={20} aria-hidden="true" /></button></header>
+    <div className="modal-content user-editor">
+    <header className="user-editor-header"><span className="user-editor-icon"><UserRound size={26} aria-hidden="true" /></span><div><h2 id="user-dialog-title">{editingUser ? 'Editar usuario' : 'Crear usuario'}</h2><p>{editingUser ? 'Actualiza los datos y el acceso de esta cuenta.' : 'Completa los datos de la cuenta y asigna su rol de acceso.'}</p></div><button type="button" className="btn-icon" aria-label="Cerrar formulario de usuario" onClick={close} disabled={saving}><X size={20} aria-hidden="true" /></button></header>
     <AccessibleForm onSubmit={submit} noValidate aria-label={editingUser ? 'Editar usuario' : 'Crear usuario'}>
       {error && <p role="alert" className="alert alert-danger">{error}</p>}
-      <div className="filter-grid" style={{ alignItems: 'start' }}>
+      <div className="user-editor-fields">
         <div className="form-group"><label htmlFor="new-user-name" className="form-label">Nombre completo <RequiredIndicator /></label>
           <input id="new-user-name" {...attributes('nombreCompleto', 'new-user-name')} className="form-input" autoComplete="name" maxLength={100} value={form.nombreCompleto} disabled={saving} onChange={e => setForm({ ...form, nombreCompleto: e.target.value })} required />{fieldError('nombreCompleto', 'new-user-name')}</div>
         <div className="form-group"><label htmlFor="new-user-email" className="form-label">Correo electrónico <RequiredIndicator /></label>
@@ -66,7 +67,7 @@ export function UserCreateForm({ roles, onCreated, editingUser = null, onEditClo
             <option value="">Seleccione un rol</option>{roles.map(role => <option key={role.id} value={role.id}>{role.nombre}</option>)}
           </select>{fieldError('rolId', 'new-user-role')}</div>
       </div>
-      <div style={{ display: 'flex', gap: '.75rem', flexWrap: 'wrap' }}>
+      <div className="user-editor-actions">
         <SubmitButton className="btn btn-primary" type="submit" disabled={saving || !roles.length}>{saving ? 'Guardando…' : editingUser ? 'Guardar cambios' : 'Crear usuario'}</SubmitButton>
         <button className="btn btn-secondary" type="button" disabled={saving} onClick={close}>Cancelar</button>
       </div>
