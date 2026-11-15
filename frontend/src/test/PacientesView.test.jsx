@@ -144,7 +144,8 @@ describe('PacientesView CRUD Component Tests', () => {
     await user.selectOptions(within(modal).getByLabelText(/especie/i), 'Canino');
     await user.type(within(modal).getByLabelText(/raza/i), 'Bulldog');
     await user.type(within(modal).getByLabelText(/peso/i), '22');
-    await user.selectOptions(within(modal).getByLabelText(/dueño/i), '10');
+    await user.type(within(modal).getByLabelText(/dueño/i), 'carlos');
+    await user.click(within(modal).getByRole('button', { name: /Carlos Gómez — RUT/ }));
 
     const saveBtn = within(modal).getByRole('button', { name: /registrar paciente/i });
     await user.click(saveBtn);

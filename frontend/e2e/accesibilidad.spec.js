@@ -525,3 +525,84 @@ test('se puede saltar la navegación y mantener el contenido accesible con texto
 });
 
 
+
+for (const [path, button, label, selected] of [
+  ['/pacientes', 'Registrar un nuevo paciente', /Dueño \/ Cliente Responsable/, /Cliente de prueba — RUT/],
+  ['/citas', 'Agendar Nueva Cita', /Paciente \(Mascota\)/, /Luna \(Canino\).*Cliente de prueba/],
+]) {
+  test(`selector textual de ${path} busca por RUT, conserva selección y admite teclado`, async ({ page }) => {
+    await prepare(page); await page.emulateMedia({ reducedMotion: 'reduce' }); await page.goto(path);
+    await page.getByRole('button', { name: button, exact: true }).click();
+    const dialog = page.getByRole('dialog'); const input = dialog.getByRole('searchbox', { name: label });
+    await expect(input).toHaveValue(''); await input.click();
+    await expect(dialog.getByRole('group', { name: 'Resultados de búsqueda' })).toHaveCount(0);
+    await input.fill('123456785');
+    const result = dialog.getByRole('button', { name: selected }); await expect(result).toBeVisible();
+    await input.press('Tab'); await expect(result).toBeFocused(); await result.press('Enter');
+    await expect(input).toHaveValue(selected);
+    await input.click(); await expect(input).toHaveValue('');
+    await expect(dialog.getByRole('group', { name: 'Resultados de búsqueda' })).toHaveCount(0);
+    await input.fill(path === '/citas' ? 'luna' : 'cliente'); await expect(result).toBeVisible();
+    for (const theme of ['light', 'dark']) {
+      await applyTheme(page, theme);
+      expect((await new AxeBuilder({ page }).include('[role="dialog"]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations).toEqual([]);
+    }
+    await input.press('Escape'); await expect(dialog).toBeVisible();
+    await input.press('Escape'); await expect(dialog).toHaveCount(0);
+  });
+}
+
+test('filtro de consultas busca el nombre del animal y aplica o retira pacienteId', async ({ page }) => {
+  await prepare(page);
+  const queries = [];
+  await page.route('**/api/v1/consultas*', route => { queries.push(new URL(route.request().url()).searchParams.get('pacienteId')); return route.fulfill({ json: [] }); });
+  await page.goto('/consultas');
+  const input = page.getByRole('searchbox', { name: 'Paciente', exact: true });
+  await expect(input).toHaveValue(''); await input.click();
+  await expect(page.getByRole('group', { name: 'Resultados de búsqueda' })).toHaveCount(0);
+  await input.fill('luna');
+  await page.getByRole('button', { name: /Luna \(Canino\).*Cliente de prueba/ }).click();
+  await expect.poll(() => queries.at(-1)).toBe('1');
+  await page.getByRole('button', { name: 'Mostrar todos los pacientes', exact: true }).click();
+  await expect(input).toHaveValue(''); await expect.poll(() => queries.at(-1)).toBe(null);
+  await input.fill('inexistente'); await expect(page.getByText('No se encontraron coincidencias.')).toBeVisible();
+  await page.getByRole('button', { name: /Limpiar Filtros/i }).click();
+  await expect(input).toHaveValue('');
+});
+
+test('facturación conserva registros y búsqueda textual sin selector duplicado; consultas alinea sus filtros', async ({ page }) => {
+  await prepare(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto('/consultas');
+  const y = await page.locator('.filter-grid input').evaluateAll(inputs => inputs.map(el => el.getBoundingClientRect().y));
+  expect(Math.max(...y) - Math.min(...y)).toBeLessThan(2);
+  await page.goto('/facturas');
+  await expect(page.locator('#facturas-field-1')).toHaveCount(0);
+  await expect(page.locator('.custom-table tbody tr')).toHaveCount(1);
+  const search = page.getByLabel('Dueño / Cliente (Buscar por RUT o Nombre)', { exact: true });
+  await search.fill('Cliente de prueba'); await expect(page.locator('.custom-table tbody tr')).toHaveCount(1);
+  await search.fill('inexistente'); await expect(page.locator('.custom-table tbody tr')).toHaveCount(0);
+  await page.getByRole('button', { name: /Limpiar Filtros/i }).click();
+  await expect(search).toHaveValue(''); await expect(page.locator('.custom-table tbody tr')).toHaveCount(1);
+  await search.fill('12.345.678-5'); await expect(page.locator('.custom-table tbody tr')).toHaveCount(1);
+});
+
+test('formulario de usuario dispone campos amplios y no desborda en móvil o escritorio', async ({ page }, testInfo) => {
+  await prepare(page); await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/admin');
+  await page.getByRole('button', { name: 'Cuentas de Usuarios', exact: true }).click();
+  await page.getByRole('button', { name: 'Nuevo usuario', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: 'Crear usuario' });
+  for (const width of [390, 768, 1280]) {
+    await page.setViewportSize({ width, height: 900 });
+    const layout = await dialog.locator('.user-editor').evaluate(el => ({ fits: el.scrollWidth <= el.clientWidth, width: el.getBoundingClientRect().width }));
+    expect(layout.fits).toBe(true); expect(layout.width).toBeLessThanOrEqual(width);
+    await expect.poll(async () => (await dialog.getByLabel('Nombre completo').boundingBox()).width).toBeGreaterThan(width === 390 ? 280 : 500);
+    await page.screenshot({ path: testInfo.outputPath(`usuario-${width}.png`) });
+  }
+  for (const theme of ['light', 'dark']) {
+    await applyTheme(page, theme);
+    expect((await new AxeBuilder({ page }).include('[role="dialog"]').withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze()).violations).toEqual([]);
+  }
+  await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0);
+});

@@ -1333,3 +1333,59 @@ Resultado remoto definitivo (13/11/2026): ejecución 43464183329 completada corr
 **Validación:** Ocho pruebas Chromium aprobadas: búsqueda por nombre sin tilde y RUT sin separadores, aplicación y limpieza del filtro, ausencia de catálogo al enfocar y tratamiento sin resultados; regresión de filtros/exportación/accesibilidad y seis casos de impresión. Compilación frontend correcta con los avisos preexistentes de tamaño de paquetes y fs de face-api.js.
 
 **Límites:** El filtrado de coincidencias utiliza el catálogo de clientes que la vista ya consulta. Las pruebas de navegador usan API simulada; sin modificaciones de backend, base de datos, contenedores ni publicación.
+
+## Intervención 58 — Selección textual de propietarios y pacientes en formularios
+
+**Fecha:** 15/11/2026.
+
+**Requerimiento reformulado:** Sustituir los catálogos desplegables de propietario al registrar pacientes y de mascota al programar citas por búsquedas contextuales con selección explícita y resultados ordenados por relevancia.
+
+**Intervención y decisiones:** Se incorporó SearchPicker como componente reutilizable basado en un campo de búsqueda y botones nativos. Normaliza tildes y mayúsculas para nombres y separadores para RUT; prioriza coincidencias exactas, prefijos y coincidencias parciales. Pacientes busca propietarios por nombre/RUT y citas busca por nombre del animal o nombre/RUT del propietario, mostrando especie y datos del dueño. Los formularios nuevos no preseleccionan registros. Al enfocar o volver a pulsar una selección no se despliega el catálogo; escribir invalida la selección previa hasta elegir otro resultado. Se conserva el identificador existente al editar, las etiquetas y los errores asociados. Escape descarta la búsqueda antes de cerrar el diálogo; los resultados admiten Tab y Enter.
+
+**Componentes:** SearchPicker.jsx; PacientesView.jsx y CitasView.jsx; pruebas SearchPicker, PacientesView, FlowIntegration y accesibilidad; AI_LOG.md y BITACORA.md.
+
+**Validación:** 125 pruebas frontend aprobadas, incluyendo creación de paciente por el flujo modificado, orden de relevancia, normalización, selección por teclado y ausencia de resultados sin texto. Dos pruebas Chromium aprobadas sobre los formularios de pacientes/citas: búsqueda por RUT sin separadores, selección con Tab/Enter, búsqueda por nombre y recuperación del diálogo con Escape. Auditorías axe seleccionadas sin incidencias en ambos temas durante la búsqueda. Build correcto con avisos preexistentes de tamaño de paquetes y externalización de fs de face-api.js. Las pruebas previas que utilizaban selectOptions se actualizaron a la interacción textual real.
+
+**Límites:** Pruebas con servicios simulados; sin cambios de backend, base de datos o contenedores. La búsqueda opera sobre los catálogos existentes consultados por cada vista. No se publicaron los cambios ni se efectuó una revisión con lector de pantalla humano.
+
+## Intervención 59 — Filtro textual por paciente en el historial de consultas
+
+**Fecha:** 15/11/2026.
+
+**Requerimiento reformulado:** Permitir localizar y seleccionar un paciente por el nombre del animal para filtrar el historial de consultas médicas, evitando un catálogo desplegable completo.
+
+**Intervención y decisiones:** Se sustituyó el selector del filtro por SearchPicker, reutilizando la normalización y el orden de relevancia exacta, prefijo y coincidencia parcial. La búsqueda se limita al nombre del animal; los resultados incluyen especie y propietario para distinguir homónimos. Se conserva el alcance inicial de todos los pacientes y se añade una acción explícita para restablecerlo. Limpiar filtros también reinicia el texto y resultados del buscador. La selección mantiene el parámetro pacienteId y la paginación existentes.
+
+**Componentes:** ConsultasView.jsx, accesibilidad.spec.js y ambas bitácoras.
+
+**Validación:** Prueba Chromium aprobada sobre la vista: ausencia de resultados sin texto, búsqueda por nombre, envío de pacienteId al seleccionar, retirada del parámetro al mostrar todos, mensaje sin coincidencias y limpieza completa. Compilación frontend correcta con avisos preexistentes de paquetes grandes y externalización de fs de face-api.js.
+
+**Límites:** API simulada en la prueba; sin cambios de backend, datos, contenedores o publicación. No se repitió la suite completa en esta intervención puntual.
+
+## Intervención 60 — Alineación de consultas y simplificación de filtros de facturación
+
+**Fecha:** 15/11/2026.
+
+**Requerimiento reformulado:** Corregir la alineación de campos del historial clínico y retirar el filtro de cliente redundante en facturación sin alterar la consulta inicial ni la búsqueda textual existente.
+
+**Intervención:** Se alineó al inicio la cuadrícula de filtros de ConsultasView, evitando que la ayuda del buscador desplace los otros campos. En FacturasView se retiró el selector de cliente, su estado de filtro y el parámetro clienteId de la consulta del listado. Se conservaron los datos de clientes y el clienteId del formulario de emisión, así como las búsquedas por nombre/RUT, fechas y montos. Limpiar filtros mantiene la recuperación de todos los registros disponibles.
+
+**Componentes:** ConsultasView.jsx, FacturasView.jsx, accesibilidad.spec.js y ambas bitácoras.
+
+**Validación:** Una prueba Chromium aprobada: posiciones verticales de los campos alineadas a 1440 píxeles, ausencia del selector duplicado, listado inicial visible, búsqueda por nombre y RUT, búsqueda sin coincidencias y recuperación de registros al limpiar. Compilación frontend correcta con avisos preexistentes de paquetes grandes y fs de face-api.js.
+
+**Límites:** API simulada en la prueba; sin modificaciones de datos, backend, contenedores o publicación. No se repitió la suite completa.
+
+## Intervención 61 — Rediseño del formulario de cuentas de usuario
+
+**Fecha:** 15/11/2026.
+
+**Requerimiento reformulado:** Mejorar la legibilidad y distribución del formulario de creación y edición de cuentas, evitando campos comprimidos por la cuadrícula global de filtros.
+
+**Intervención:** Se sustituyó filter-grid por una cuadrícula exclusiva del formulario: nombre y correo ocupan el ancho completo; contraseña y rol se distribuyen en dos columnas en escritorio y una en celular. Se incorporó una cabecera con icono y explicación contextual, separaciones visuales y pie de acciones independiente. Los estilos se limitan a user-editor y conservan controles, etiquetas, errores, foco y comportamiento de guardado existentes.
+
+**Componentes:** UserCreateForm.jsx, UserCreateForm.css, accesibilidad.spec.js y ambas bitácoras.
+
+**Validación:** Tres pruebas del componente aprobadas. Una prueba Chromium aprobada con comprobaciones de ancho y ausencia de desbordamiento a 390, 768 y 1280 píxeles; auditorías axe seleccionadas sin incidencias en ambos temas y cierre con Escape. Capturas generadas en los tres tamaños y revisión visual de escritorio. Build correcto con avisos preexistentes de tamaño y fs de face-api.js. La prueba se sincroniza con la actualización del viewport antes de medir los campos.
+
+**Límites:** API simulada, sin creación de cuentas reales ni cambios de backend, base de datos, contenedores o publicación. No se repitió la suite completa.

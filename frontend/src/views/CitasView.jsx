@@ -1,3 +1,4 @@
+import { SearchPicker } from '../components/SearchPicker';
 import { TablePagination, pageRows } from '../components/TablePagination';
 import { normalizeFieldErrors } from '../services/apiErrors';
 import { AccessibleDialog } from "../components/AccessibleDialog";
@@ -142,7 +143,7 @@ export const CitasView = () => {
     } else {
       setEditingId(null);
       setFormData({
-        pacienteId: pacientes[0]?.id || '',
+        pacienteId: '',
         usuarioId: veterinarios[0]?.id || '',
         especialidadId: especialidades[0]?.id || '',
         fechaHora: dateTimeInputValue(new Date()),
@@ -451,27 +452,14 @@ export const CitasView = () => {
                   <label htmlFor="cita-paciente" className="form-label" style={{ fontWeight: 600, color: 'var(--gray-800)' }}>
                     Paciente (Mascota) <RequiredIndicator />
                   </label>
-                  <select
-                    id="cita-paciente"
-                    className={`form-select ${fieldErrors.pacienteId ? 'border-danger' : ''}`}
-                    value={formData.pacienteId}
-                    onChange={(e) => {
-                      setFormData({ ...formData, pacienteId: e.target.value });
-                      if (fieldErrors.pacienteId) setFieldErrors({ ...fieldErrors, pacienteId: null });
-                    }}
-                    aria-invalid={!!fieldErrors.pacienteId}
-                    aria-describedby={fieldErrors.pacienteId ? 'error-pacienteId' : undefined} required
-                  >
-                    <option value="">Seleccione mascota...</option>
-                    {pacientes.map(p => {
-                      const cliente = p.cliente || clientes.find(cl => cl.id === p.clienteId);
-                      return (
-                        <option key={p.id} value={p.id}>
-                          {p.nombre} ({p.especie}) — Dueño: {cliente?.nombreCompleto || 'Sin dueño'} (RUT: {cliente?.documentoIdentidad || '—'})
-                        </option>
-                      );
+                  <SearchPicker id="cita-paciente" value={formData.pacienteId}
+                    onChange={value => { setFormData(prev => ({ ...prev, pacienteId: value })); setFieldErrors(prev => ({ ...prev, pacienteId: null })); }}
+                    items={pacientes.map(p => {
+                      const cliente = p.cliente || clientes.find(cl => String(cl.id) === String(p.clienteId));
+                      return { id: p.id, label: `${p.nombre} (${p.especie}) — Dueño: ${cliente?.nombreCompleto || 'Sin dueño'} (RUT: ${cliente?.documentoIdentidad || '—'})`, search: [p.nombre, cliente?.nombreCompleto], rut: cliente?.documentoIdentidad };
                     })}
-                  </select>
+                    placeholder="Buscar mascota, nombre o RUT del dueño…"
+                    aria-invalid={!!fieldErrors.pacienteId} aria-describedby={fieldErrors.pacienteId ? 'error-pacienteId' : undefined} required />
                   {fieldErrors.pacienteId && (
                     <span id="error-pacienteId" className="form-error" role="alert" style={{ color: 'var(--danger-text)', fontSize: '0.8rem', marginTop: '0.25rem', display: 'block' }}>
                       {Array.isArray(fieldErrors.pacienteId) ? fieldErrors.pacienteId[0] : fieldErrors.pacienteId}

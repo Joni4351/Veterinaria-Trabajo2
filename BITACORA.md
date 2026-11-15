@@ -1185,3 +1185,59 @@ Resultado remoto definitivo (13/11/2026): pipeline 43464183329 completada con é
 **Validación:** Ocho casos Chromium aprobados, cubriendo búsqueda, filtros/exportación/accesibilidad e impresión de los tres reportes en dos anchos. Build frontend correcto con avisos preexistentes. La búsqueda vacía o enfocada no muestra resultados; las solicitudes reflejan el cliente seleccionado y su eliminación al volver a Todos.
 
 **Límites:** Catálogo consultado desde el endpoint existente, pruebas con respuestas simuladas y sin cambios de backend o datos ni publicación al repositorio.
+
+## Sesión 61 — Búsqueda de dueños y mascotas al registrar pacientes y citas
+
+**Fecha:** 15/11/2026.
+
+**Objetivo:** Evitar listas completas y facilitar la selección contextual por nombre o RUT en los formularios de pacientes y citas.
+
+**Implementación:** Se incorporó SearchPicker reutilizable con resultados solo al escribir, normalización de nombres/RUT, prioridad exacta/prefijo/parcial, presentación del animal y propietario y selección explícita mediante botones nativos. Se eliminaron preselecciones en altas nuevas. La edición conserva su identificador; escribir obliga a elegir una nueva coincidencia. Se mantuvieron errores vinculados y etiquetas, con navegación Tab/Enter y Escape para descartar la búsqueda.
+
+**Componentes:** SearchPicker.jsx, PacientesView.jsx, CitasView.jsx; pruebas unitarias, flujo de pacientes y accesibilidad; ambas bitácoras.
+
+**Validación:** 125 pruebas frontend aprobadas y dos pruebas Chromium aprobadas para los formularios reales con API simulada, incluyendo selección por teclado y auditoría axe en temas claro/oscuro sin incidencias seleccionadas. Compilación correcta con avisos preexistentes. Se adaptaron las pruebas de creación de paciente al nuevo mecanismo de selección.
+
+**Límites:** Sin cambios ni pruebas contra la base real; sin backend, migraciones, Docker o publicación. Coincidencias obtenidas de los catálogos ya consultados por las vistas; no se acredita una revisión humana de lector de pantalla.
+
+## Sesión 62 — Búsqueda escrita de paciente en consultas
+
+**Fecha:** 15/11/2026.
+
+**Objetivo:** Sustituir la lista del filtro de paciente por búsqueda escrita del nombre del animal con resultados relevantes.
+
+**Implementación:** Se reutilizó SearchPicker en ConsultasView, buscando únicamente por nombre y mostrando datos de especie/propietario para identificar al paciente. Se mantiene Todos por defecto, se incorpora Mostrar todos los pacientes y se reinicia el buscador al limpiar filtros. La selección aplica el pacienteId existente.
+
+**Componentes:** ConsultasView.jsx, prueba de navegador en accesibilidad.spec.js, AI_LOG.md y BITACORA.md.
+
+**Validación:** Una prueba Chromium aprobada para búsqueda, selección, parámetro HTTP, retirada y limpieza del filtro, además de ausencia de coincidencias. Build correcto con avisos preexistentes. No se repitió la suite completa.
+
+**Límites:** Prueba con respuestas simuladas y sin modificaciones de backend, base real, Docker o repositorio remoto.
+
+## Sesión 63 — Ajuste de filtros de consultas y facturas
+
+**Fecha:** 15/11/2026.
+
+**Objetivo:** Alinear los campos de consulta y eliminar el selector de cliente duplicado de facturación conservando los registros visibles.
+
+**Implementación:** Alineación superior local de la cuadrícula de consultas. Eliminación del selector, estado y parámetro clienteId exclusivos del filtro de facturas; se preservan la búsqueda textual, fechas, montos y selección del cliente en el formulario de emisión.
+
+**Componentes:** ConsultasView.jsx, FacturasView.jsx, prueba en accesibilidad.spec.js y ambas bitácoras.
+
+**Validación:** Una prueba Chromium aprobada sobre alineación, listado inicial, búsqueda por nombre/RUT, ausencia de coincidencias y restauración del listado al limpiar. Build correcto con avisos preexistentes. No se repitió la suite completa.
+
+**Límites:** Prueba con API simulada; sin backend, base de datos, Docker ni publicación remota.
+
+## Sesión 64 — Presentación del formulario de usuarios
+
+**Fecha:** 15/11/2026.
+
+**Objetivo:** Evitar campos estrechos y organizar visualmente la creación y edición de cuentas.
+
+**Implementación:** Estilos propios user-editor en sustitución de la cuadrícula de filtros; nombre/correo a ancho completo, contraseña/rol en dos columnas que pasan a una en celular. Cabecera contextual, espaciado consistente y pie de acciones separado, conservando validación y lógica existentes.
+
+**Componentes:** UserCreateForm.jsx/CSS, prueba de navegador y ambas bitácoras.
+
+**Validación:** Tres pruebas del componente y una prueba Chromium aprobadas. Comprobaciones a 390/768/1280 píxeles, capturas, inspección visual de escritorio, axe seleccionado en ambos temas y cierre por Escape. Compilación correcta con avisos preexistentes. No se repitió la suite completa.
+
+**Límites:** Datos y API simulados; sin altas reales, backend, base de datos, Docker o publicación.

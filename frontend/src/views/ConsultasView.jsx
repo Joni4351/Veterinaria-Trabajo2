@@ -1,4 +1,5 @@
 import { TablePagination, pageRows } from '../components/TablePagination';
+import { SearchPicker } from '../components/SearchPicker';
 import { NumericInput } from '../components/NumericInput';
 import { todayInChile } from '../schemas/dateValidation';
 import { normalizeFieldErrors } from '../services/apiErrors';
@@ -30,6 +31,7 @@ export const ConsultasView = () => {
   const [fieldErrors, setFieldErrors] = useState({});
   const [searchDueno, setSearchDueno] = useState('');
   const [patientSearch, setPatientSearch] = useState(null);
+  const [patientFilterReset, setPatientFilterReset] = useState(0);
   const [showPatients, setShowPatients] = useState(false);
   const patientLabel = p => {
     const cli = p.cliente || clientes.find(c => c.id === p.clienteId);
@@ -138,6 +140,7 @@ export const ConsultasView = () => {
   };
 
   const handleResetFilters = () => {
+    setPatientFilterReset(n => n + 1);
     setFilters({
       pacienteId: '',
       motivo: '',
@@ -433,19 +436,15 @@ export const ConsultasView = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem', fontWeight: 600, fontSize: '0.88rem', color: 'var(--gray-700)' }}>
             <Filter size={16} /> Filtros de Consultas (API)
           </div>
-          <div className="filter-grid">
+          <div className="filter-grid" style={{ alignItems: 'start' }}>
             <div>
               <label htmlFor="consultas-field-0" style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600 }}>Paciente</label>
-              <select id="consultas-field-0"
-                className="form-select"
-                value={filters.pacienteId}
-                onChange={(e) => setFilters({ ...filters, pacienteId: e.target.value })}
-              >
-                <option value="">Todos los pacientes</option>
-                {pacientes.map(p => (
-                  <option key={p.id} value={p.id}>{p.nombre} ({p.especie})</option>
-                ))}
-              </select>
+              <SearchPicker key={patientFilterReset} id="consultas-field-0" value={filters.pacienteId}
+                placeholder="Buscar por nombre del animal…"
+                onChange={value => setFilters(prev => ({ ...prev, pacienteId: value }))}
+                items={pacientes.map(p => ({ id: p.id, label: patientLabel(p), search: [p.nombre] }))} />
+              <small>{filters.pacienteId ? 'Mostrando consultas del paciente seleccionado.' : 'Todos los pacientes.'}</small>
+              {filters.pacienteId && <button type="button" className="btn btn-secondary" onClick={() => { setFilters(prev => ({ ...prev, pacienteId: '' })); setPatientFilterReset(n => n + 1); }}>Mostrar todos los pacientes</button>}
             </div>
 
             <div>
