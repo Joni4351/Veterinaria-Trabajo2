@@ -1389,3 +1389,23 @@ Resultado remoto definitivo (13/11/2026): ejecución 43464183329 completada corr
 **Validación:** Tres pruebas del componente aprobadas. Una prueba Chromium aprobada con comprobaciones de ancho y ausencia de desbordamiento a 390, 768 y 1280 píxeles; auditorías axe seleccionadas sin incidencias en ambos temas y cierre con Escape. Capturas generadas en los tres tamaños y revisión visual de escritorio. Build correcto con avisos preexistentes de tamaño y fs de face-api.js. La prueba se sincroniza con la actualización del viewport antes de medir los campos.
 
 **Límites:** API simulada, sin creación de cuentas reales ni cambios de backend, base de datos, contenedores o publicación. No se repitió la suite completa.
+
+## Intervención 62 — Guía de instalación integral con Compose y plantilla pública
+
+**Fecha:** 15/11/2026.
+
+**Requerimiento reformulado:** Disponer de una guía principal para instalar y ejecutar el sistema con docker compose up después de una configuración inicial, conservar el README previo y publicar una plantilla sin credenciales reales.
+
+**Intervención:** Se conservó íntegramente README.md como READMEOLD y se redactó un README orientado a requisitos, clonación, creación de .env, generación de claves, perfil PostgreSQL local, primer administrador, arranque, comprobaciones de salud, conservación del volumen y alternativa de conexión PostgreSQL externa. Se actualizó .env.example con campos privados vacíos, conexión externa vacía, comentarios de uso y opciones públicas coherentes con compose.yaml. No se modificaron archivos privados ni servicios.
+
+**Componentes:** README.md, READMEOLD, .env.example y ambas bitácoras.
+
+**Validación:** git hash-object de READMEOLD coincide con el objeto HEAD:README.md anterior. docker compose --env-file .env.example config --quiet aprobó utilizando exclusivamente valores sintéticos temporales en el entorno del proceso para los campos requeridos, retirados al finalizar. git diff --check sin errores. Se contrastó el procedimiento Bootstrap con Program.cs y las opciones con Compose y Dockerfiles.
+
+**Límites:** No se inició una instalación nueva ni se reconstruyeron contenedores; no se acredita ejecución integral a partir de esta validación de configuración. Sin acceso o cambios en bases de datos ni publicación. Las claves privadas permanecen vacías en la plantilla por diseño y deben completarse localmente.
+
+## 2026-11-16 — Protección de eliminación de administradores
+- Requerimiento reformulado: reservar la eliminación de cuentas con rol Administrador a la administración directa de la base de datos.
+- Intervención asistida y decisión técnica: se añadió una comprobación del rol actual almacenado antes de eliminar usuarios en `VeterinariaAPI/Endpoints/Usuarios.cs`. La API devuelve HTTP 409 con un mensaje comprensible para cualquier administrador, incluida la cuenta propia. La interfaz `frontend/src/views/AdminConfigView.jsx` oculta la acción de eliminación para esas cuentas.
+- Validación: dos pruebas de integración en `AdministratorDeletionTests.cs` aprobadas (cuenta propia y otro administrador), verificando que el registro permanece. Compilación de frontend aprobada, con advertencias de tamaño de paquetes y módulo fs de face-api.js. La ejecución Debug encontró un ejecutable en uso; se compiló Release y las pruebas se ejecutaron fuera de la restricción local tras detener un intento sin respuesta.
+- Alcance: no se modificó la base de datos ni el procedimiento de eliminación directa. Se conservaron las reglas existentes para otros roles. Esta intervención incluye la actualización de AI_LOG.md y BITACORA.md.

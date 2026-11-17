@@ -1241,3 +1241,24 @@ Resultado remoto definitivo (13/11/2026): pipeline 43464183329 completada con é
 **Validación:** Tres pruebas del componente y una prueba Chromium aprobadas. Comprobaciones a 390/768/1280 píxeles, capturas, inspección visual de escritorio, axe seleccionado en ambos temas y cierre por Escape. Compilación correcta con avisos preexistentes. No se repitió la suite completa.
 
 **Límites:** Datos y API simulados; sin altas reales, backend, base de datos, Docker o publicación.
+
+## Sesión 65 — Instrucciones de instalación y arranque único
+
+**Fecha:** 15/11/2026.
+
+**Objetivo:** Facilitar la instalación con Docker Compose, preservando la documentación previa y proporcionando una plantilla de configuración sin secretos.
+
+**Implementación:** README anterior trasladado sin cambios a READMEOLD. Nueva guía con preparación de .env, claves aleatorias, PostgreSQL local, creación inicial del administrador y docker compose up como comando de arranque conjunto, además de salud, detención y base externa. Actualización de .env.example con campos privados vacíos y valores públicos de configuración; sin modificación de .env privados o Compose.
+
+**Componentes:** README.md, READMEOLD, .env.example, AI_LOG.md y BITACORA.md.
+
+**Validación:** Identidad del README anterior comprobada por hash Git. Configuración Compose validada con la plantilla y valores sintéticos temporales, sin imprimir conexiones ni claves; diff sin errores de formato. Procedimiento contrastado con archivos de configuración y creación de administrador existentes.
+
+**Límites:** Sin arranque nuevo, reconstrucción, modificaciones en bases o publicación. La comprobación de configuración no sustituye una prueba integral de instalación.
+
+## 2026-11-16 — Restricción de eliminación de cuentas administrativas
+- Objetivo: impedir que la aplicación elimine la cuenta administrativa propia u otras cuentas con rol Administrador.
+- Implementación: bloqueo HTTP 409 en el endpoint DELETE de usuarios mediante consulta del rol en la base de datos y ocultación del botón en el listado de usuarios.
+- Componentes afectados: Usuarios.cs, AdminConfigView.jsx, AdministratorDeletionTests.cs, AI_LOG.md y BITACORA.md.
+- Validación: 2 pruebas de integración aprobadas, sin omisiones, comprobando rechazo y conservación de ambas cuentas; build de frontend aprobado con advertencias de paquetes grandes y fs de face-api.js. Debug no compiló por el ejecutable activo; la comprobación se completó con Release y ejecución de pruebas fuera de la restricción local.
+- Limitaciones: no se realizaron eliminaciones en la base real ni pruebas manuales del navegador. La eliminación directa queda bajo responsabilidad de quien administra la base de datos.

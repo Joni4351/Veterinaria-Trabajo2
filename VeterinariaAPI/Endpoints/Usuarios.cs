@@ -162,6 +162,9 @@ namespace VeterinariaAPI.Endpoints
                 var usuario = await repo.ObtenerPorIdAsync(id);
                 if (usuario is null) return Results.NotFound();
 
+                if (await db.Usuarios.AnyAsync(u => u.Id == id && u.Rol.Nombre == "Administrador"))
+                    return Results.Conflict(new { message = "Las cuentas de administrador solo pueden eliminarse directamente desde la base de datos." });
+
                 // Validación preventiva de dependencias (no permitir borrado si tiene citas a cargo)
                 var tieneCitas = await db.Citas.AnyAsync(c => c.UsuarioId == id);
                 if (tieneCitas)

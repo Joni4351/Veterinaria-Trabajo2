@@ -516,9 +516,9 @@ export const AdminConfigView = () => {
                       </td>
                       <td data-label="Acciones" style={{ textAlign: 'right' }}>
                         <button className="btn-icon" onClick={() => setEditingUser(u)} title="Editar usuario" aria-label={`Editar usuario ${u.nombreCompleto}`}><Edit2 size={16} aria-hidden="true" /></button>
-                        <button className="btn-icon danger" onClick={() => handleRequestDelete('usu', u.id, u.nombreCompleto)} title="Eliminar usuario" aria-label="Eliminar usuario">
+                        {u.rol !== 'Administrador' && <button className="btn-icon danger" onClick={() => handleRequestDelete('usu', u.id, u.nombreCompleto)} title="Eliminar usuario" aria-label="Eliminar usuario">
                           <Trash2 size={16} />
-                        </button>
+                        </button>}
                       </td>
                     </tr>
                   ))}
